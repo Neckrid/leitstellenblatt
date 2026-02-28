@@ -139,7 +139,6 @@
     .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
 
     .muted{ opacity:0.75; font-size:12px; }
-    .mini{ font-size:12px; opacity:0.85; }
 
     .grid{
       display:grid;
@@ -328,14 +327,12 @@
 
           <div style="height:10px"></div>
 
-          <!-- nur Suche -->
           <div class="row">
             <input id="inpSearch" placeholder="Suche (Name oder DN)"/>
           </div>
 
           <div style="height:10px"></div>
 
-          <!-- Pool DropZone -->
           <div class="dropZone" id="createdList" data-dropzone="1" data-patrol-id=""></div>
         </div>
       </div>
@@ -407,16 +404,10 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    /***********************
-     * CONFIG
-     ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /***********************
-     * DATA
-     ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"],
       ["10-2", "Außer Dienst"],
@@ -447,7 +438,6 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
-
     function funcodeOptionsHtml(selected){
       return FUNCODES.map(([c,d])=>{
         const label = `${c} – ${d}`;
@@ -455,15 +445,11 @@
         return `<option value="${escapeHtml(c)}" ${sel}>${escapeHtml(label)}</option>`;
       }).join("");
     }
-
     function funcodeLabel(code){
       const found = FUNCODES.find(x => x[0] === code);
       return found ? `${found[0]} – ${found[1]}` : code;
     }
 
-    /***********************
-     * DOM
-     ***********************/
     const connDot = document.getElementById("connDot");
     const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
@@ -492,29 +478,21 @@
 
     const funcodeList = document.getElementById("funcodeList");
 
-    /***********************
-     * STATE
-     ***********************/
     let patrols = [];
     let officers = [];
     let noteAutosaveTimer = null;
     let sortables = [];
 
-    /***********************
-     * UI HELPERS
-     ***********************/
     function toast(msg){
       toastEl.textContent = msg;
       toastEl.classList.add("show");
       setTimeout(() => toastEl.classList.remove("show"), 1800);
     }
-
     function setConn(ok){
       connDot.classList.toggle("on", ok);
       connDot.classList.toggle("off", !ok);
       connText.textContent = ok ? "online" : "offline";
     }
-
     function timeAgo(iso){
       try{
         const t = new Date(iso).getTime();
@@ -526,7 +504,6 @@
         return `${h} h`;
       }catch{ return "—"; }
     }
-
     function upsertLocal(arr, row){
       const i = arr.findIndex(x => x.id === row.id);
       if(i >= 0) arr[i] = row;
@@ -534,14 +511,12 @@
     }
 
     function renderAll(){
+      renderFuncodes();
       renderPatrolSelect();
       renderCreatedPool();
       renderPatrolGrid();
     }
 
-    /***********************
-     * RENDER
-     ***********************/
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
         <div class="codeRow">
@@ -572,11 +547,8 @@
 
     function renderCreatedPool(){
       const q = (inpSearch.value ?? "").trim().toLowerCase();
-
       let pool = officers.filter(o => o.patrol_id == null);
-      if(q){
-        pool = pool.filter(o => matchesSearch(o, q));
-      }
+      if(q) pool = pool.filter(o => matchesSearch(o, q));
 
       createdCount.textContent = pool.length;
 
@@ -662,10 +634,8 @@
                     </div>
                   </div>
 
+                  <!-- nur Löschen, kein Toggle mehr in der Streife -->
                   <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                    <button class="btn btnGhost" data-act="toggle" data-id="${o.id}">
-                      ${isOn ? "10-2" : "10-1"}
-                    </button>
                     <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
                   </div>
                 </div>
@@ -703,7 +673,6 @@
         btn.addEventListener("click", async ()=>{
           const act = btn.getAttribute("data-act");
           const id = Number(btn.getAttribute("data-id"));
-          if(act === "toggle") return toggleOfficerStatus(id);
           if(act === "remove") return deleteOfficer(id);
           if(act === "deletePatrol") return deletePatrol(id);
         });
@@ -757,9 +726,6 @@
       });
     }
 
-    /***********************
-     * CRUD
-     ***********************/
     async function loadAll(){
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
       if(pRes.error){ setConn(false); throw pRes.error; }
@@ -1009,9 +975,6 @@
       noteStatus.textContent = `gespeichert • ${new Date().toLocaleTimeString()}`;
     }
 
-    /***********************
-     * REALTIME
-     ***********************/
     function setupRealtime(){
       sb.channel("rt-officers")
         .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => {
@@ -1066,9 +1029,6 @@
         .subscribe();
     }
 
-    /***********************
-     * EVENTS
-     ***********************/
     btnCreateOfficer.addEventListener("click", createOfficer);
 
     btnOn.addEventListener("click", async ()=>{
@@ -1077,7 +1037,6 @@
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-
       try{
         await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-1" });
         toast("10-1 gesetzt");
@@ -1094,7 +1053,6 @@
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-
       try{
         await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-2" });
         toast("10-2 gesetzt");
@@ -1139,13 +1097,8 @@
       }catch{ return { patrol_id:"" }; }
     }
 
-    /***********************
-     * INIT
-     ***********************/
     (function init(){
-      renderFuncodes();
       setConn(false);
-
       const remembered = loadRemembered();
 
       loadAll()
