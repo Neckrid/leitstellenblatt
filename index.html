@@ -302,18 +302,6 @@
           <div class="row" style="align-items:center;">
             <span class="muted" id="meHint"></span>
           </div>
-
-          <!-- ✅ Streife (optional) entfernt -->
-
-          <div style="height:12px"></div>
-          <div class="row">
-            <button class="btn btnPrimary" id="btnOn">10-1 Im Dienst</button>
-            <button class="btn btnDanger" id="btnOff">10-2 Außer Dienst</button>
-          </div>
-
-          <div class="muted" style="margin-top:8px;">
-            Ziehen auf Streife ⇒ automatisch 10-1 • Zurück in Pool ⇒ automatisch 10-2
-          </div>
         </div>
 
         <div style="height:12px"></div>
@@ -449,11 +437,8 @@
 
     const inpName = document.getElementById("inpName");
     const inpDienstnr = document.getElementById("inpDienstnr");
-    const selPatrol = document.getElementById("selPatrol"); // (bleibt, aber wird nicht genutzt)
 
     const btnCreateOfficer = document.getElementById("btnCreateOfficer");
-    const btnOn = document.getElementById("btnOn");
-    const btnOff = document.getElementById("btnOff");
     const btnRemember = document.getElementById("btnRemember");
     const meHint = document.getElementById("meHint");
 
@@ -510,10 +495,9 @@
     }
 
     /***********************
-     * RENDER ALL  ✅ FIX
+     * RENDER ALL
      ***********************/
     function renderAll(){
-      renderPatrolSelect();
       renderCreatedPool();
       renderPatrolGrid();
     }
@@ -525,16 +509,6 @@
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
         <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
       `).join("");
-    }
-
-    function renderPatrolSelect(){
-      // Streife-Select ist aus der UI entfernt -> hier nichts zu rendern
-      if(!selPatrol) return;
-      selPatrol.innerHTML = `
-        <option value="">(keine Streife)</option>
-        ${patrols.slice().sort((a,b)=>a.id-b.id)
-          .map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`).join("")}
-      `;
     }
 
     function matchesSearch(officer, q){
@@ -779,6 +753,7 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
+        // ✅ Ohne Dienst-Buttons: neu erstellte Beamte starten standardmäßig mit 10-2 im Pool
         await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
         toast("Beamter erstellt");
       }catch(e){
@@ -786,35 +761,6 @@
         toast("Fehler: " + (e?.message || "create"));
         setConn(false);
       }
-    }
-
-    async function toggleOfficerStatus(id){
-      const o = officers.find(x => x.id === id);
-      if(!o) return;
-
-      const next = (o.status === "10-1") ? "10-2" : "10-1";
-      const optimistic = { ...o, status: next, last_seen: new Date().toISOString() };
-
-      officers = officers.map(x => x.id === id ? optimistic : x);
-      renderAll();
-
-      const res = await sb.from("officers")
-        .update({ status: next, last_seen: optimistic.last_seen })
-        .eq("id", id)
-        .select("*")
-        .single();
-
-      if(res.error){
-        console.error("toggleOfficerStatus error:", res.error);
-        toast("Fehler Status: " + (res.error.message || "unknown"));
-        officers = officers.map(x => x.id === id ? o : x);
-        renderAll();
-        return;
-      }
-
-      upsertLocal(officers, res.data);
-      renderAll();
-      toast(`Status: ${next}`);
     }
 
     async function moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, status){
@@ -997,25 +943,6 @@
      * EVENTS
      ***********************/
     btnCreateOfficer.addEventListener("click", createOfficer);
-
-    btnOn.addEventListener("click", async ()=>{
-      const name = inpName.value.trim();
-      const dienstnummer = inpDienstnr.value.trim();
-      if(!name) return toast("Name ausfüllen");
-      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{ await upsertOfficer({ name, dienstnummer, patrol_id: null, status:"10-1" }); toast("10-1 gesetzt"); }
-      catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-1")); setConn(false); }
-    });
-
-    btnOff.addEventListener("click", async ()=>{
-      const name = inpName.value.trim();
-      const dienstnummer = inpDienstnr.value.trim();
-      if(!name) return toast("Name ausfüllen");
-      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{ await upsertOfficer({ name, dienstnummer, patrol_id: null, status:"10-2" }); toast("10-2 gesetzt"); }
-      catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-2")); setConn(false); }
-    });
-
     inpSearch.addEventListener("input", renderCreatedPool);
 
     btnAddPatrol.addEventListener("click", addPatrol);
@@ -1030,7 +957,7 @@
     });
 
     btnRemember.addEventListener("click", ()=>{
-      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim(), patrol_id: "" };
+      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim() };
       localStorage.setItem("lspd_me", JSON.stringify(payload));
       meHint.textContent = "gespeichert";
       setTimeout(()=> meHint.textContent = "", 1500);
@@ -1039,12 +966,11 @@
     function loadRemembered(){
       try{
         const raw = localStorage.getItem("lspd_me");
-        if(!raw) return { patrol_id:"" };
+        if(!raw) return;
         const me = JSON.parse(raw);
         inpName.value = me.name || "";
         inpDienstnr.value = me.dienstnummer || "";
-        return { patrol_id: me.patrol_id || "" };
-      }catch{ return { patrol_id:"" }; }
+      }catch{}
     }
 
     /***********************
