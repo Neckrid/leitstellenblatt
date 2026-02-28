@@ -26,7 +26,7 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 340px 1fr 360px;
+      grid-template-columns: 420px 1fr 360px; /* ✅ links breiter */
       gap:14px;
       padding:14px;
     }
@@ -303,9 +303,7 @@
             <span class="muted" id="meHint"></span>
           </div>
 
-          <div style="height:12px"></div>
-          <label>Streife (optional)</label>
-          <select id="selPatrol"></select>
+          <!-- ✅ Streife (optional) entfernt -->
 
           <div style="height:12px"></div>
           <div class="row">
@@ -409,8 +407,8 @@
      * CONFIG
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /***********************
      * DATA
@@ -451,7 +449,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const inpName = document.getElementById("inpName");
     const inpDienstnr = document.getElementById("inpDienstnr");
-    const selPatrol = document.getElementById("selPatrol");
+    const selPatrol = document.getElementById("selPatrol"); // (bleibt, aber wird nicht genutzt)
 
     const btnCreateOfficer = document.getElementById("btnCreateOfficer");
     const btnOn = document.getElementById("btnOn");
@@ -530,6 +528,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     function renderPatrolSelect(){
+      // Streife-Select ist aus der UI entfernt -> hier nichts zu rendern
+      if(!selPatrol) return;
       selPatrol.innerHTML = `
         <option value="">(keine Streife)</option>
         ${patrols.slice().sort((a,b)=>a.id-b.id)
@@ -578,9 +578,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
               </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btnGhost" data-act="toggle" data-id="${o.id}">
-                  ${isOn ? "10-2" : "10-1"}
-                </button>
+                <!-- ✅ Toggle entfernt -->
                 <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
               </div>
             </div>
@@ -591,7 +589,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         btn.addEventListener("click", async ()=>{
           const act = btn.getAttribute("data-act");
           const id = Number(btn.getAttribute("data-id"));
-          if(act === "toggle") return toggleOfficerStatus(id);
           if(act === "remove") return deleteOfficer(id);
         });
       });
@@ -1004,20 +1001,18 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     btnOn.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
       const dienstnummer = inpDienstnr.value.trim();
-      const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{ await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-1" }); toast("10-1 gesetzt"); }
+      try{ await upsertOfficer({ name, dienstnummer, patrol_id: null, status:"10-1" }); toast("10-1 gesetzt"); }
       catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-1")); setConn(false); }
     });
 
     btnOff.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
       const dienstnummer = inpDienstnr.value.trim();
-      const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{ await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-2" }); toast("10-2 gesetzt"); }
+      try{ await upsertOfficer({ name, dienstnummer, patrol_id: null, status:"10-2" }); toast("10-2 gesetzt"); }
       catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-2")); setConn(false); }
     });
 
@@ -1035,7 +1030,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     });
 
     btnRemember.addEventListener("click", ()=>{
-      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim(), patrol_id: selPatrol.value };
+      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim(), patrol_id: "" };
       localStorage.setItem("lspd_me", JSON.stringify(payload));
       meHint.textContent = "gespeichert";
       setTimeout(()=> meHint.textContent = "", 1500);
@@ -1059,10 +1054,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       renderFuncodes();
       setConn(false);
 
-      const remembered = loadRemembered();
+      loadRemembered();
 
       loadAll()
-        .then(()=>{ if(remembered.patrol_id) selPatrol.value = remembered.patrol_id; })
         .catch((e)=>{
           console.error(e);
           toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
