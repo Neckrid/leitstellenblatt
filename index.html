@@ -296,11 +296,26 @@
 
       <div class="content">
         <div class="field">
-          <label>Beamter</label>
+          <label>Beamter erstellen</label>
           <input id="inpName" placeholder="Name (z.B. John Doe)"/>
 
           <div style="height:10px"></div>
-          <label>Streife</label>
+          <label>Dienstnummer</label>
+          <input id="inpDienstnr" placeholder="z.B. 4711"/>
+
+          <div style="height:12px"></div>
+          <div class="row">
+            <button class="btn btnPrimary" id="btnCreateOfficer">Beamter erstellen</button>
+            <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
+          </div>
+
+          <div style="height:10px"></div>
+          <div class="row" style="align-items:center;">
+            <span class="muted" id="meHint"></span>
+          </div>
+
+          <div style="height:12px"></div>
+          <label>Streife (optional)</label>
           <select id="selPatrol"></select>
 
           <div style="height:12px"></div>
@@ -309,14 +324,8 @@
             <button class="btn btnDanger" id="btnOff">10-2 Außer Dienst</button>
           </div>
 
-          <div style="height:10px"></div>
-          <div class="row">
-            <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
-            <span class="muted" id="meHint"></span>
-          </div>
-
           <div class="muted" style="margin-top:8px;">
-            “Callsign” = Streifenname (z.B. A-Adam). Kein separates Callsign mehr.
+            Erstellte Beamte erscheinen unten im Pool und können per Drag & Drop zu Streifen gezogen werden.
           </div>
         </div>
 
@@ -324,11 +333,17 @@
 
         <div class="field">
           <div class="row" style="align-items:center; justify-content:space-between;">
-            <label style="margin:0;">Beamte im Dienst</label>
-            <span class="pill"><span class="dot on"></span><span id="onCount">0</span></span>
+            <label style="margin:0;">Erstellte Beamte (Pool)</label>
+            <span class="pill"><span class="dot on"></span><span id="createdCount">0</span></span>
           </div>
           <div style="height:10px"></div>
-          <div class="list" id="onDutyList"></div>
+
+          <!-- Pool ist jetzt eine DropZone (patrol_id = null) -->
+          <div class="dropZone" id="createdList" data-dropzone="1" data-patrol-id=""></div>
+
+          <div class="muted" style="margin-top:10px;">
+            Tipp: Zieh einen Beamten aus dem Pool auf eine Streife. Zieh ihn zurück in den Pool zum Abmelden/Zuteilung entfernen.
+          </div>
         </div>
       </div>
     </section>
@@ -461,15 +476,17 @@
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
+    const inpDienstnr = document.getElementById("inpDienstnr");
     const selPatrol = document.getElementById("selPatrol");
 
+    const btnCreateOfficer = document.getElementById("btnCreateOfficer");
     const btnOn = document.getElementById("btnOn");
     const btnOff = document.getElementById("btnOff");
     const btnRemember = document.getElementById("btnRemember");
     const meHint = document.getElementById("meHint");
 
-    const onDutyList = document.getElementById("onDutyList");
-    const onCount = document.getElementById("onCount");
+    const createdList = document.getElementById("createdList");
+    const createdCount = document.getElementById("createdCount");
 
     const patrolGrid = document.getElementById("patrolGrid");
     const btnAddPatrol = document.getElementById("btnAddPatrol");
@@ -524,7 +541,7 @@
 
     function renderAll(){
       renderPatrolSelect();
-      renderOnDuty();
+      renderCreatedPool();
       renderPatrolGrid();
     }
 
@@ -552,37 +569,57 @@
       `;
     }
 
-    function renderOnDuty(){
-      const on = officers.filter(o => o.status === "10-1");
-      onCount.textContent = on.length;
+    // Pool: zeigt nur "erstellte" (existierende) Beamte OHNE Streifenzuteilung
+    function renderCreatedPool(){
+      const pool = officers.filter(o => o.patrol_id == null);
+      createdCount.textContent = pool.length;
 
-      if(on.length === 0){
-        onDutyList.innerHTML = `<div class="muted">Keine Beamten im Dienst.</div>`;
+      if(pool.length === 0){
+        createdList.innerHTML = `<div class="muted">Keine Beamten im Pool. Erstelle oben einen Beamten.</div>`;
         return;
       }
 
-      onDutyList.innerHTML = on
+      createdList.innerHTML = pool
         .slice()
         .sort((a,b)=> (a.name||"").localeCompare(b.name||""))
         .map(o => {
-          const patrol = patrols.find(p => p.id === o.patrol_id);
-          const patrolName = patrol?.name ?? "—";
-          const pCode = patrol?.funcode ?? "CODE 1";
-
+          const isOn = o.status === "10-1";
+          const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
           return `
-            <div class="item">
-              <div>
-                <strong>${escapeHtml(o.name)}</strong>
-                <div class="muted">Streife: ${escapeHtml(patrolName)}</div>
-                <div class="mini">Funkcode: ${escapeHtml(funcodeLabel(pCode))}</div>
+            <div class="officerLine" data-officer-id="${o.id}">
+              <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+                <div class="dragHandle" title="Ziehen">≡</div>
+                <div style="min-width:0;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="dot ${isOn ? "on":"off"}"></span>
+                    <strong>${escapeHtml(o.name)}</strong>
+                    <span class="pill">${escapeHtml(dn)}</span>
+                    <span class="pill">${isOn ? "10-1" : "10-2"}</span>
+                  </div>
+                  <div class="muted" style="margin-top:4px;">
+                    zuletzt: ${escapeHtml(timeAgo(o.last_seen))}
+                  </div>
+                </div>
               </div>
-              <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                <span class="pill"><span class="dot on"></span>10-1</span>
-                <span class="muted">${timeAgo(o.last_seen)}</span>
+
+              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn btnGhost" data-act="toggle" data-id="${o.id}">
+                  ${isOn ? "10-2" : "10-1"}
+                </button>
+                <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
               </div>
             </div>
           `;
         }).join("");
+
+      createdList.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const act = btn.getAttribute("data-act");
+          const id = Number(btn.getAttribute("data-id"));
+          if(act === "toggle") return toggleOfficerStatus(id);
+          if(act === "remove") return deleteOfficer(id);
+        });
+      });
     }
 
     function renderPatrolGrid(){
@@ -602,6 +639,7 @@
         const lines = list.length
           ? list.map(o => {
               const isOn = o.status === "10-1";
+              const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
               return `
                 <div class="officerLine" data-officer-id="${o.id}">
                   <div style="display:flex; gap:10px; align-items:center; min-width:0;">
@@ -610,6 +648,7 @@
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span class="dot ${isOn ? "on":"off"}"></span>
                         <strong>${escapeHtml(o.name)}</strong>
+                        <span class="pill">${escapeHtml(dn)}</span>
                         <span class="pill">${isOn ? "10-1" : "10-2"}</span>
                       </div>
                       <div class="muted" style="margin-top:4px;">
@@ -622,7 +661,7 @@
                     <button class="btn btnGhost" data-act="toggle" data-id="${o.id}">
                       ${isOn ? "10-2" : "10-1"}
                     </button>
-                    <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Entfernen</button>
+                    <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
                   </div>
                 </div>
               `;
@@ -685,7 +724,8 @@
     }
 
     function initDragAndDrop(){
-      const zones = patrolGrid.querySelectorAll(".dropZone[data-dropzone='1']");
+      // alle Zonen: Pool + jede Streife
+      const zones = document.querySelectorAll(".dropZone[data-dropzone='1']");
       zones.forEach(zone=>{
         const sortable = new Sortable(zone, {
           group: "officers-shared",
@@ -694,12 +734,17 @@
           onEnd: async (evt) => {
             const item = evt.item;
             const officerId = Number(item.getAttribute("data-officer-id"));
+
             const toZone = evt.to;
-            const toPatrolId = Number(toZone.getAttribute("data-patrol-id"));
+            const raw = toZone.getAttribute("data-patrol-id"); // "" => Pool
+            const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
 
             const o = officers.find(x => x.id === officerId);
             if(!o) return;
-            if(o.patrol_id === toPatrolId) return;
+
+            // wenn nichts geändert
+            const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
+            if(same) return;
 
             await moveOfficerToPatrol(officerId, toPatrolId);
           }
@@ -729,13 +774,20 @@
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
 
-    async function upsertOfficer({name, patrol_id, status}){
-      // Identität: Name (für RP ok). Wenn du doppelte Namen willst: sag Bescheid, dann machen wir eindeutige IDs.
-      const existing = officers.find(o => o.name === name);
+    // Beamten-Identität: bevorzugt Dienstnummer (eindeutig), fallback Name
+    function findOfficerIdentity(name, dienstnummer){
+      const dn = (dienstnummer ?? "").trim();
+      if(dn) return officers.find(o => (o.dienstnummer ?? "").toString().trim() === dn);
+      return officers.find(o => o.name === name);
+    }
+
+    async function upsertOfficer({name, dienstnummer, patrol_id, status}){
+      const existing = findOfficerIdentity(name, dienstnummer);
 
       const payload = {
         name,
-        patrol_id: patrol_id ? Number(patrol_id) : null,
+        dienstnummer: (dienstnummer ?? "").trim() || null,
+        patrol_id: (patrol_id === "" || patrol_id == null) ? null : Number(patrol_id),
         status,
         last_seen: new Date().toISOString()
       };
@@ -757,6 +809,23 @@
         upsertLocal(officers, res.data);
         renderAll();
         return res.data;
+      }
+    }
+
+    async function createOfficer(){
+      const name = inpName.value.trim();
+      const dienstnummer = inpDienstnr.value.trim();
+      if(!name) return toast("Name ausfüllen");
+      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
+
+      try{
+        // erstellt im Pool (patrol_id null), default 10-2
+        await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
+        toast("Beamter erstellt");
+      }catch(e){
+        console.error(e);
+        toast("Fehler: " + (e?.message || "create"));
+        setConn(false);
       }
     }
 
@@ -794,13 +863,13 @@
       if(!o) return;
 
       const before = { ...o };
-      const optimistic = { ...o, patrol_id: toPatrolId, last_seen: new Date().toISOString() };
+      const optimistic = { ...o, patrol_id: (toPatrolId == null ? null : Number(toPatrolId)), last_seen: new Date().toISOString() };
 
       officers = officers.map(x => x.id === officerId ? optimistic : x);
       renderAll();
 
       const res = await sb.from("officers")
-        .update({ patrol_id: toPatrolId, last_seen: optimistic.last_seen })
+        .update({ patrol_id: optimistic.patrol_id, last_seen: optimistic.last_seen })
         .eq("id", officerId)
         .select("*")
         .single();
@@ -815,7 +884,7 @@
 
       upsertLocal(officers, res.data);
       renderAll();
-      toast("Verschoben");
+      toast(toPatrolId == null ? "In Pool verschoben" : "Auf Streife verschoben");
     }
 
     async function deleteOfficer(id){
@@ -826,12 +895,12 @@
       const res = await sb.from("officers").delete().eq("id", id);
       if(res.error){
         console.error("deleteOfficer error:", res.error);
-        toast("Fehler Entfernen: " + (res.error.message || "unknown"));
+        toast("Fehler Löschen: " + (res.error.message || "unknown"));
         officers = before;
         renderAll();
         return;
       }
-      toast("Officer entfernt");
+      toast("Officer gelöscht");
     }
 
     async function addPatrol(){
@@ -991,13 +1060,17 @@
     /***********************
      * EVENTS
      ***********************/
+    btnCreateOfficer.addEventListener("click", createOfficer);
+
     btnOn.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
+      const dienstnummer = inpDienstnr.value.trim();
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
+      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        await upsertOfficer({ name, patrol_id, status:"10-1" });
+        await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-1" });
         toast("10-1 gesetzt");
       }catch(e){
         console.error(e);
@@ -1008,11 +1081,13 @@
 
     btnOff.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
+      const dienstnummer = inpDienstnr.value.trim();
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
+      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        await upsertOfficer({ name, patrol_id, status:"10-2" });
+        await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-2" });
         toast("10-2 gesetzt");
       }catch(e){
         console.error(e);
@@ -1036,7 +1111,7 @@
     });
 
     btnRemember.addEventListener("click", ()=>{
-      const payload = { name: inpName.value.trim(), patrol_id: selPatrol.value };
+      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim(), patrol_id: selPatrol.value };
       localStorage.setItem("lspd_me", JSON.stringify(payload));
       meHint.textContent = "gespeichert";
       setTimeout(()=> meHint.textContent = "", 1500);
@@ -1045,11 +1120,12 @@
     function loadRemembered(){
       try{
         const raw = localStorage.getItem("lspd_me");
-        if(!raw) return "";
+        if(!raw) return { patrol_id:"" };
         const me = JSON.parse(raw);
         inpName.value = me.name || "";
-        return me.patrol_id || "";
-      }catch{ return ""; }
+        inpDienstnr.value = me.dienstnummer || "";
+        return { patrol_id: me.patrol_id || "" };
+      }catch{ return { patrol_id:"" }; }
     }
 
     /***********************
@@ -1059,10 +1135,10 @@
       renderFuncodes();
       setConn(false);
 
-      const rememberedPatrol = loadRemembered();
+      const remembered = loadRemembered();
 
       loadAll()
-        .then(()=>{ if(rememberedPatrol) selPatrol.value = rememberedPatrol; })
+        .then(()=>{ if(remembered.patrol_id) selPatrol.value = remembered.patrol_id; })
         .catch((e)=>{
           console.error(e);
           toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
