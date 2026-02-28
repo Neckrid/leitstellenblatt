@@ -26,7 +26,7 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 420px 1fr 360px; /* ✅ links breiter */
+      grid-template-columns: 420px 1fr 360px; /* links breiter */
       gap:14px;
       padding:14px;
     }
@@ -54,22 +54,22 @@
 
     .brand{ display:flex; gap:10px; align-items:center; }
     .badge{
-    height:38px;
-    width:auto;            /* ✅ nicht fix 38px */
-    min-width:38px;
-    padding:0 12px;        /* ✅ Platz für "LSPD" */
-    border-radius:12px;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
-    border:1px solid rgba(255,255,255,0.16);
-    display:inline-flex;   /* ✅ statt grid */
-    align-items:center;
-    justify-content:center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    font-weight:800;
-    letter-spacing:0.5px;
-    white-space:nowrap;    /* ✅ kein Umbruch */
-    font-size:12px;        /* optional, wirkt oft cleaner */
-}
+      height:38px;
+      width:auto;
+      min-width:38px;
+      padding:0 12px;
+      border-radius:12px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
+      border:1px solid rgba(255,255,255,0.16);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      font-weight:800;
+      letter-spacing:0.5px;
+      white-space:nowrap;
+      font-size:12px;
+    }
     .titleWrap{ line-height:1.05; }
     .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; }
     .subtitle{ font-size:12px; opacity:0.75; }
@@ -404,7 +404,11 @@
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ✅ explizit connect + stabileres Realtime-Verhalten
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
 
     /***********************
      * DATA
@@ -471,6 +475,10 @@
     let officers = [];
     let noteAutosaveTimer = null;
     let sortables = [];
+
+    // ✅ Realtime Channels (für Resubscribe)
+    let rtChannels = [];
+    let rtResubTimer = null;
 
     /***********************
      * UI HELPERS
@@ -544,23 +552,33 @@
         .map(o => {
           const isOn = o.status === "10-1";
           const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
+
           return `
             <div class="officerLine" data-officer-id="${o.id}">
-              <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+              <div style="display:flex; gap:10px; align-items:flex-start; min-width:0; flex:1;">
                 <div class="dragHandle" title="Ziehen">≡</div>
-                <div style="min-width:0;">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+                <div style="min-width:0; flex:1;">
+                  <!-- ✅ Name-Zeile -->
+                  <div style="display:flex; align-items:center; gap:8px; min-width:0;">
                     <span class="dot ${isOn ? "on":"off"}"></span>
-                    <strong>${escapeHtml(o.name)}</strong>
-                    <span class="pill">${escapeHtml(dn)}</span>
-                    <span class="pill">${isOn ? "10-1" : "10-2"}</span>
+                    <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                      ${escapeHtml(o.name)}
+                    </strong>
+                    <!-- ✅ 10-1 anzeigen, 10-2 NICHT -->
+                    ${isOn ? `<span class="pill">10-1</span>` : ``}
                   </div>
-                  <div class="muted" style="margin-top:4px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
+
+                  <!-- ✅ Dienstnummer IMMER darunter -->
+                  <div class="muted" style="margin-top:6px;">
+                    ${escapeHtml(dn)}
+                  </div>
+
+                  <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
                 </div>
               </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <!-- ✅ Toggle entfernt -->
                 <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
               </div>
             </div>
@@ -713,7 +731,6 @@
       if(nRes.error){ setConn(false); throw nRes.error; }
       txtNotes.value = nRes.data?.content ?? "";
 
-      setConn(true);
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
@@ -735,19 +752,18 @@
       };
 
       if(existing){
-        officers = officers.map(o => o.id === existing.id ? { ...o, ...payload, id: existing.id } : o);
+        const optimistic = { ...existing, ...payload, id: existing.id };
+        officers = officers.map(o => o.id === existing.id ? optimistic : o);
         renderAll();
 
         const res = await sb.from("officers").update(payload).eq("id", existing.id).select("*").single();
         if(res.error) throw res.error;
-
         upsertLocal(officers, res.data);
         renderAll();
         return res.data;
       }else{
         const res = await sb.from("officers").insert(payload).select("*").single();
         if(res.error) throw res.error;
-
         upsertLocal(officers, res.data);
         renderAll();
         return res.data;
@@ -761,7 +777,7 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        // ✅ Ohne Dienst-Buttons: neu erstellte Beamte starten standardmäßig mit 10-2 im Pool
+        // Standard: neu im Pool mit 10-2
         await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
         toast("Beamter erstellt");
       }catch(e){
@@ -803,8 +819,8 @@
       upsertLocal(officers, res.data);
       renderAll();
 
-      if(toPatrolId == null) toast("In Pool • 10-2");
-      else toast("Auf Streife • 10-1");
+      if(toPatrolId == null) toast("In Pool");
+      else toast("Auf Streife");
     }
 
     async function deleteOfficer(id){
@@ -909,33 +925,74 @@
     }
 
     /***********************
-     * REALTIME
+     * REALTIME (LIVE UPDATES)
      ***********************/
+    function teardownRealtime(){
+      try{
+        rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} });
+      }catch{}
+      rtChannels = [];
+    }
+
+    function scheduleResubscribe(){
+      if(rtResubTimer) clearTimeout(rtResubTimer);
+      rtResubTimer = setTimeout(() => {
+        try{
+          teardownRealtime();
+          setupRealtime();
+        }catch{}
+      }, 400);
+    }
+
     function setupRealtime(){
-      sb.channel("rt-officers")
-        .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => { upsertLocal(officers, payload.new); setConn(true); renderAll(); })
-        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"officers" }, (payload) => { upsertLocal(officers, payload.new); setConn(true); renderAll(); })
-        .on("postgres_changes", { event:"DELETE", schema:"public", table:"officers" }, (payload) => {
-          const id = payload.old?.id;
-          officers = officers.filter(o => o.id !== id);
-          setConn(true);
-          renderAll();
-        })
-        .subscribe();
+      // Wichtig: connect + frische Subscriptions
+      try{ sb.realtime.connect(); }catch{}
 
-      sb.channel("rt-patrols")
-        .on("postgres_changes", { event:"INSERT", schema:"public", table:"patrols" }, (payload) => { upsertLocal(patrols, payload.new); patrols.sort((a,b)=>a.id-b.id); setConn(true); renderAll(); })
-        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"patrols" }, (payload) => { upsertLocal(patrols, payload.new); patrols.sort((a,b)=>a.id-b.id); setConn(true); renderAll(); })
-        .on("postgres_changes", { event:"DELETE", schema:"public", table:"patrols" }, (payload) => {
-          const id = payload.old?.id;
-          patrols = patrols.filter(p => p.id !== id);
-          officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-          setConn(true);
-          renderAll();
-        })
-        .subscribe();
+      teardownRealtime();
 
-      sb.channel("rt-notes")
+      const chOfficers = sb.channel("rt-officers")
+        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
+          // INSERT/UPDATE -> upsert, DELETE -> entfernen
+          if(payload.eventType === "DELETE"){
+            const id = payload.old?.id;
+            officers = officers.filter(o => o.id !== id);
+          }else{
+            upsertLocal(officers, payload.new);
+          }
+          renderAll();
+          setConn(true);
+        })
+        .subscribe((status) => {
+          // status: SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED
+          if(status === "SUBSCRIBED") setConn(true);
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            setConn(false);
+            scheduleResubscribe();
+          }
+        });
+
+      const chPatrols = sb.channel("rt-patrols")
+        .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
+          if(payload.eventType === "DELETE"){
+            const id = payload.old?.id;
+            patrols = patrols.filter(p => p.id !== id);
+            officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+          }else{
+            upsertLocal(patrols, payload.new);
+            patrols.sort((a,b)=>a.id-b.id);
+          }
+          renderAll();
+          setConn(true);
+        })
+        .subscribe((status) => {
+          if(status === "SUBSCRIBED") setConn(true);
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            setConn(false);
+            scheduleResubscribe();
+          }
+        });
+
+      const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
           const next = payload.new?.content ?? "";
           if (document.activeElement !== txtNotes) {
@@ -944,8 +1001,22 @@
           }
           setConn(true);
         })
-        .subscribe();
+        .subscribe((status) => {
+          if(status === "SUBSCRIBED") setConn(true);
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            setConn(false);
+            scheduleResubscribe();
+          }
+        });
+
+      rtChannels.push(chOfficers, chPatrols, chNotes);
     }
+
+    // Resubscribe wenn Tab wieder aktiv / Internet zurück
+    document.addEventListener("visibilitychange", () => {
+      if(!document.hidden) scheduleResubscribe();
+    });
+    window.addEventListener("online", scheduleResubscribe);
 
     /***********************
      * EVENTS
@@ -991,6 +1062,7 @@
       loadRemembered();
 
       loadAll()
+        .then(()=> setConn(true))
         .catch((e)=>{
           console.error(e);
           toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
