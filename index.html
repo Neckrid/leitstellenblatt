@@ -405,10 +405,16 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    /***********************
+     * CONFIG
+     ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    /***********************
+     * DATA
+     ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
       ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
@@ -436,6 +442,9 @@
       return found ? `${found[0]} – ${found[1]}` : code;
     }
 
+    /***********************
+     * DOM
+     ***********************/
     const connDot = document.getElementById("connDot");
     const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
@@ -464,11 +473,17 @@
 
     const funcodeList = document.getElementById("funcodeList");
 
+    /***********************
+     * STATE
+     ***********************/
     let patrols = [];
     let officers = [];
     let noteAutosaveTimer = null;
     let sortables = [];
 
+    /***********************
+     * UI HELPERS
+     ***********************/
     function toast(msg){
       toastEl.textContent = msg;
       toastEl.classList.add("show");
@@ -496,13 +511,18 @@
       else arr.push(row);
     }
 
-    function matchesSearch(officer, q){
-      if(!q) return true;
-      const name = (officer.name ?? "").toString().toLowerCase();
-      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
-      return name.includes(q) || dn.includes(q);
+    /***********************
+     * RENDER ALL  ✅ FIX
+     ***********************/
+    function renderAll(){
+      renderPatrolSelect();
+      renderCreatedPool();
+      renderPatrolGrid();
     }
 
+    /***********************
+     * RENDER
+     ***********************/
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
         <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
@@ -515,6 +535,13 @@
         ${patrols.slice().sort((a,b)=>a.id-b.id)
           .map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`).join("")}
       `;
+    }
+
+    function matchesSearch(officer, q){
+      if(!q) return true;
+      const name = (officer.name ?? "").toString().toLowerCase();
+      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
+      return name.includes(q) || dn.includes(q);
     }
 
     function renderCreatedPool(){
@@ -597,13 +624,10 @@
                         <strong>${escapeHtml(o.name)}</strong>
                         <span class="pill">${escapeHtml(dn)}</span>
                       </div>
-                      <div class="muted" style="margin-top:4px;">
-                        ${escapeHtml(funcodeLabel(code))}
-                      </div>
+                      <div class="muted" style="margin-top:4px;">${escapeHtml(funcodeLabel(code))}</div>
                     </div>
                   </div>
 
-                  <!-- NEU: Zurück in Pool statt Löschen -->
                   <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                     <button class="btn" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
                   </div>
@@ -694,6 +718,9 @@
       });
     }
 
+    /***********************
+     * CRUD
+     ***********************/
     async function loadAll(){
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
       if(pRes.error){ setConn(false); throw pRes.error; }
@@ -930,6 +957,9 @@
       noteStatus.textContent = `gespeichert • ${new Date().toLocaleTimeString()}`;
     }
 
+    /***********************
+     * REALTIME
+     ***********************/
     function setupRealtime(){
       sb.channel("rt-officers")
         .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => { upsertLocal(officers, payload.new); setConn(true); renderAll(); })
@@ -966,6 +996,9 @@
         .subscribe();
     }
 
+    /***********************
+     * EVENTS
+     ***********************/
     btnCreateOfficer.addEventListener("click", createOfficer);
 
     btnOn.addEventListener("click", async ()=>{
@@ -1019,6 +1052,9 @@
       }catch{ return { patrol_id:"" }; }
     }
 
+    /***********************
+     * INIT
+     ***********************/
     (function init(){
       renderFuncodes();
       setConn(false);
