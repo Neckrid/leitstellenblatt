@@ -146,6 +146,8 @@
     }
     .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
     .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
+    /* ✅ neuer roter Statuspunkt für "Pool" */
+    .dot.red{ background: rgba(255,70,70,0.95); box-shadow: 0 0 0 3px rgba(255,70,70,0.14), 0 0 18px rgba(255,70,70,0.30); }
 
     .muted{ opacity:0.75; font-size:12px; }
 
@@ -228,6 +230,13 @@
       border-radius:14px;
       border:1px solid rgba(255,255,255,0.10);
       background: rgba(0,0,0,0.18);
+      transition: border-color .15s ease, background .15s ease, transform .08s ease;
+    }
+    /* ✅ klickbar / selektiert */
+    .officerLine.clickable{ cursor:pointer; }
+    .officerLine.selected{
+      border-color: rgba(0,255,195,0.35);
+      background: rgba(0,255,195,0.07);
     }
 
     .dragHandle{
@@ -349,7 +358,8 @@
 
           <div style="height:12px"></div>
           <div class="row">
-            <button class="btn btnPrimary" id="btnCreateOfficer">Beamter erstellen</button>
+            <!-- ✅ umbenannt -->
+            <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
             <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
           </div>
 
@@ -364,7 +374,8 @@
         <div class="field">
           <div class="row" style="align-items:center; justify-content:space-between;">
             <label style="margin:0;">Erstellte Beamte (Pool)</label>
-            <span class="pill"><span class="dot on"></span><span id="createdCount">0</span></span>
+            <!-- ✅ Punkt in rot -->
+            <span class="pill"><span class="dot red"></span><span id="createdCount">0</span></span>
           </div>
 
           <div style="height:10px"></div>
@@ -390,7 +401,13 @@
             <div class="subtitle">Drag & Drop • Funkcode pro Streife • Live Sync</div>
           </div>
         </div>
+
         <div class="topActions">
+          <!-- ✅ neuer Zähler: im Dienst -->
+          <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
+            <span class="dot on"></span><span id="onDutyCount">0</span>
+          </span>
+
           <button class="btn" id="btnAddPatrol">+ Streife</button>
           <button class="btn btnGhost" id="btnReload">Neu laden</button>
         </div>
@@ -508,6 +525,8 @@
     const btnAddPatrol = document.getElementById("btnAddPatrol");
     const btnReload = document.getElementById("btnReload");
 
+    const onDutyCountEl = document.getElementById("onDutyCount");
+
     const txtNotes = document.getElementById("txtNotes");
     const btnSaveNote = document.getElementById("btnSaveNote");
     const noteStatus = document.getElementById("noteStatus");
@@ -523,6 +542,9 @@
 
     let sortables = [];          // officer dnd
     let patrolSortable = null;   // patrol order dnd
+
+    // ✅ Auswahl zum Bearbeiten
+    let selectedOfficerId = null;
 
     let rtChannels = [];
     let rtResubTimer = null;
@@ -609,12 +631,34 @@
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
+    function updateOnDutyCount(){
+      const cnt = officers.filter(o => o.status === "10-1").length;
+      onDutyCountEl.textContent = cnt;
+    }
+
+    function selectOfficerForEdit(officerId){
+      const o = officers.find(x => x.id === officerId);
+      if(!o) return;
+      selectedOfficerId = officerId;
+      inpName.value = o.name ?? "";
+      inpDienstnr.value = (o.dienstnummer ?? "").toString();
+      meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
+      setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
+      renderCreatedPool(); // selection highlight
+    }
+
+    function clearOfficerSelection(){
+      selectedOfficerId = null;
+      renderCreatedPool();
+    }
+
     /***********************
      * RENDER ALL
      ***********************/
     function renderAll(){
       renderCreatedPool();
       renderPatrolGrid();
+      updateOnDutyCount();
     }
 
     /***********************
@@ -655,9 +699,10 @@
       createdList.innerHTML = pool.map(o => {
         const isOn = o.status === "10-1";
         const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
+        const selected = (selectedOfficerId === o.id) ? "selected" : "";
 
         return `
-          <div class="officerLine" data-officer-id="${o.id}">
+          <div class="officerLine clickable ${selected}" data-officer-id="${o.id}" title="Klicken zum Bearbeiten">
             <div style="display:flex; gap:10px; align-items:flex-start; min-width:0; flex:1;">
               <div class="dragHandle" title="Ziehen">≡</div>
 
@@ -685,8 +730,19 @@
         `;
       }).join("");
 
+      // ✅ click-to-edit (aber nicht wenn auf Delete/Drag geklickt)
+      createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
+        line.addEventListener("click", (e)=>{
+          if(e.target.closest("button")) return;
+          if(e.target.closest(".dragHandle")) return;
+          const id = Number(line.getAttribute("data-officer-id"));
+          selectOfficerForEdit(id);
+        });
+      });
+
       createdList.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
+        btn.addEventListener("click", async (e)=>{
+          e.stopPropagation();
           const act = btn.getAttribute("data-act");
           const id = Number(btn.getAttribute("data-id"));
           if(act === "remove") return deleteOfficer(id);
@@ -751,7 +807,6 @@
         return `
           <div class="card" data-patrol-card="${p.id}">
             <div class="cardHeader">
-              <!-- ✅ Patrol Drag Handle -->
               <div class="patrolDrag" title="Streife verschieben">⋮⋮</div>
 
               <div class="patrolName">
@@ -817,7 +872,6 @@
     };
 
     function initPatrolOrderDrag(){
-      // ✅ Patrol-Order per Drag (nur localStorage, DB bleibt unverändert)
       patrolSortable = new Sortable(patrolGrid, {
         animation: 160,
         handle: ".patrolDrag",
@@ -844,7 +898,7 @@
           handle: ".dragHandle",
           ghostClass: "sortable-ghost",
           chosenClass: "sortable-chosen",
-          ...SORTABLE_SCROLL_OPTS,  // ✅ Auto-Scroll beim Drag
+          ...SORTABLE_SCROLL_OPTS,
           onEnd: async (evt) => {
             const item = evt.item;
             const officerId = Number(item.getAttribute("data-officer-id"));
@@ -857,6 +911,11 @@
 
             const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
             if(same) return;
+
+            // wenn in Pool gezogen, Auswahl entfernen (optional, aber sauber)
+            if(toPatrolId == null && selectedOfficerId === officerId){
+              selectedOfficerId = null;
+            }
 
             const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
             await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
@@ -882,7 +941,6 @@
       if(nRes.error) throw nRes.error;
       txtNotes.value = nRes.data?.content ?? "";
 
-      // Ensure patrol order includes all patrol IDs
       normalizePatrolOrder();
 
       renderAll();
@@ -895,8 +953,9 @@
       return officers.find(o => o.name === name);
     }
 
-    async function upsertOfficer({name, dienstnummer, patrol_id, status}){
-      const existing = findOfficerIdentity(name, dienstnummer);
+    async function upsertOfficer({name, dienstnummer, patrol_id, status, forceId=null}){
+      const existing = forceId ? officers.find(o => o.id === forceId) : findOfficerIdentity(name, dienstnummer);
+
       const payload = {
         name,
         dienstnummer: (dienstnummer ?? "").trim() || null,
@@ -931,11 +990,33 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
+        // ✅ Wenn ein Officer aus dem Pool ausgewählt ist -> diesen bearbeiten (Update by ID)
+        if(selectedOfficerId != null){
+          const cur = officers.find(x => x.id === selectedOfficerId);
+          if(!cur){
+            selectedOfficerId = null;
+            await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
+            toast("Beamter gespeichert");
+            return;
+          }
+          await upsertOfficer({
+            name,
+            dienstnummer,
+            patrol_id: cur.patrol_id,
+            status: cur.status,
+            forceId: selectedOfficerId
+          });
+          toast("Beamter gespeichert");
+          clearOfficerSelection();
+          return;
+        }
+
+        // sonst wie bisher anlegen/upsert (DN/Name)
         await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
-        toast("Beamter erstellt");
+        toast("Beamter gespeichert");
       }catch(e){
         console.error(e);
-        toast("Fehler: " + (e?.message || "create"));
+        toast("Fehler: " + (e?.message || "save"));
       }
     }
 
@@ -978,6 +1059,9 @@
     async function deleteOfficer(id){
       const before = officers.slice();
       officers = officers.filter(o => o.id !== id);
+
+      if(selectedOfficerId === id) selectedOfficerId = null;
+
       renderAll();
 
       const res = await sb.from("officers").delete().eq("id", id);
@@ -998,7 +1082,6 @@
       upsertLocal(patrols, res.data);
       patrols.sort((a,b)=>a.id-b.id);
 
-      // add to order + save
       const order = loadPatrolOrder();
       if(!order.includes(res.data.id)) order.push(res.data.id);
       savePatrolOrder(order);
@@ -1057,7 +1140,6 @@
       patrols = patrols.filter(p => p.id !== id);
       officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
 
-      // remove from order
       savePatrolOrder(beforeOrder.filter(x => x !== id));
 
       renderAll();
@@ -1115,6 +1197,7 @@
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             officers = officers.filter(o => o.id !== id);
+            if(selectedOfficerId === id) selectedOfficerId = null;
           }else{
             upsertLocal(officers, payload.new);
           }
@@ -1133,14 +1216,11 @@
             patrols = patrols.filter(p => p.id !== id);
             officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
 
-            // keep local order clean
             const order = loadPatrolOrder().filter(x => x !== id);
             savePatrolOrder(order);
           }else{
             upsertLocal(patrols, payload.new);
             patrols.sort((a,b)=>a.id-b.id);
-
-            // ensure new patrols appear in order list
             normalizePatrolOrder();
           }
           renderAll();
