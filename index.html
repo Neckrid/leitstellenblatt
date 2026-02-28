@@ -405,7 +405,6 @@
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
-    // ✅ explizit connect + stabileres Realtime-Verhalten
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
@@ -476,9 +475,33 @@
     let noteAutosaveTimer = null;
     let sortables = [];
 
-    // ✅ Realtime Channels (für Resubscribe)
     let rtChannels = [];
     let rtResubTimer = null;
+
+    // ✅ stabile Online-Anzeige (kein Flackern)
+    let connOfflineTimer = null;
+    function setConnStable(ok){
+      if(ok){
+        if(connOfflineTimer) clearTimeout(connOfflineTimer);
+        connDot.classList.add("on");
+        connDot.classList.remove("off");
+        connText.textContent = "online";
+        return;
+      }
+      if(connOfflineTimer) clearTimeout(connOfflineTimer);
+      connOfflineTimer = setTimeout(() => {
+        connDot.classList.remove("on");
+        connDot.classList.add("off");
+        connText.textContent = "offline";
+      }, 900);
+    }
+
+    const rtState = { officers: "INIT", patrols: "INIT", notes: "INIT" };
+    function recomputeConn(){
+      const vals = Object.values(rtState);
+      const anySubscribed = vals.some(v => v === "SUBSCRIBED");
+      setConnStable(anySubscribed);
+    }
 
     /***********************
      * UI HELPERS
@@ -487,11 +510,6 @@
       toastEl.textContent = msg;
       toastEl.classList.add("show");
       setTimeout(() => toastEl.classList.remove("show"), 1800);
-    }
-    function setConn(ok){
-      connDot.classList.toggle("on", ok);
-      connDot.classList.toggle("off", !ok);
-      connText.textContent = ok ? "online" : "offline";
     }
     function timeAgo(iso){
       try{
@@ -559,24 +577,21 @@
                 <div class="dragHandle" title="Ziehen">≡</div>
 
                 <div style="min-width:0; flex:1;">
-                  <!-- ✅ Name-Zeile -->
                   <div style="display:flex; align-items:center; gap:8px; min-width:0;">
                     <span class="dot ${isOn ? "on":"off"}"></span>
                     <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                       ${escapeHtml(o.name)}
                     </strong>
-                    <!-- ✅ 10-1 anzeigen, 10-2 NICHT -->
                     ${isOn ? `<span class="pill">10-1</span>` : ``}
                   </div>
 
-                  <!-- ✅ Dienstnummer IMMER darunter -->
                   <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  <span class="pill">${escapeHtml(dn)}</span>
+                    <span class="pill">${escapeHtml(dn)}</span>
                   </div>
 
                   <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
                 </div>
-                </div>
+              </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                 <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
@@ -720,15 +735,15 @@
      ***********************/
     async function loadAll(){
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
-      if(pRes.error){ setConn(false); throw pRes.error; }
+      if(pRes.error) throw pRes.error;
       patrols = pRes.data || [];
 
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
-      if(oRes.error){ setConn(false); throw oRes.error; }
+      if(oRes.error) throw oRes.error;
       officers = oRes.data || [];
 
       const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
-      if(nRes.error){ setConn(false); throw nRes.error; }
+      if(nRes.error) throw nRes.error;
       txtNotes.value = nRes.data?.content ?? "";
 
       renderAll();
@@ -777,13 +792,11 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        // Standard: neu im Pool mit 10-2
         await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
         toast("Beamter erstellt");
       }catch(e){
         console.error(e);
         toast("Fehler: " + (e?.message || "create"));
-        setConn(false);
       }
     }
 
@@ -925,34 +938,28 @@
     }
 
     /***********************
-     * REALTIME (LIVE UPDATES)
+     * REALTIME
      ***********************/
     function teardownRealtime(){
-      try{
-        rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} });
-      }catch{}
+      try{ rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} }); }catch{}
       rtChannels = [];
     }
 
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
       rtResubTimer = setTimeout(() => {
-        try{
-          teardownRealtime();
-          setupRealtime();
-        }catch{}
-      }, 400);
+        teardownRealtime();
+        setupRealtime();
+      }, 500);
     }
 
     function setupRealtime(){
-      // Wichtig: connect + frische Subscriptions
       try{ sb.realtime.connect(); }catch{}
 
       teardownRealtime();
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          // INSERT/UPDATE -> upsert, DELETE -> entfernen
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             officers = officers.filter(o => o.id !== id);
@@ -960,15 +967,11 @@
             upsertLocal(officers, payload.new);
           }
           renderAll();
-          setConn(true);
         })
         .subscribe((status) => {
-          // status: SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED
-          if(status === "SUBSCRIBED") setConn(true);
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            setConn(false);
-            scheduleResubscribe();
-          }
+          rtState.officers = status;
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
+          recomputeConn();
         });
 
       const chPatrols = sb.channel("rt-patrols")
@@ -982,14 +985,11 @@
             patrols.sort((a,b)=>a.id-b.id);
           }
           renderAll();
-          setConn(true);
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED") setConn(true);
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            setConn(false);
-            scheduleResubscribe();
-          }
+          rtState.patrols = status;
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
+          recomputeConn();
         });
 
       const chNotes = sb.channel("rt-notes")
@@ -999,20 +999,16 @@
             txtNotes.value = next;
             noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
           }
-          setConn(true);
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED") setConn(true);
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            setConn(false);
-            scheduleResubscribe();
-          }
+          rtState.notes = status;
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
+          recomputeConn();
         });
 
       rtChannels.push(chOfficers, chPatrols, chNotes);
     }
 
-    // Resubscribe wenn Tab wieder aktiv / Internet zurück
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden) scheduleResubscribe();
     });
@@ -1057,16 +1053,15 @@
      ***********************/
     (function init(){
       renderFuncodes();
-      setConn(false);
+      setConnStable(false);
 
       loadRemembered();
 
       loadAll()
-        .then(()=> setConn(true))
         .catch((e)=>{
           console.error(e);
           toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
-          setConn(false);
+          setConnStable(false);
         });
 
       setupRealtime();
