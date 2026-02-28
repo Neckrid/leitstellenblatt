@@ -26,7 +26,7 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 420px 1fr 360px; /* links breiter */
+      grid-template-columns: 420px 1fr 360px;
       gap:14px;
       padding:14px;
     }
@@ -109,7 +109,7 @@
       cursor:pointer;
       font-weight:700;
       letter-spacing:0.2px;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
       user-select:none;
       white-space:nowrap;
     }
@@ -170,6 +170,19 @@
       align-items:center;
       gap:10px;
     }
+
+    .patrolDrag{
+      cursor:grab;
+      user-select:none;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      font-weight:900;
+      opacity:0.9;
+      line-height:1;
+    }
+    .patrolDrag:active{ cursor:grabbing; }
 
     .patrolName{
       font-weight:900;
@@ -267,6 +280,40 @@
       font-size:13px;
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+
+    /* =========================
+       DELETE BUTTONS: NUR HOVER
+       ========================= */
+    .officerLine .btnDanger{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .officerLine:hover .btnDanger{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    .cardHeader .btnDanger{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .card:hover .cardHeader .btnDanger{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    /* Sortable states */
+    .sortable-ghost{
+      opacity:0.35;
+      filter: saturate(0.8);
+    }
+    .sortable-chosen{
+      cursor:grabbing;
+    }
 
     @media (max-width: 1200px){
       body{ overflow:auto; }
@@ -473,10 +520,36 @@
     let patrols = [];
     let officers = [];
     let noteAutosaveTimer = null;
-    let sortables = [];
+
+    let sortables = [];          // officer dnd
+    let patrolSortable = null;   // patrol order dnd
 
     let rtChannels = [];
     let rtResubTimer = null;
+
+    // Patrol Order (localStorage) — keine DB-Änderung nötig
+    const LS_PATROL_ORDER = "lspd_patrol_order";
+    function loadPatrolOrder(){
+      try{
+        const raw = localStorage.getItem(LS_PATROL_ORDER);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.map(Number).filter(n => Number.isFinite(n)) : [];
+      }catch{ return []; }
+    }
+    function savePatrolOrder(order){
+      try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{}
+    }
+    function normalizePatrolOrder(){
+      const order = loadPatrolOrder();
+      const ids = patrols.map(p => p.id);
+      const set = new Set(ids);
+      const cleaned = order.filter(id => set.has(id));
+      for(const id of ids){
+        if(!cleaned.includes(id)) cleaned.push(id);
+      }
+      savePatrolOrder(cleaned);
+      return cleaned;
+    }
 
     // ✅ stabile Online-Anzeige (kein Flackern)
     let connOfflineTimer = null;
@@ -528,6 +601,14 @@
       else arr.push(row);
     }
 
+    // Dienstnummer Sort Key
+    function dnNum(v){
+      const s = (v ?? "").toString().trim();
+      if(!s) return Number.POSITIVE_INFINITY;
+      const n = parseInt(s.replace(/[^\d]/g, ""), 10);
+      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+    }
+
     /***********************
      * RENDER ALL
      ***********************/
@@ -557,6 +638,13 @@
       let pool = officers.filter(o => o.patrol_id == null);
       if(q) pool = pool.filter(o => matchesSearch(o, q));
 
+      // ✅ Pool nach Dienstnummer sortieren (Fallback: Name)
+      pool = pool.slice().sort((a,b)=>{
+        const da = dnNum(a.dienstnummer), db = dnNum(b.dienstnummer);
+        if(da !== db) return da - db;
+        return (a.name||"").localeCompare(b.name||"");
+      });
+
       createdCount.textContent = pool.length;
 
       if(pool.length === 0){
@@ -564,41 +652,38 @@
         return;
       }
 
-      createdList.innerHTML = pool
-        .slice()
-        .sort((a,b)=> (a.name||"").localeCompare(b.name||""))
-        .map(o => {
-          const isOn = o.status === "10-1";
-          const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
+      createdList.innerHTML = pool.map(o => {
+        const isOn = o.status === "10-1";
+        const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
 
-          return `
-            <div class="officerLine" data-officer-id="${o.id}">
-              <div style="display:flex; gap:10px; align-items:flex-start; min-width:0; flex:1;">
-                <div class="dragHandle" title="Ziehen">≡</div>
+        return `
+          <div class="officerLine" data-officer-id="${o.id}">
+            <div style="display:flex; gap:10px; align-items:flex-start; min-width:0; flex:1;">
+              <div class="dragHandle" title="Ziehen">≡</div>
 
-                <div style="min-width:0; flex:1;">
-                  <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-                    <span class="dot ${isOn ? "on":"off"}"></span>
-                    <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                      ${escapeHtml(o.name)}
-                    </strong>
-                    ${isOn ? `<span class="pill">10-1</span>` : ``}
-                  </div>
-
-                  <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                    <span class="pill">${escapeHtml(dn)}</span>
-                  </div>
-
-                  <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
+              <div style="min-width:0; flex:1;">
+                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                  <span class="dot ${isOn ? "on":"off"}"></span>
+                  <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    ${escapeHtml(o.name)}
+                  </strong>
+                  ${isOn ? `<span class="pill">10-1</span>` : ``}
                 </div>
-              </div>
 
-              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
+                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <span class="pill">${escapeHtml(dn)}</span>
+                </div>
+
+                <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
               </div>
             </div>
-          `;
-        }).join("");
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
+            </div>
+          </div>
+        `;
+      }).join("");
 
       createdList.querySelectorAll("button[data-act]").forEach(btn=>{
         btn.addEventListener("click", async ()=>{
@@ -610,10 +695,25 @@
     }
 
     function renderPatrolGrid(){
+      // destroy old officer sortables
       for(const s of sortables){ try{s.destroy();}catch{} }
       sortables = [];
 
-      const sortedPatrols = patrols.slice().sort((a,b)=>a.id-b.id);
+      // destroy patrol sortable (rebuild after render)
+      if(patrolSortable){ try{patrolSortable.destroy();}catch{} patrolSortable = null; }
+
+      // ✅ Patrol Order per Drag (localStorage)
+      const order = normalizePatrolOrder();
+      const orderIndex = new Map(order.map((id,i)=>[id,i]));
+
+      const sortedPatrols = patrols
+        .slice()
+        .sort((a,b)=>{
+          const ia = orderIndex.has(a.id) ? orderIndex.get(a.id) : 1e9;
+          const ib = orderIndex.has(b.id) ? orderIndex.get(b.id) : 1e9;
+          if(ia !== ib) return ia - ib;
+          return a.id - b.id;
+        });
 
       patrolGrid.innerHTML = sortedPatrols.map(p => {
         const list = officers
@@ -651,6 +751,9 @@
         return `
           <div class="card" data-patrol-card="${p.id}">
             <div class="cardHeader">
+              <!-- ✅ Patrol Drag Handle -->
+              <div class="patrolDrag" title="Streife verschieben">⋮⋮</div>
+
               <div class="patrolName">
                 <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
               </div>
@@ -699,7 +802,37 @@
         });
       });
 
+      initPatrolOrderDrag();
       initDragAndDrop();
+    }
+
+    /***********************
+     * AUTO-SCROLL OPTIONS (für Drag)
+     ***********************/
+    const SORTABLE_SCROLL_OPTS = {
+      scroll: true,
+      scrollSensitivity: 90,
+      scrollSpeed: 18,
+      bubbleScroll: true
+    };
+
+    function initPatrolOrderDrag(){
+      // ✅ Patrol-Order per Drag (nur localStorage, DB bleibt unverändert)
+      patrolSortable = new Sortable(patrolGrid, {
+        animation: 160,
+        handle: ".patrolDrag",
+        draggable: ".card",
+        ghostClass: "sortable-ghost",
+        chosenClass: "sortable-chosen",
+        ...SORTABLE_SCROLL_OPTS,
+        onEnd: () => {
+          const ids = Array.from(patrolGrid.querySelectorAll(".card"))
+            .map(el => Number(el.getAttribute("data-patrol-card")))
+            .filter(n => Number.isFinite(n));
+          savePatrolOrder(ids);
+          toast("Streifen-Reihenfolge gespeichert");
+        }
+      });
     }
 
     function initDragAndDrop(){
@@ -709,6 +842,9 @@
           group: "officers-shared",
           animation: 150,
           handle: ".dragHandle",
+          ghostClass: "sortable-ghost",
+          chosenClass: "sortable-chosen",
+          ...SORTABLE_SCROLL_OPTS,  // ✅ Auto-Scroll beim Drag
           onEnd: async (evt) => {
             const item = evt.item;
             const officerId = Number(item.getAttribute("data-officer-id"));
@@ -745,6 +881,9 @@
       const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
       if(nRes.error) throw nRes.error;
       txtNotes.value = nRes.data?.content ?? "";
+
+      // Ensure patrol order includes all patrol IDs
+      normalizePatrolOrder();
 
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
@@ -855,8 +994,15 @@
     async function addPatrol(){
       const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "CODE 1" }).select("*").single();
       if(res.error){ console.error("addPatrol error:", res.error); toast("Fehler +Streife: " + (res.error.message || "unknown")); return; }
+
       upsertLocal(patrols, res.data);
       patrols.sort((a,b)=>a.id-b.id);
+
+      // add to order + save
+      const order = loadPatrolOrder();
+      if(!order.includes(res.data.id)) order.push(res.data.id);
+      savePatrolOrder(order);
+
       renderAll();
       toast("Streife erstellt");
     }
@@ -906,9 +1052,14 @@
     async function deletePatrol(id){
       const beforePatrols = patrols.slice();
       const beforeOfficers = officers.slice();
+      const beforeOrder = loadPatrolOrder();
 
       patrols = patrols.filter(p => p.id !== id);
       officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+
+      // remove from order
+      savePatrolOrder(beforeOrder.filter(x => x !== id));
+
       renderAll();
 
       const res = await sb.from("patrols").delete().eq("id", id);
@@ -917,6 +1068,7 @@
         toast("Fehler Löschen: " + (res.error.message || "unknown"));
         patrols = beforePatrols;
         officers = beforeOfficers;
+        savePatrolOrder(beforeOrder);
         renderAll();
         return;
       }
@@ -980,9 +1132,16 @@
             const id = payload.old?.id;
             patrols = patrols.filter(p => p.id !== id);
             officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+
+            // keep local order clean
+            const order = loadPatrolOrder().filter(x => x !== id);
+            savePatrolOrder(order);
           }else{
             upsertLocal(patrols, payload.new);
             patrols.sort((a,b)=>a.id-b.id);
+
+            // ensure new patrols appear in order list
+            normalizePatrolOrder();
           }
           renderAll();
         })
