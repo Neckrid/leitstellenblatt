@@ -570,13 +570,13 @@
                   </div>
 
                   <!-- ✅ Dienstnummer IMMER darunter -->
-                  <div class="muted" style="margin-top:6px;">
-                    ${escapeHtml(dn)}
+                  <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <span class="pill">${escapeHtml(dn)}</span>
                   </div>
 
                   <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
                 </div>
-              </div>
+                </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                 <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
