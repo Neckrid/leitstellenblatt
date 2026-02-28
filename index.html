@@ -138,17 +138,6 @@
     .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
     .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
 
-    .list{ display:flex; flex-direction:column; gap:10px; }
-    .item{
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius:16px;
-      padding:10px;
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .item strong{ font-size:14px; }
     .muted{ opacity:0.75; font-size:12px; }
     .mini{ font-size:12px; opacity:0.85; }
 
@@ -325,7 +314,7 @@
           </div>
 
           <div class="muted" style="margin-top:8px;">
-            Erstellte Beamte erscheinen unten im Pool und können per Drag & Drop zu Streifen gezogen werden.
+            Ziehen auf Streife ⇒ automatisch 10-1 • Zurück in Pool ⇒ automatisch 10-2
           </div>
         </div>
 
@@ -336,13 +325,26 @@
             <label style="margin:0;">Erstellte Beamte (Pool)</label>
             <span class="pill"><span class="dot on"></span><span id="createdCount">0</span></span>
           </div>
+
           <div style="height:10px"></div>
 
-          <!-- Pool ist jetzt eine DropZone (patrol_id = null) -->
+          <!-- Suche + Filter -->
+          <div class="row">
+            <input id="inpSearch" placeholder="Suche (Name oder DN)"/>
+            <select id="selFilterStatus" style="max-width:140px;">
+              <option value="all">Alle</option>
+              <option value="10-1">nur 10-1</option>
+              <option value="10-2">nur 10-2</option>
+            </select>
+          </div>
+
+          <div style="height:10px"></div>
+
+          <!-- Pool DropZone -->
           <div class="dropZone" id="createdList" data-dropzone="1" data-patrol-id=""></div>
 
           <div class="muted" style="margin-top:10px;">
-            Tipp: Zieh einen Beamten aus dem Pool auf eine Streife. Zieh ihn zurück in den Pool zum Abmelden/Zuteilung entfernen.
+            Tipp: Du kannst Beamte auch wieder zurück in den Pool ziehen.
           </div>
         </div>
       </div>
@@ -485,6 +487,9 @@
     const btnRemember = document.getElementById("btnRemember");
     const meHint = document.getElementById("meHint");
 
+    const inpSearch = document.getElementById("inpSearch");
+    const selFilterStatus = document.getElementById("selFilterStatus");
+
     const createdList = document.getElementById("createdList");
     const createdCount = document.getElementById("createdCount");
 
@@ -569,13 +574,30 @@
       `;
     }
 
-    // Pool: zeigt nur "erstellte" (existierende) Beamte OHNE Streifenzuteilung
+    function matchesSearch(officer, q){
+      if(!q) return true;
+      const name = (officer.name ?? "").toString().toLowerCase();
+      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
+      return name.includes(q) || dn.includes(q);
+    }
+
     function renderCreatedPool(){
-      const pool = officers.filter(o => o.patrol_id == null);
+      const q = (inpSearch.value ?? "").trim().toLowerCase();
+      const f = selFilterStatus.value;
+
+      let pool = officers.filter(o => o.patrol_id == null);
+
+      if(f !== "all"){
+        pool = pool.filter(o => o.status === f);
+      }
+      if(q){
+        pool = pool.filter(o => matchesSearch(o, q));
+      }
+
       createdCount.textContent = pool.length;
 
       if(pool.length === 0){
-        createdList.innerHTML = `<div class="muted">Keine Beamten im Pool. Erstelle oben einen Beamten.</div>`;
+        createdList.innerHTML = `<div class="muted">Keine Treffer im Pool.</div>`;
         return;
       }
 
@@ -724,7 +746,6 @@
     }
 
     function initDragAndDrop(){
-      // alle Zonen: Pool + jede Streife
       const zones = document.querySelectorAll(".dropZone[data-dropzone='1']");
       zones.forEach(zone=>{
         const sortable = new Sortable(zone, {
@@ -742,11 +763,12 @@
             const o = officers.find(x => x.id === officerId);
             if(!o) return;
 
-            // wenn nichts geändert
             const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
             if(same) return;
 
-            await moveOfficerToPatrol(officerId, toPatrolId);
+            // Auto-Status:
+            const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
+            await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
           }
         });
         sortables.push(sortable);
@@ -774,7 +796,6 @@
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
 
-    // Beamten-Identität: bevorzugt Dienstnummer (eindeutig), fallback Name
     function findOfficerIdentity(name, dienstnummer){
       const dn = (dienstnummer ?? "").trim();
       if(dn) return officers.find(o => (o.dienstnummer ?? "").toString().trim() === dn);
@@ -819,7 +840,6 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        // erstellt im Pool (patrol_id null), default 10-2
         await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
         toast("Beamter erstellt");
       }catch(e){
@@ -858,18 +878,23 @@
       toast(`Status: ${next}`);
     }
 
-    async function moveOfficerToPatrol(officerId, toPatrolId){
+    async function moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, status){
       const o = officers.find(x => x.id === officerId);
       if(!o) return;
 
       const before = { ...o };
-      const optimistic = { ...o, patrol_id: (toPatrolId == null ? null : Number(toPatrolId)), last_seen: new Date().toISOString() };
+      const optimistic = {
+        ...o,
+        patrol_id: (toPatrolId == null ? null : Number(toPatrolId)),
+        status: status ?? o.status,
+        last_seen: new Date().toISOString()
+      };
 
       officers = officers.map(x => x.id === officerId ? optimistic : x);
       renderAll();
 
       const res = await sb.from("officers")
-        .update({ patrol_id: optimistic.patrol_id, last_seen: optimistic.last_seen })
+        .update({ patrol_id: optimistic.patrol_id, status: optimistic.status, last_seen: optimistic.last_seen })
         .eq("id", officerId)
         .select("*")
         .single();
@@ -884,7 +909,9 @@
 
       upsertLocal(officers, res.data);
       renderAll();
-      toast(toPatrolId == null ? "In Pool verschoben" : "Auf Streife verschoben");
+
+      if(toPatrolId == null) toast("In Pool • 10-2");
+      else toast("Auf Streife • 10-1");
     }
 
     async function deleteOfficer(id){
@@ -1095,6 +1122,10 @@
         setConn(false);
       }
     });
+
+    // Suche/Filter live
+    inpSearch.addEventListener("input", renderCreatedPool);
+    selFilterStatus.addEventListener("change", renderCreatedPool);
 
     btnAddPatrol.addEventListener("click", addPatrol);
     btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
