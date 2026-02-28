@@ -26,7 +26,7 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 340px 1fr 360px;
+      grid-template-columns: 460px 1fr 360px; /* ✅ LEFT breiter (vorher 340px) */
       gap:14px;
       padding:14px;
     }
@@ -260,6 +260,22 @@
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
 
+    /* ✅ NEU: Name/Zeile nicht umbrechen + Ellipsis bei extrem langen Namen */
+    .nameRow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:nowrap;
+      min-width:0;
+    }
+    .nameText{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+      max-width:100%;
+    }
+
     @media (max-width: 1200px){
       body{ overflow:auto; }
       .app{ height:auto; grid-template-columns: 1fr; }
@@ -409,8 +425,8 @@
      * CONFIG
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /***********************
      * DATA
@@ -566,10 +582,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             <div class="officerLine" data-officer-id="${o.id}">
               <div style="display:flex; gap:10px; align-items:center; min-width:0;">
                 <div class="dragHandle" title="Ziehen">≡</div>
-                <div style="min-width:0;">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div style="min-width:0; flex:1;">
+                  <div class="nameRow">
                     <span class="dot ${isOn ? "on":"off"}"></span>
-                    <strong>${escapeHtml(o.name)}</strong>
+                    <strong class="nameText">${escapeHtml(o.name)}</strong>
                     <span class="pill">${escapeHtml(dn)}</span>
                     <span class="pill">${isOn ? "10-1" : "10-2"}</span>
                   </div>
@@ -618,10 +634,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 <div class="officerLine" data-officer-id="${o.id}">
                   <div style="display:flex; gap:10px; align-items:center; min-width:0;">
                     <div class="dragHandle" title="Ziehen">≡</div>
-                    <div style="min-width:0;">
-                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div style="min-width:0; flex:1;">
+                      <div class="nameRow">
                         <span class="dot ${o.status === "10-1" ? "on":"off"}"></span>
-                        <strong>${escapeHtml(o.name)}</strong>
+                        <strong class="nameText">${escapeHtml(o.name)}</strong>
                         <span class="pill">${escapeHtml(dn)}</span>
                       </div>
                       <div class="muted" style="margin-top:4px;">${escapeHtml(funcodeLabel(code))}</div>
