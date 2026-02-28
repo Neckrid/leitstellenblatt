@@ -6,6 +6,7 @@
   <title>LSPD Leitstelle – Leitstellenblatt</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
     *{ box-sizing:border-box; }
@@ -52,9 +53,7 @@
       gap:10px;
     }
 
-    .brand{
-      display:flex; gap:10px; align-items:center;
-    }
+    .brand{ display:flex; gap:10px; align-items:center; }
     .badge{
       width:38px; height:38px; border-radius:12px;
       background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
@@ -75,8 +74,6 @@
     }
 
     .row{ display:flex; gap:10px; }
-    .col{ display:flex; flex-direction:column; gap:10px; }
-
     .field{
       background: rgba(255,255,255,0.06);
       border:1px solid rgba(255,255,255,0.10);
@@ -119,9 +116,7 @@
       background: linear-gradient(135deg, rgba(255,70,180,0.18), rgba(255,70,70,0.16));
       border-color: rgba(255,70,180,0.25);
     }
-    .btnGhost{
-      background: transparent;
-    }
+    .btnGhost{ background: transparent; }
 
     .pill{
       display:inline-flex;
@@ -144,9 +139,7 @@
     .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
     .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
 
-    .list{
-      display:flex; flex-direction:column; gap:10px;
-    }
+    .list{ display:flex; flex-direction:column; gap:10px; }
     .item{
       border:1px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.05);
@@ -190,15 +183,33 @@
       align-items:center;
       gap:8px;
       min-width:0;
+      flex:1;
     }
     .patrolName input{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.3px;
+      min-width: 140px;
+    }
+
+    .funcodeSelect{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:800;
+      letter-spacing:0.2px;
+      width: 170px;
     }
 
     .cardBody{ padding:12px; }
+
+    .dropZone{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height: 52px;
+    }
+
     .officerLine{
       display:flex;
       align-items:center;
@@ -208,9 +219,29 @@
       border-radius:14px;
       border:1px solid rgba(255,255,255,0.10);
       background: rgba(0,0,0,0.18);
-      margin-bottom:10px;
     }
-    .officerLine:last-child{ margin-bottom:0; }
+
+    .dragHandle{
+      cursor:grab;
+      user-select:none;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      font-weight:900;
+      opacity:0.9;
+    }
+    .dragHandle:active{ cursor:grabbing; }
+
+    .inlineInput{
+      width:auto;
+      min-width: 92px;
+      max-width: 140px;
+      padding:7px 9px;
+      border-radius:12px;
+      font-weight:900;
+      letter-spacing:0.2px;
+    }
 
     .rightBox h3{
       margin:0 0 10px 0;
@@ -218,11 +249,7 @@
       letter-spacing:0.6px;
       opacity:0.9;
     }
-    .codeList{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
+    .codeList{ display:flex; flex-direction:column; gap:8px; }
     .codeRow{
       display:flex;
       align-items:flex-start;
@@ -236,9 +263,7 @@
     .codeRow b{ font-size:12px; white-space:nowrap; }
     .codeRow span{ font-size:12px; opacity:0.82; }
 
-    .topActions{
-      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    }
+    .topActions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 
     .toast{
       position:fixed;
@@ -255,27 +280,19 @@
       transition: opacity .2s ease, transform .2s ease;
       font-size:13px;
     }
-    .toast.show{
-      opacity:1;
-      transform:translateX(-50%) translateY(-2px);
-    }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
 
     @media (max-width: 1200px){
       body{ overflow:auto; }
-      .app{
-        height:auto;
-        grid-template-columns: 1fr;
-      }
-      .grid{
-        grid-template-columns: 1fr;
-      }
+      .app{ height:auto; grid-template-columns: 1fr; }
+      .grid{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
 
 <body>
   <div class="app">
-    <!-- LEFT: Anmeldung / Dienstliste -->
+    <!-- LEFT -->
     <section class="panel">
       <div class="panelHeader">
         <div class="brand">
@@ -291,13 +308,7 @@
       <div class="content">
         <div class="field">
           <label>Beamter</label>
-          <div class="row">
-            <input id="inpName" placeholder="Name (z.B. John Doe)"/>
-          </div>
-          <div style="height:10px"></div>
-          <div class="row">
-            <input id="inpCallsign" placeholder="Callsign (z.B. 1A-12)"/>
-          </div>
+          <input id="inpName" placeholder="Name (z.B. John Doe)"/>
 
           <div style="height:10px"></div>
           <label>Streife</label>
@@ -314,6 +325,9 @@
             <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
             <span class="muted" id="meHint"></span>
           </div>
+          <div class="muted" style="margin-top:8px;">
+            Callsign wird automatisch erzeugt (kann in der Streifenkarte inline geändert werden).
+          </div>
         </div>
 
         <div style="height:12px"></div>
@@ -329,19 +343,19 @@
       </div>
     </section>
 
-    <!-- CENTER: Streifen -->
+    <!-- CENTER -->
     <section class="panel">
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">10</div>
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
-            <div class="subtitle">Zuweisungen & Status in Echtzeit</div>
+            <div class="subtitle">Drag & Drop • Funkcode pro Streife • Live Sync</div>
           </div>
         </div>
         <div class="topActions">
           <button class="btn" id="btnAddPatrol">+ Streife</button>
-          <button class="btn btnGhost" id="btnRefresh">Aktualisieren</button>
+          <button class="btn btnGhost" id="btnRefresh" title="Nur falls du mal manuell neu laden willst">Neu laden</button>
         </div>
       </div>
 
@@ -350,7 +364,7 @@
       </div>
     </section>
 
-    <!-- RIGHT: Notizen / Codes -->
+    <!-- RIGHT -->
     <section class="panel">
       <div class="panelHeader">
         <div class="brand">
@@ -396,15 +410,14 @@
 
   <script>
     /***********************
-     * 1) CONFIG
+     * CONFIG
      ***********************/
-    const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-
+    const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
+    const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /***********************
-     * 2) UI DATA
+     * DATA
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"],
@@ -431,15 +444,22 @@
       ["CODE 99", "Möglicher Hinterhalt"]
     ];
 
+    function funcodeOptionsHtml(selected){
+      return FUNCODES.map(([c,d])=>{
+        const label = `${c} – ${d}`;
+        const sel = (selected === c) ? "selected" : "";
+        return `<option value="${escapeHtml(c)}" ${sel}>${escapeHtml(label)}</option>`;
+      }).join("");
+    }
+
     /***********************
-     * 3) DOM
+     * DOM
      ***********************/
     const connDot = document.getElementById("connDot");
     const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
-    const inpCallsign = document.getElementById("inpCallsign");
     const selPatrol = document.getElementById("selPatrol");
 
     const btnOn = document.getElementById("btnOn");
@@ -461,14 +481,15 @@
     const funcodeList = document.getElementById("funcodeList");
 
     /***********************
-     * 4) STATE
+     * STATE
      ***********************/
     let patrols = [];
     let officers = [];
     let noteAutosaveTimer = null;
+    let sortables = [];
 
     /***********************
-     * 5) HELPERS
+     * HELPERS
      ***********************/
     function toast(msg){
       toastEl.textContent = msg;
@@ -483,19 +504,9 @@
     }
 
     function escapeHtml(s){
-      return (s ?? "").replace(/[&<>"']/g, m => ({
+      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
-    }
-
-    function groupByPatrol(list){
-      const map = new Map();
-      for(const o of list){
-        const key = o.patrol_id ?? "none";
-        if(!map.has(key)) map.set(key, []);
-        map.get(key).push(o);
-      }
-      return map;
     }
 
     function timeAgo(iso){
@@ -510,8 +521,36 @@
       }catch{ return "—"; }
     }
 
+    function renderAll(){
+      renderPatrolSelect();
+      renderOnDuty();
+      renderPatrolGrid();
+    }
+
+    function upsertLocal(arr, row){
+      const i = arr.findIndex(x => x.id === row.id);
+      if(i >= 0) arr[i] = row;
+      else arr.push(row);
+    }
+
+    function makeStableCallsign(name){
+      // stabil pro Browser+Name (damit nicht bei jedem Insert was anderes entsteht)
+      const key = "lspd_callsign_" + (name || "").toLowerCase().trim();
+      const existing = localStorage.getItem(key);
+      if(existing) return existing;
+
+      const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+      const initials = parts.slice(0,2).map(p => p[0]?.toUpperCase() || "").join("") || "OF";
+      let hash = 0;
+      for(const ch of (name || "")) hash = ((hash<<5) - hash) + ch.charCodeAt(0);
+      const num = Math.abs(hash % 900) + 100; // 100-999
+      const cs = `${initials}-${num}`;
+      localStorage.setItem(key, cs);
+      return cs;
+    }
+
     /***********************
-     * 6) RENDER
+     * RENDER
      ***********************/
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
@@ -525,7 +564,12 @@
     function renderPatrolSelect(){
       selPatrol.innerHTML = `
         <option value="">(keine Streife)</option>
-        ${patrols.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`).join("")}
+        ${patrols
+          .slice()
+          .sort((a,b)=>a.id-b.id)
+          .map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`)
+          .join("")
+        }
       `;
     }
 
@@ -539,13 +583,14 @@
       }
 
       onDutyList.innerHTML = on
+        .slice()
         .sort((a,b)=> (a.callsign||"").localeCompare(b.callsign||""))
         .map(o => {
           const patrolName = patrols.find(p => p.id === o.patrol_id)?.name ?? "—";
           return `
             <div class="item">
               <div>
-                <strong>${escapeHtml(o.callsign)}</strong>
+                <strong>${escapeHtml(o.callsign || "—")}</strong>
                 <div class="mini">${escapeHtml(o.name)}</div>
                 <div class="muted">Streife: ${escapeHtml(patrolName)}</div>
               </div>
@@ -559,28 +604,45 @@
     }
 
     function renderPatrolGrid(){
-      const byPatrol = groupByPatrol(officers);
+      // Sortables sauber zerstören (sonst doppelt init)
+      for(const s of sortables){ try{s.destroy();}catch{} }
+      sortables = [];
 
-      patrolGrid.innerHTML = patrols.map(p => {
-        const list = (byPatrol.get(p.id) ?? [])
+      const sortedPatrols = patrols.slice().sort((a,b)=>a.id-b.id);
+
+      patrolGrid.innerHTML = sortedPatrols.map(p => {
+        const list = officers
+          .filter(o => o.patrol_id === p.id)
           .slice()
           .sort((a,b)=> (a.callsign||"").localeCompare(b.callsign||""));
+
+        const code = p.funcode || "CODE 1";
 
         const lines = list.length
           ? list.map(o => {
               const isOn = o.status === "10-1";
               return `
-                <div class="officerLine">
-                  <div style="min-width:0;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <span class="dot ${isOn ? "on":"off"}"></span>
-                      <strong>${escapeHtml(o.callsign)}</strong>
-                      <span class="pill">${isOn ? "10-1" : "10-2"}</span>
-                    </div>
-                    <div class="muted" style="margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                      ${escapeHtml(o.name)}
+                <div class="officerLine" data-officer-id="${o.id}">
+                  <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+                    <div class="dragHandle" title="Ziehen">≡</div>
+                    <div style="min-width:0;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="dot ${isOn ? "on":"off"}"></span>
+
+                        <input class="inlineInput"
+                               value="${escapeHtml(o.callsign || "")}"
+                               data-act="editCallsign"
+                               data-id="${o.id}"
+                               title="Callsign bearbeiten"/>
+
+                        <span class="pill">${isOn ? "10-1" : "10-2"}</span>
+                      </div>
+                      <div class="muted" style="margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        ${escapeHtml(o.name)}
+                      </div>
                     </div>
                   </div>
+
                   <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                     <button class="btn btnGhost" data-act="toggle" data-id="${o.id}">
                       ${isOn ? "10-2" : "10-1"}
@@ -590,26 +652,37 @@
                 </div>
               `;
             }).join("")
-          : `<div class="muted">Keine Zuweisungen.</div>`;
+          : `<div class="muted">Ziehe Beamte hierher…</div>`;
 
         return `
-          <div class="card">
+          <div class="card" data-patrol-card="${p.id}">
             <div class="cardHeader">
-              <div class="patrolName" style="flex:1;">
+              <div class="patrolName">
                 <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
               </div>
+
+              <select class="funcodeSelect" data-act="patrolFuncode" data-id="${p.id}" title="Funkcode wählen">
+                ${funcodeOptionsHtml(code)}
+              </select>
+
               <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen">✕</button>
             </div>
+
             <div class="cardBody">
-              ${lines}
+              <div class="pill" title="Aktueller Funkcode"><b style="opacity:.9;">Funkcode:</b> ${escapeHtml(code)}</div>
+              <div style="height:10px"></div>
+
+              <div class="dropZone" data-dropzone="1" data-patrol-id="${p.id}">
+                ${lines}
+              </div>
             </div>
           </div>
         `;
       }).join("");
 
-      // Bind actions
+      // Button actions
       patrolGrid.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async (e)=>{
+        btn.addEventListener("click", async ()=>{
           const act = btn.getAttribute("data-act");
           const id = Number(btn.getAttribute("data-id"));
           if(act === "toggle") return toggleOfficerStatus(id);
@@ -618,6 +691,7 @@
         });
       });
 
+      // Patrol rename
       patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
         inp.addEventListener("change", async ()=>{
           const id = Number(inp.getAttribute("data-id"));
@@ -625,52 +699,106 @@
           await renamePatrol(id, name);
         });
       });
+
+      // Callsign edit
+      patrolGrid.querySelectorAll("input[data-act='editCallsign']").forEach(inp=>{
+        inp.addEventListener("change", async ()=>{
+          const id = Number(inp.getAttribute("data-id"));
+          const callsign = (inp.value || "").trim();
+          await updateOfficerCallsign(id, callsign);
+        });
+      });
+
+      // Patrol funcode select
+      patrolGrid.querySelectorAll("select[data-act='patrolFuncode']").forEach(sel=>{
+        sel.addEventListener("change", async ()=>{
+          const id = Number(sel.getAttribute("data-id"));
+          const funcode = sel.value;
+          await updatePatrolFuncode(id, funcode);
+        });
+      });
+
+      // Drag&Drop init
+      initDragAndDrop();
+    }
+
+    function initDragAndDrop(){
+      const zones = patrolGrid.querySelectorAll(".dropZone[data-dropzone='1']");
+      zones.forEach(zone=>{
+        const patrolId = Number(zone.getAttribute("data-patrol-id"));
+
+        const sortable = new Sortable(zone, {
+          group: "officers-shared",
+          animation: 150,
+          handle: ".dragHandle",
+          ghostClass: "ghost",
+          onEnd: async (evt) => {
+            // nur wenn wirklich zwischen Zonen / Patrol geändert
+            const item = evt.item;
+            const officerId = Number(item.getAttribute("data-officer-id"));
+            const toZone = evt.to;
+            const toPatrolId = Number(toZone.getAttribute("data-patrol-id"));
+
+            const o = officers.find(x => x.id === officerId);
+            if(!o) return;
+
+            if(o.patrol_id === toPatrolId) return;
+
+            await moveOfficerToPatrol(officerId, toPatrolId);
+          }
+        });
+
+        sortables.push(sortable);
+      });
     }
 
     /***********************
-     * 7) SUPABASE CRUD
+     * CRUD (live/optimistic)
      ***********************/
     async function loadAll(){
-      // Patrols
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
       if(pRes.error){ setConn(false); throw pRes.error; }
       patrols = pRes.data || [];
 
-      // Officers
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
       if(oRes.error){ setConn(false); throw oRes.error; }
       officers = oRes.data || [];
 
-      // Notes
       const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
       if(nRes.error){ setConn(false); throw nRes.error; }
       txtNotes.value = nRes.data?.content ?? "";
 
       setConn(true);
-      renderPatrolSelect();
-      renderOnDuty();
-      renderPatrolGrid();
+      renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
 
-    async function upsertOfficer({name, callsign, patrol_id, status}){
-      // "name+callsign" als quasi-Identität: wenn vorhanden -> update, sonst insert
-      const existing = officers.find(o => (o.name === name && o.callsign === callsign));
+    async function upsertOfficer({name, patrol_id, status}){
+      // Identität: name (einfach, für RP ok). Wenn du doppelte Namen erwartest: sag Bescheid -> UUID pro Nutzer.
+      const existing = officers.find(o => (o.name === name));
       const payload = {
         name,
-        callsign,
+        callsign: (existing?.callsign) || makeStableCallsign(name),
         patrol_id: patrol_id ? Number(patrol_id) : null,
         status,
         last_seen: new Date().toISOString()
       };
 
       if(existing){
+        // optimistic
+        officers = officers.map(o => o.id === existing.id ? { ...o, ...payload, id: existing.id } : o);
+        renderAll();
+
         const res = await sb.from("officers").update(payload).eq("id", existing.id).select("*").single();
         if(res.error) throw res.error;
+        upsertLocal(officers, res.data);
+        renderAll();
         return res.data;
       }else{
         const res = await sb.from("officers").insert(payload).select("*").single();
         if(res.error) throw res.error;
+        upsertLocal(officers, res.data);
+        renderAll();
         return res.data;
       }
     }
@@ -678,38 +806,161 @@
     async function toggleOfficerStatus(id){
       const o = officers.find(x => x.id === id);
       if(!o) return;
+
       const next = (o.status === "10-1") ? "10-2" : "10-1";
+      const optimistic = { ...o, status: next, last_seen: new Date().toISOString() };
+
+      officers = officers.map(x => x.id === id ? optimistic : x);
+      renderAll();
+
       const res = await sb.from("officers")
-        .update({ status: next, last_seen: new Date().toISOString() })
+        .update({ status: next, last_seen: optimistic.last_seen })
         .eq("id", id)
         .select("*")
         .single();
-      if(res.error) return toast("Fehler beim Umschalten");
+
+      if(res.error){
+        toast("Fehler beim Umschalten");
+        officers = officers.map(x => x.id === id ? o : x);
+        renderAll();
+        return;
+      }
+      upsertLocal(officers, res.data);
+      renderAll();
       toast(`Status: ${next}`);
     }
 
+    async function updateOfficerCallsign(id, callsign){
+      const o = officers.find(x => x.id === id);
+      if(!o) return;
+
+      const safe = callsign || makeStableCallsign(o.name);
+      officers = officers.map(x => x.id === id ? { ...x, callsign: safe } : x);
+      renderAll();
+
+      const res = await sb.from("officers")
+        .update({ callsign: safe, last_seen: new Date().toISOString() })
+        .eq("id", id)
+        .select("*")
+        .single();
+
+      if(res.error){
+        toast("Fehler beim Callsign");
+        officers = officers.map(x => x.id === id ? o : x);
+        renderAll();
+        return;
+      }
+      upsertLocal(officers, res.data);
+      renderAll();
+      toast("Callsign gespeichert");
+    }
+
+    async function moveOfficerToPatrol(officerId, toPatrolId){
+      const o = officers.find(x => x.id === officerId);
+      if(!o) return;
+
+      const before = { ...o };
+      const optimistic = { ...o, patrol_id: toPatrolId, last_seen: new Date().toISOString() };
+      officers = officers.map(x => x.id === officerId ? optimistic : x);
+      renderAll();
+
+      const res = await sb.from("officers")
+        .update({ patrol_id: toPatrolId, last_seen: optimistic.last_seen })
+        .eq("id", officerId)
+        .select("*")
+        .single();
+
+      if(res.error){
+        toast("Fehler beim Verschieben");
+        officers = officers.map(x => x.id === officerId ? before : x);
+        renderAll();
+        return;
+      }
+      upsertLocal(officers, res.data);
+      renderAll();
+      toast("Verschoben");
+    }
+
     async function deleteOfficer(id){
+      const before = officers.slice();
+      officers = officers.filter(o => o.id !== id);
+      renderAll();
+
       const res = await sb.from("officers").delete().eq("id", id);
-      if(res.error) return toast("Fehler beim Entfernen");
+      if(res.error){
+        toast("Fehler beim Entfernen");
+        officers = before;
+        renderAll();
+        return;
+      }
       toast("Officer entfernt");
     }
 
     async function addPatrol(){
-      const res = await sb.from("patrols").insert({ name: "Neue Streife" }).select("*").single();
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "CODE 1" }).select("*").single();
       if(res.error) return toast("Fehler beim Anlegen");
+      upsertLocal(patrols, res.data);
+      patrols.sort((a,b)=>a.id-b.id);
+      renderAll();
       toast("Streife erstellt");
     }
 
     async function renamePatrol(id, name){
-      const res = await sb.from("patrols").update({ name }).eq("id", id);
-      if(res.error) return toast("Fehler beim Umbenennen");
+      const p = patrols.find(x => x.id === id);
+      if(!p) return;
+
+      const before = { ...p };
+      patrols = patrols.map(x => x.id === id ? { ...x, name } : x);
+      renderAll();
+
+      const res = await sb.from("patrols").update({ name }).eq("id", id).select("*").single();
+      if(res.error){
+        toast("Fehler beim Umbenennen");
+        patrols = patrols.map(x => x.id === id ? before : x);
+        renderAll();
+        return;
+      }
+      upsertLocal(patrols, res.data);
+      renderAll();
       toast("Streifenname gespeichert");
     }
 
+    async function updatePatrolFuncode(id, funcode){
+      const p = patrols.find(x => x.id === id);
+      if(!p) return;
+
+      const before = { ...p };
+      patrols = patrols.map(x => x.id === id ? { ...x, funcode } : x);
+      renderAll();
+
+      const res = await sb.from("patrols").update({ funcode }).eq("id", id).select("*").single();
+      if(res.error){
+        toast("Fehler beim Funkcode");
+        patrols = patrols.map(x => x.id === id ? before : x);
+        renderAll();
+        return;
+      }
+      upsertLocal(patrols, res.data);
+      renderAll();
+      toast("Funkcode gespeichert");
+    }
+
     async function deletePatrol(id){
-      // löscht nur Streife, Officers behalten (patrol_id -> null durch FK on delete set null)
+      const beforePatrols = patrols.slice();
+      const beforeOfficers = officers.slice();
+
+      patrols = patrols.filter(p => p.id !== id);
+      officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+      renderAll();
+
       const res = await sb.from("patrols").delete().eq("id", id);
-      if(res.error) return toast("Fehler beim Löschen");
+      if(res.error){
+        toast("Fehler beim Löschen");
+        patrols = beforePatrols;
+        officers = beforeOfficers;
+        renderAll();
+        return;
+      }
       toast("Streife gelöscht");
     }
 
@@ -726,43 +977,76 @@
     }
 
     /***********************
-     * 8) REALTIME
+     * REALTIME (true live)
      ***********************/
     function setupRealtime(){
+      // OFFICERS
       sb.channel("rt-officers")
-        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, payload => {
-          // Bei jeder Änderung einfach neu laden (simpel & robust)
-          loadAll().catch(()=>{});
+        .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => {
+          upsertLocal(officers, payload.new);
+          setConn(true);
+          renderAll();
+        })
+        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"officers" }, (payload) => {
+          upsertLocal(officers, payload.new);
+          setConn(true);
+          renderAll();
+        })
+        .on("postgres_changes", { event:"DELETE", schema:"public", table:"officers" }, (payload) => {
+          const id = payload.old?.id;
+          officers = officers.filter(o => o.id !== id);
+          setConn(true);
+          renderAll();
         })
         .subscribe();
 
+      // PATROLS
       sb.channel("rt-patrols")
-        .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, payload => {
-          loadAll().catch(()=>{});
+        .on("postgres_changes", { event:"INSERT", schema:"public", table:"patrols" }, (payload) => {
+          upsertLocal(patrols, payload.new);
+          patrols.sort((a,b)=>a.id-b.id);
+          setConn(true);
+          renderAll();
+        })
+        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"patrols" }, (payload) => {
+          upsertLocal(patrols, payload.new);
+          patrols.sort((a,b)=>a.id-b.id);
+          setConn(true);
+          renderAll();
+        })
+        .on("postgres_changes", { event:"DELETE", schema:"public", table:"patrols" }, (payload) => {
+          const id = payload.old?.id;
+          patrols = patrols.filter(p => p.id !== id);
+          officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+          setConn(true);
+          renderAll();
         })
         .subscribe();
 
+      // NOTES (live push)
       sb.channel("rt-notes")
-        .on("postgres_changes", { event:"*", schema:"public", table:"dispatch_notes" }, payload => {
-          // Notizen nur neu ziehen, wenn nicht gerade tippt (wir überschreiben nicht aggressiv)
-          // -> hier simpel: nicht auto-pushen, loadAll macht es beim refresh
+        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
+          const next = payload.new?.content ?? "";
+          if (document.activeElement !== txtNotes) {
+            txtNotes.value = next;
+            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+          }
+          setConn(true);
         })
         .subscribe();
     }
 
     /***********************
-     * 9) EVENTS
+     * EVENTS
      ***********************/
     btnOn.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
-      const callsign = inpCallsign.value.trim();
       const patrol_id = selPatrol.value;
+      if(!name) return toast("Name ausfüllen");
 
-      if(!name || !callsign) return toast("Name & Callsign ausfüllen");
       try{
-        await upsertOfficer({ name, callsign, patrol_id, status:"10-1" });
+        await upsertOfficer({ name, patrol_id, status:"10-1" });
         toast("10-1 gesetzt");
-        await loadAll();
       }catch(e){
         console.error(e);
         toast("Fehler: 10-1");
@@ -772,14 +1056,12 @@
 
     btnOff.addEventListener("click", async ()=>{
       const name = inpName.value.trim();
-      const callsign = inpCallsign.value.trim();
       const patrol_id = selPatrol.value;
+      if(!name) return toast("Name ausfüllen");
 
-      if(!name || !callsign) return toast("Name & Callsign ausfüllen");
       try{
-        await upsertOfficer({ name, callsign, patrol_id, status:"10-2" });
+        await upsertOfficer({ name, patrol_id, status:"10-2" });
         toast("10-2 gesetzt");
-        await loadAll();
       }catch(e){
         console.error(e);
         toast("Fehler: 10-2");
@@ -789,11 +1071,10 @@
 
     btnAddPatrol.addEventListener("click", async ()=>{
       await addPatrol();
-      await loadAll();
     });
 
     btnRefresh.addEventListener("click", async ()=>{
-      toast("Aktualisiere…");
+      toast("Neu laden…");
       await loadAll().catch(()=>{});
     });
 
@@ -805,17 +1086,11 @@
     txtNotes.addEventListener("input", ()=>{
       noteStatus.textContent = "tippt…";
       if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
-      noteAutosaveTimer = setTimeout(async ()=>{
-        await saveNote();
-      }, 900);
+      noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
     });
 
     btnRemember.addEventListener("click", ()=>{
-      const payload = {
-        name: inpName.value.trim(),
-        callsign: inpCallsign.value.trim(),
-        patrol_id: selPatrol.value
-      };
+      const payload = { name: inpName.value.trim(), patrol_id: selPatrol.value };
       localStorage.setItem("lspd_me", JSON.stringify(payload));
       meHint.textContent = "gespeichert";
       setTimeout(()=> meHint.textContent = "", 1500);
@@ -824,17 +1099,15 @@
     function loadRemembered(){
       try{
         const raw = localStorage.getItem("lspd_me");
-        if(!raw) return;
+        if(!raw) return "";
         const me = JSON.parse(raw);
         inpName.value = me.name || "";
-        inpCallsign.value = me.callsign || "";
-        // patrol_id wird nach patrol-load gesetzt
         return me.patrol_id || "";
       }catch{ return ""; }
     }
 
     /***********************
-     * 10) INIT
+     * INIT
      ***********************/
     (function init(){
       renderFuncodes();
@@ -844,13 +1117,11 @@
 
       loadAll()
         .then(()=>{
-          if(rememberedPatrol){
-            selPatrol.value = rememberedPatrol;
-          }
+          if(rememberedPatrol) selPatrol.value = rememberedPatrol;
         })
         .catch((e)=>{
           console.error(e);
-          toast("Supabase Verbindung prüfen");
+          toast("Supabase Verbindung prüfen / RLS Policies");
           setConn(false);
         });
 
