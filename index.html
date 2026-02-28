@@ -103,6 +103,7 @@
       letter-spacing:0.2px;
       transition: transform .08s ease, background .2s ease, border-color .2s ease;
       user-select:none;
+      white-space:nowrap;
     }
     .btn:hover{ background: rgba(255,255,255,0.12); }
     .btn:active{ transform: translateY(1px); }
@@ -405,32 +406,17 @@
 
   <script>
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const FUNCODES = [
-      ["10-1", "Im Dienst"],
-      ["10-2", "Außer Dienst"],
-      ["10-4", "Verstanden"],
-      ["10-5", "Verstärkung"],
-      ["10-6", "Funkspruch wiederholen"],
-      ["10-7", "Overwatch benötigt"],
-      ["10-15", "TV in Gewahrsam"],
-      ["10-33", "Verunfallt"],
-      ["10-50", "Verkehrsunfall"],
-      ["10-60", "Allgemeine Verkehrskontrolle"],
-      ["10-80", "Verfolgungsjagd"],
-      ["11-90", "Officers in Bedrängnis"],
-      ["11-99", "Officer unter Beschuss"],
-      ["10-20", "Positionsabfrage"],
-      ["10-22", "Abholung benötigt"],
-      ["CODE 0", "Kopfschmerzen"],
-      ["CODE 1", "Auf Streife"],
-      ["CODE 2", "Anfahrt ohne Sondersignal"],
-      ["CODE 3", "Anfahrt mit Sondersignal"],
-      ["CODE 4", "Einsatz Ende / unter Kontrolle"],
-      ["CODE 7", "Nicht einsatzbereit"],
-      ["CODE 99", "Möglicher Hinterhalt"]
+      ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
+      ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
+      ["10-33", "Verunfallt"], ["10-50", "Verkehrsunfall"], ["10-60", "Allgemeine Verkehrskontrolle"],
+      ["10-80", "Verfolgungsjagd"], ["11-90", "Officers in Bedrängnis"], ["11-99", "Officer unter Beschuss"],
+      ["10-20", "Positionsabfrage"], ["10-22", "Abholung benötigt"], ["CODE 0", "Kopfschmerzen"],
+      ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
+      ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
     ];
 
     function escapeHtml(s){
@@ -510,39 +496,25 @@
       else arr.push(row);
     }
 
-    function renderAll(){
-      renderFuncodes();
-      renderPatrolSelect();
-      renderCreatedPool();
-      renderPatrolGrid();
+    function matchesSearch(officer, q){
+      if(!q) return true;
+      const name = (officer.name ?? "").toString().toLowerCase();
+      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
+      return name.includes(q) || dn.includes(q);
     }
 
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
-        <div class="codeRow">
-          <b>${escapeHtml(c)}</b>
-          <span>${escapeHtml(d)}</span>
-        </div>
+        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
       `).join("");
     }
 
     function renderPatrolSelect(){
       selPatrol.innerHTML = `
         <option value="">(keine Streife)</option>
-        ${patrols
-          .slice()
-          .sort((a,b)=>a.id-b.id)
-          .map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`)
-          .join("")
-        }
+        ${patrols.slice().sort((a,b)=>a.id-b.id)
+          .map(p => `<option value="${p.id}">${escapeHtml(p.name)} (#${p.id})</option>`).join("")}
       `;
-    }
-
-    function matchesSearch(officer, q){
-      if(!q) return true;
-      const name = (officer.name ?? "").toString().toLowerCase();
-      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
-      return name.includes(q) || dn.includes(q);
     }
 
     function renderCreatedPool(){
@@ -574,9 +546,7 @@
                     <span class="pill">${escapeHtml(dn)}</span>
                     <span class="pill">${isOn ? "10-1" : "10-2"}</span>
                   </div>
-                  <div class="muted" style="margin-top:4px;">
-                    zuletzt: ${escapeHtml(timeAgo(o.last_seen))}
-                  </div>
+                  <div class="muted" style="margin-top:4px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
                 </div>
               </div>
 
@@ -616,7 +586,6 @@
 
         const lines = list.length
           ? list.map(o => {
-              const isOn = o.status === "10-1";
               const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
               return `
                 <div class="officerLine" data-officer-id="${o.id}">
@@ -624,7 +593,7 @@
                     <div class="dragHandle" title="Ziehen">≡</div>
                     <div style="min-width:0;">
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <span class="dot ${isOn ? "on":"off"}"></span>
+                        <span class="dot ${o.status === "10-1" ? "on":"off"}"></span>
                         <strong>${escapeHtml(o.name)}</strong>
                         <span class="pill">${escapeHtml(dn)}</span>
                       </div>
@@ -634,9 +603,9 @@
                     </div>
                   </div>
 
-                  <!-- nur Löschen, kein Toggle mehr in der Streife -->
+                  <!-- NEU: Zurück in Pool statt Löschen -->
                   <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                    <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
+                    <button class="btn" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
                   </div>
                 </div>
               `;
@@ -673,8 +642,8 @@
         btn.addEventListener("click", async ()=>{
           const act = btn.getAttribute("data-act");
           const id = Number(btn.getAttribute("data-id"));
-          if(act === "remove") return deleteOfficer(id);
           if(act === "deletePatrol") return deletePatrol(id);
+          if(act === "backToPool") return moveOfficerToPatrolAndMaybeStatus(id, null, "10-2");
         });
       });
 
@@ -707,7 +676,6 @@
           onEnd: async (evt) => {
             const item = evt.item;
             const officerId = Number(item.getAttribute("data-officer-id"));
-
             const toZone = evt.to;
             const raw = toZone.getAttribute("data-patrol-id"); // "" => Pool
             const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
@@ -752,7 +720,6 @@
 
     async function upsertOfficer({name, dienstnummer, patrol_id, status}){
       const existing = findOfficerIdentity(name, dienstnummer);
-
       const payload = {
         name,
         dienstnummer: (dienstnummer ?? "").trim() || null,
@@ -879,18 +846,8 @@
     }
 
     async function addPatrol(){
-      const res = await sb
-        .from("patrols")
-        .insert({ name: "Neue Streife", funcode: "CODE 1" })
-        .select("*")
-        .single();
-
-      if(res.error){
-        console.error("addPatrol error:", res.error);
-        toast("Fehler +Streife: " + (res.error.message || "unknown"));
-        return;
-      }
-
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "CODE 1" }).select("*").single();
+      if(res.error){ console.error("addPatrol error:", res.error); toast("Fehler +Streife: " + (res.error.message || "unknown")); return; }
       upsertLocal(patrols, res.data);
       patrols.sort((a,b)=>a.id-b.id);
       renderAll();
@@ -913,7 +870,6 @@
         renderAll();
         return;
       }
-
       upsertLocal(patrols, res.data);
       renderAll();
       toast("Streifenname gespeichert");
@@ -935,7 +891,6 @@
         renderAll();
         return;
       }
-
       upsertLocal(patrols, res.data);
       renderAll();
       toast("Funkcode gespeichert");
@@ -977,16 +932,8 @@
 
     function setupRealtime(){
       sb.channel("rt-officers")
-        .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => {
-          upsertLocal(officers, payload.new);
-          setConn(true);
-          renderAll();
-        })
-        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"officers" }, (payload) => {
-          upsertLocal(officers, payload.new);
-          setConn(true);
-          renderAll();
-        })
+        .on("postgres_changes", { event:"INSERT", schema:"public", table:"officers" }, (payload) => { upsertLocal(officers, payload.new); setConn(true); renderAll(); })
+        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"officers" }, (payload) => { upsertLocal(officers, payload.new); setConn(true); renderAll(); })
         .on("postgres_changes", { event:"DELETE", schema:"public", table:"officers" }, (payload) => {
           const id = payload.old?.id;
           officers = officers.filter(o => o.id !== id);
@@ -996,18 +943,8 @@
         .subscribe();
 
       sb.channel("rt-patrols")
-        .on("postgres_changes", { event:"INSERT", schema:"public", table:"patrols" }, (payload) => {
-          upsertLocal(patrols, payload.new);
-          patrols.sort((a,b)=>a.id-b.id);
-          setConn(true);
-          renderAll();
-        })
-        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"patrols" }, (payload) => {
-          upsertLocal(patrols, payload.new);
-          patrols.sort((a,b)=>a.id-b.id);
-          setConn(true);
-          renderAll();
-        })
+        .on("postgres_changes", { event:"INSERT", schema:"public", table:"patrols" }, (payload) => { upsertLocal(patrols, payload.new); patrols.sort((a,b)=>a.id-b.id); setConn(true); renderAll(); })
+        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"patrols" }, (payload) => { upsertLocal(patrols, payload.new); patrols.sort((a,b)=>a.id-b.id); setConn(true); renderAll(); })
         .on("postgres_changes", { event:"DELETE", schema:"public", table:"patrols" }, (payload) => {
           const id = payload.old?.id;
           patrols = patrols.filter(p => p.id !== id);
@@ -1037,14 +974,8 @@
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{
-        await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-1" });
-        toast("10-1 gesetzt");
-      }catch(e){
-        console.error(e);
-        toast("Fehler: " + (e?.message || "10-1"));
-        setConn(false);
-      }
+      try{ await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-1" }); toast("10-1 gesetzt"); }
+      catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-1")); setConn(false); }
     });
 
     btnOff.addEventListener("click", async ()=>{
@@ -1053,14 +984,8 @@
       const patrol_id = selPatrol.value;
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
-      try{
-        await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-2" });
-        toast("10-2 gesetzt");
-      }catch(e){
-        console.error(e);
-        toast("Fehler: " + (e?.message || "10-2"));
-        setConn(false);
-      }
+      try{ await upsertOfficer({ name, dienstnummer, patrol_id, status:"10-2" }); toast("10-2 gesetzt"); }
+      catch(e){ console.error(e); toast("Fehler: " + (e?.message || "10-2")); setConn(false); }
     });
 
     inpSearch.addEventListener("input", renderCreatedPool);
@@ -1068,10 +993,7 @@
     btnAddPatrol.addEventListener("click", addPatrol);
     btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
 
-    btnSaveNote.addEventListener("click", async ()=>{
-      await saveNote();
-      toast("Notiz gespeichert");
-    });
+    btnSaveNote.addEventListener("click", async ()=>{ await saveNote(); toast("Notiz gespeichert"); });
 
     txtNotes.addEventListener("input", ()=>{
       noteStatus.textContent = "tippt…";
@@ -1098,7 +1020,9 @@
     }
 
     (function init(){
+      renderFuncodes();
       setConn(false);
+
       const remembered = loadRemembered();
 
       loadAll()
