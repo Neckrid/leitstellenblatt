@@ -203,12 +203,12 @@
       min-width: 140px;
     }
 
-    .funcodeSelect{
+    .statusSelect{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.2px;
-      width: 190px;
+      width: 220px;
     }
 
     .cardBody{ padding:12px; }
@@ -386,7 +386,7 @@
           <div class="badge">10</div>
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
-            <div class="subtitle">Drag & Drop • Funkcode pro Streife • Live Sync</div>
+            <div class="subtitle">Drag & Drop • Status pro Streife • Live Sync</div>
           </div>
         </div>
 
@@ -427,6 +427,7 @@
 
         <div style="height:12px"></div>
 
+        <!-- ✅ Funkcodes bleiben rechts zur Info -->
         <div class="field rightBox">
           <h3>Funcodes</h3>
           <div class="codeList" id="funcodeList"></div>
@@ -461,7 +462,7 @@
     });
 
     /***********************
-     * DATA
+     * INFO FUNKCODES (rechts nur Anzeige)
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
@@ -473,21 +474,31 @@
       ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
     ];
 
+    /***********************
+     * ✅ STATUS pro Streife (NEU)
+     ***********************/
+    const PATROL_STATUSES = [
+      "Auf Streife",
+      "Stand-By",
+      "Einsatz",
+      "Pause",
+      "Im PD",
+      "Ausbildung"
+    ];
+
     function escapeHtml(s){
       return (s ?? "").toString().replace(/[&<>"']/g, m => ({
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
-    function funcodeOptionsHtml(selected){
-      return FUNCODES.map(([c,d])=>{
-        const label = `${c} – ${d}`;
-        const sel = (selected === c) ? "selected" : "";
-        return `<option value="${escapeHtml(c)}" ${sel}>${escapeHtml(label)}</option>`;
+    function statusOptionsHtml(selected){
+      return PATROL_STATUSES.map(v=>{
+        const sel = (selected === v) ? "selected" : "";
+        return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
       }).join("");
     }
-    function funcodeLabel(code){
-      const found = FUNCODES.find(x => x[0] === code);
-      return found ? `${found[0]} – ${found[1]}` : code;
+    function statusLabel(v){
+      return v || "Auf Streife";
     }
 
     /***********************
@@ -630,7 +641,6 @@
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
     }
-
     function clearOfficerSelection(){
       selectedOfficerId = null;
       renderCreatedPool();
@@ -713,7 +723,7 @@
         `;
       }).join("");
 
-      // ✅ Toggle Auswahl: gleiches Element nochmal klicken -> Auswahl aufheben
+      // Toggle Auswahl
       createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
         line.addEventListener("click", (e)=>{
           if(e.target.closest("button")) return;
@@ -757,7 +767,8 @@
         const list = officers.filter(o => o.patrol_id === p.id).slice()
           .sort((a,b)=> (a.name||"").localeCompare(b.name||""));
 
-        const code = p.funcode || "CODE 1";
+        // ✅ nutzt weiter p.funcode in DB, aber als "Status"
+        const status = p.funcode || "Auf Streife";
 
         const lines = list.length ? list.map(o => {
           const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
@@ -771,7 +782,7 @@
                     <strong>${escapeHtml(o.name)}</strong>
                     <span class="pill">${escapeHtml(dn)}</span>
                   </div>
-                  <div class="muted" style="margin-top:4px;">${escapeHtml(funcodeLabel(code))}</div>
+                  <div class="muted" style="margin-top:4px;">Status: ${escapeHtml(statusLabel(status))}</div>
                 </div>
               </div>
 
@@ -791,15 +802,18 @@
                 <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
               </div>
 
-              <select class="funcodeSelect" data-act="patrolFuncode" data-id="${p.id}" title="Funkcode wählen">
-                ${funcodeOptionsHtml(code)}
+              <!-- ✅ Funkcode -> Status -->
+              <select class="statusSelect" data-act="patrolStatus" data-id="${p.id}" title="Status wählen">
+                ${statusOptionsHtml(status)}
               </select>
 
               <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen">✕</button>
             </div>
 
             <div class="cardBody">
-              <div class="pill" title="Aktueller Funkcode"><b style="opacity:.9;">Funkcode:</b> ${escapeHtml(funcodeLabel(code))}</div>
+              <div class="pill" title="Aktueller Status">
+                <b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(status))}
+              </div>
               <div style="height:10px"></div>
 
               <div class="dropZone" data-dropzone="1" data-patrol-id="${p.id}">
@@ -827,11 +841,12 @@
         });
       });
 
-      patrolGrid.querySelectorAll("select[data-act='patrolFuncode']").forEach(sel=>{
+      // ✅ Status wählen
+      patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
         sel.addEventListener("change", async ()=>{
           const id = Number(sel.getAttribute("data-id"));
-          const funcode = sel.value;
-          await updatePatrolFuncode(id, funcode);
+          const status = sel.value;
+          await updatePatrolStatus(id, status);
         });
       });
 
@@ -839,6 +854,9 @@
       initDragAndDrop();
     }
 
+    /***********************
+     * AUTO-SCROLL OPTIONS (für Drag)
+     ***********************/
     const SORTABLE_SCROLL_OPTS = {
       scroll: true,
       scrollSensitivity: 90,
@@ -1046,7 +1064,8 @@
     }
 
     async function addPatrol(){
-      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "CODE 1" }).select("*").single();
+      // ✅ Default-Status in funcode speichern (DB bleibt gleich)
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
       if(res.error){ console.error("addPatrol error:", res.error); toast("Fehler +Streife: " + (res.error.message || "unknown")); return; }
 
       upsertLocal(patrols, res.data);
@@ -1081,25 +1100,29 @@
       toast("Streifenname gespeichert");
     }
 
-    async function updatePatrolFuncode(id, funcode){
+    // ✅ Status speichern (nutzt patrols.funcode Feld)
+    async function updatePatrolStatus(id, status){
+      // nur erlaubte Werte (falls DB noch "CODE 1" o.ä. enthält, lassen wir Anzeige trotzdem zu)
+      const safe = PATROL_STATUSES.includes(status) ? status : "Auf Streife";
+
       const p = patrols.find(x => x.id === id);
       if(!p) return;
 
       const before = { ...p };
-      patrols = patrols.map(x => x.id === id ? { ...x, funcode } : x);
+      patrols = patrols.map(x => x.id === id ? { ...x, funcode: safe } : x);
       renderAll();
 
-      const res = await sb.from("patrols").update({ funcode }).eq("id", id).select("*").single();
+      const res = await sb.from("patrols").update({ funcode: safe }).eq("id", id).select("*").single();
       if(res.error){
-        console.error("updatePatrolFuncode error:", res.error);
-        toast("Fehler Funkcode: " + (res.error.message || "unknown"));
+        console.error("updatePatrolStatus error:", res.error);
+        toast("Fehler Status: " + (res.error.message || "unknown"));
         patrols = patrols.map(x => x.id === id ? before : x);
         renderAll();
         return;
       }
       upsertLocal(patrols, res.data);
       renderAll();
-      toast("Funkcode gespeichert");
+      toast("Status gespeichert");
     }
 
     async function deletePatrol(id){
