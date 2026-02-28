@@ -328,24 +328,15 @@
 
           <div style="height:10px"></div>
 
-          <!-- Suche + Filter -->
+          <!-- nur Suche -->
           <div class="row">
             <input id="inpSearch" placeholder="Suche (Name oder DN)"/>
-            <select id="selFilterStatus" style="max-width:140px;">
-              <option value="all">Alle</option>
-              <option value="10-1">nur 10-1</option>
-              <option value="10-2">nur 10-2</option>
-            </select>
           </div>
 
           <div style="height:10px"></div>
 
           <!-- Pool DropZone -->
           <div class="dropZone" id="createdList" data-dropzone="1" data-patrol-id=""></div>
-
-          <div class="muted" style="margin-top:10px;">
-            Tipp: Du kannst Beamte auch wieder zurück in den Pool ziehen.
-          </div>
         </div>
       </div>
     </section>
@@ -488,8 +479,6 @@
     const meHint = document.getElementById("meHint");
 
     const inpSearch = document.getElementById("inpSearch");
-    const selFilterStatus = document.getElementById("selFilterStatus");
-
     const createdList = document.getElementById("createdList");
     const createdCount = document.getElementById("createdCount");
 
@@ -583,13 +572,8 @@
 
     function renderCreatedPool(){
       const q = (inpSearch.value ?? "").trim().toLowerCase();
-      const f = selFilterStatus.value;
 
       let pool = officers.filter(o => o.patrol_id == null);
-
-      if(f !== "all"){
-        pool = pool.filter(o => o.status === f);
-      }
       if(q){
         pool = pool.filter(o => matchesSearch(o, q));
       }
@@ -671,7 +655,6 @@
                         <span class="dot ${isOn ? "on":"off"}"></span>
                         <strong>${escapeHtml(o.name)}</strong>
                         <span class="pill">${escapeHtml(dn)}</span>
-                        <span class="pill">${isOn ? "10-1" : "10-2"}</span>
                       </div>
                       <div class="muted" style="margin-top:4px;">
                         ${escapeHtml(funcodeLabel(code))}
@@ -766,7 +749,6 @@
             const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
             if(same) return;
 
-            // Auto-Status:
             const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
             await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
           }
@@ -776,7 +758,7 @@
     }
 
     /***********************
-     * CRUD (live/optimistic)
+     * CRUD
      ***********************/
     async function loadAll(){
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
@@ -1028,7 +1010,7 @@
     }
 
     /***********************
-     * REALTIME (true live)
+     * REALTIME
      ***********************/
     function setupRealtime(){
       sb.channel("rt-officers")
@@ -1123,9 +1105,7 @@
       }
     });
 
-    // Suche/Filter live
     inpSearch.addEventListener("input", renderCreatedPool);
-    selFilterStatus.addEventListener("change", renderCreatedPool);
 
     btnAddPatrol.addEventListener("click", addPatrol);
     btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
