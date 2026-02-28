@@ -1,1 +1,873 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LSPD Leitstelle – Dashboard</title>
 
+  <!-- Optional: Supabase (falls du Login/Session später anbinden willst) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{ box-sizing:border-box; }
+
+    :root{
+      --bg1: rgba(0,255,195,0.10);
+      --bg2: rgba(255,70,180,0.07);
+      --bg3: rgba(0,140,255,0.08);
+
+      --card: rgba(20,22,28,0.58);
+      --card2: rgba(20,22,28,0.45);
+      --stroke: rgba(255,255,255,0.10);
+      --stroke2: rgba(255,255,255,0.16);
+
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.68);
+
+      --good: rgba(0,255,195,0.95);
+      --warn: rgba(255,196,0,0.95);
+      --bad: rgba(255,90,120,0.95);
+
+      --shadow: 0 20px 60px rgba(0,0,0,0.45);
+      --shadow2: 0 12px 30px rgba(0,0,0,0.35);
+
+      --r: 18px;
+      --r2: 14px;
+
+      --glow: 0 0 22px rgba(0,255,195,0.18);
+      --glow2: 0 0 24px rgba(0,140,255,0.15);
+      --glow3: 0 0 26px rgba(255,70,180,0.14);
+    }
+
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      min-height:100vh;
+      overflow-x:hidden;
+
+      background:
+        radial-gradient(1200px 700px at 12% 18%, var(--bg1), transparent 60%),
+        radial-gradient(900px 650px at 88% 72%, var(--bg2), transparent 62%),
+        radial-gradient(760px 520px at 72% 20%, var(--bg3), transparent 60%),
+        linear-gradient(180deg, #0b0f14 0%, #070a0f 100%);
+    }
+
+    /* subtle noise */
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:0.06;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    .wrap{
+      width:min(1200px, 92vw);
+      margin: 22px auto 36px;
+    }
+
+    /* TOPBAR */
+    .topbar{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+
+      padding: 14px 16px;
+      border-radius: var(--r);
+      background: linear-gradient(180deg, var(--card), rgba(20,22,28,0.40));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 240px;
+    }
+
+    .badge{
+      width:42px;
+      height:42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(0,255,195,0.18), rgba(0,140,255,0.14));
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: var(--glow);
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      letter-spacing:0.5px;
+    }
+
+    .brand h1{
+      font-size: 16px;
+      margin:0;
+      line-height:1.1;
+    }
+    .brand .sub{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+
+    .centerInfo{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .pill{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--good);
+      box-shadow: 0 0 12px rgba(0,255,195,0.45);
+    }
+    .dot.warn{ background: var(--warn); box-shadow: 0 0 12px rgba(255,196,0,0.35); }
+    .dot.bad{ background: var(--bad); box-shadow: 0 0 12px rgba(255,90,120,0.35); }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      min-width: 240px;
+    }
+
+    .btn{
+      cursor:pointer;
+      user-select:none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-weight:700;
+      font-size: 13px;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: var(--glow2);
+    }
+    .btn:active{ transform: translateY(0px) scale(0.99); }
+
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(0,255,195,0.16), rgba(0,140,255,0.12));
+      border-color: rgba(0,255,195,0.22);
+      box-shadow: var(--glow);
+    }
+    .btn.danger{
+      background: linear-gradient(135deg, rgba(255,90,120,0.16), rgba(255,70,180,0.10));
+      border-color: rgba(255,90,120,0.22);
+      box-shadow: var(--glow3);
+    }
+
+    /* GRID */
+    .grid{
+      margin-top: 16px;
+      display:grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap:16px;
+    }
+
+    .card{
+      border-radius: var(--r);
+      background: linear-gradient(180deg, var(--card), rgba(20,22,28,0.42));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(14px);
+      padding: 14px;
+    }
+
+    .cardHeader{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 12px;
+    }
+
+    .cardHeader h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .cardHeader p{
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* QUICK ACTIONS */
+    .tiles{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+    }
+
+    .tile{
+      position:relative;
+      border-radius: var(--r2);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.10);
+      padding: 12px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+      overflow:hidden;
+      min-height: 92px;
+    }
+
+    .tile:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: var(--glow2);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+    }
+    .tile:active{ transform: translateY(-1px); }
+
+    .tile .title{
+      font-weight:800;
+      font-size: 13px;
+      margin: 0 0 6px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .tile .desc{
+      margin:0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height:1.25;
+    }
+
+    .icon{
+      width:28px;height:28px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      box-shadow: 0 0 16px rgba(255,255,255,0.06);
+    }
+
+    .tile:before{
+      content:"";
+      position:absolute;
+      inset:-80px -80px auto auto;
+      width:160px;
+      height:160px;
+      border-radius: 50%;
+      filter: blur(12px);
+      opacity: 0.35;
+      background: radial-gradient(circle at 30% 30%, rgba(0,255,195,0.55), transparent 60%);
+      pointer-events:none;
+      transform: rotate(18deg);
+    }
+    .tile.blue:before{ background: radial-gradient(circle at 30% 30%, rgba(0,140,255,0.55), transparent 60%); }
+    .tile.pink:before{ background: radial-gradient(circle at 30% 30%, rgba(255,70,180,0.55), transparent 60%); }
+    .tile.red:before{ background: radial-gradient(circle at 30% 30%, rgba(255,90,120,0.60), transparent 60%); }
+    .tile.yellow:before{ background: radial-gradient(circle at 30% 30%, rgba(255,196,0,0.55), transparent 60%); }
+
+    /* RIGHT SIDEBAR */
+    .sideStack{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .kpi{
+      border-radius: var(--r2);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+    }
+    .kpi .label{ font-size: 11px; color: var(--muted); }
+    .kpi .value{ font-size: 18px; font-weight:900; margin-top:4px; letter-spacing:0.4px; }
+
+    .kpi.good{ box-shadow: 0 0 22px rgba(0,255,195,0.10); }
+    .kpi.warn{ box-shadow: 0 0 22px rgba(255,196,0,0.10); }
+    .kpi.bad{ box-shadow: 0 0 22px rgba(255,90,120,0.10); }
+
+    /* TABLE */
+    table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: var(--r2);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+    th, td{
+      padding: 10px 10px;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align:left;
+      color: var(--text);
+      vertical-align: top;
+    }
+    th{
+      color: var(--muted);
+      font-weight:800;
+      background: rgba(255,255,255,0.04);
+    }
+    tr:last-child td{ border-bottom:none; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.20);
+      color: var(--muted);
+      font-weight:800;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .tag .miniDot{ width:7px;height:7px;border-radius:50%; background: var(--good); }
+    .tag.warn .miniDot{ background: var(--warn); }
+    .tag.bad .miniDot{ background: var(--bad); }
+
+    /* FOOTER */
+    .footer{
+      margin-top: 14px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0 6px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .actions{ min-width:auto; }
+      .centerInfo{ display:none; }
+    }
+    @media (max-width: 720px){
+      .tiles{ grid-template-columns: 1fr; }
+      .brand{ min-width:auto; }
+      .btn span.label{ display:none; }
+      .btn{ padding: 10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="badge">LSPD</div>
+        <div>
+          <h1>Leitstellenblatt – Dispatch</h1>
+          <div class="sub" id="subline">Los Santos • Mission Row • <span id="now"></span></div>
+        </div>
+      </div>
+
+      <div class="centerInfo">
+        <div class="pill" title="Systemstatus">
+          <div class="dot" id="sysDot"></div>
+          <span id="sysText">ONLINE</span>
+        </div>
+        <div class="pill" title="Funkkanal">
+          <span style="opacity:.9;font-weight:800;">FUNK:</span>
+          <span id="radioChan">PD-1</span>
+        </div>
+        <div class="pill" title="Diensthabend">
+          <span style="opacity:.9;font-weight:800;">DISPATCH:</span>
+          <span id="dispatcherName">Unbekannt</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <div class="btn primary" id="btnNewCall" title="Neuen Einsatz anlegen">
+          ➕ <span class="label">Neuer Einsatz</span>
+        </div>
+        <div class="btn" id="btnAdmin" title="Adminbereich">
+          ⚙️ <span class="label">Admin</span>
+        </div>
+        <div class="btn danger" id="btnLogout" title="Logout">
+          ⎋ <span class="label">Logout</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="cardHeader">
+          <div>
+            <h2>Schnellzugriff</h2>
+            <p>Alles, was die Leitstelle im RP schnell braucht — sauber, übersichtlich, klickbar.</p>
+          </div>
+          <div class="small" id="hint">Tip: Strg+K → Schnell-Suche</div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile blue" data-link="einsatz.html">
+            <div class="title"><div class="icon">📟</div> Einsätze</div>
+            <p class="desc">Aktive Calls, Prioritäten, Einheiten zuweisen, Status pflegen.</p>
+          </div>
+
+          <div class="tile" data-link="units.html">
+            <div class="title"><div class="icon">🚓</div> Streifen / Units</div>
+            <p class="desc">10-8 / 10-7, Standort, Unit-IDs, Zuweisungen.</p>
+          </div>
+
+          <div class="tile pink" data-link="bolo.html">
+            <div class="title"><div class="icon">🧾</div> BOLO / WANTED</div>
+            <p class="desc">Fahndungen, Kennzeichen, Personen, Gefährdung.</p>
+          </div>
+
+          <div class="tile yellow" data-link="funk.html">
+            <div class="title"><div class="icon">📻</div> Funk</div>
+            <p class="desc">Kanäle, 10-Codes, kurze Funknotizen & Logs.</p>
+          </div>
+
+          <div class="tile red" data-link="haftbefehle.html">
+            <div class="title"><div class="icon">⚖️</div> Haftbefehle</div>
+            <p class="desc">Warrants, Durchsuchung, Status & Gültigkeit.</p>
+          </div>
+
+          <div class="tile blue" data-link="fahrzeuge.html">
+            <div class="title"><div class="icon">🗂️</div> Fahrzeuge / DMV</div>
+            <p class="desc">Owner, Plate, Flags, Notes (RP-Register).</p>
+          </div>
+
+          <div class="tile" data-link="personen.html">
+            <div class="title"><div class="icon">👤</div> Personen</div>
+            <p class="desc">ID, Notizen, Vorstrafen, Gefährderhinweis.</p>
+          </div>
+
+          <div class="tile pink" data-link="karte.html">
+            <div class="title"><div class="icon">🗺️</div> Karte</div>
+            <p class="desc">Live Map / Interaktive Karte (z.B. deine Leaflet-Map).</p>
+          </div>
+
+          <div class="tile yellow" data-link="dienstplan.html">
+            <div class="title"><div class="icon">🕒</div> Dienst / Schicht</div>
+            <p class="desc">Schichtbesetzung, Rollen, kurze Übergaben.</p>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="cardHeader" style="margin-bottom:10px;">
+            <div>
+              <h2>Letzte Ereignisse</h2>
+              <p>Mini-Übersicht für die Leitstelle (kann später aus Supabase kommen).</p>
+            </div>
+            <div class="small">Auto-Refresh: <span id="refreshLabel">Aus</span></div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:110px;">Zeit</th>
+                <th>Call / Info</th>
+                <th style="width:140px;">Prio</th>
+                <th style="width:160px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody">
+              <!-- JS füllt das -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="sideStack">
+        <div class="card">
+          <div class="cardHeader" style="margin-bottom:10px;">
+            <div>
+              <h2>Lagebild</h2>
+              <p>Kurze KPI’s für den Überblick.</p>
+            </div>
+            <div class="small" id="serverTag">Server: LS-RP</div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi good">
+              <div class="label">Aktive Units</div>
+              <div class="value" id="kpiUnits">6</div>
+            </div>
+            <div class="kpi warn">
+              <div class="label">Aktive Calls</div>
+              <div class="value" id="kpiCalls">3</div>
+            </div>
+            <div class="kpi bad">
+              <div class="label">High Prio</div>
+              <div class="value" id="kpiHigh">1</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Funkkanal</div>
+              <div class="value" style="font-size:16px;margin-top:6px;" id="kpiRadio">PD-1</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="btn" id="btnSetDispatcher" title="Namen setzen">✍️ <span class="label">Dispatcher setzen</span></div>
+            <div class="btn" id="btnToggleRefresh" title="Auto-Refresh toggeln">🔁 <span class="label">Auto-Refresh</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader" style="margin-bottom:10px;">
+            <div>
+              <h2>Notizen</h2>
+              <p>Kurze Übergabe / wichtige Hinweise.</p>
+            </div>
+            <div class="small" id="notesSaved">—</div>
+          </div>
+
+          <textarea id="notes"
+            style="width:100%; min-height:180px; resize:vertical; border-radius:14px; padding:10px 12px;
+                   border:1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.22);
+                   color: rgba(255,255,255,0.92); outline:none;"
+            placeholder="• Übergabe: ...&#10;• Wichtige Info: ...&#10;• BOLO aktiv: ..."></textarea>
+
+          <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
+            <div class="btn" id="btnClearNotes">🧽 <span class="label">Leeren</span></div>
+            <div class="btn primary" id="btnSaveNotes">💾 <span class="label">Speichern</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>© LSPD Dispatch • UI: Glass/Dark</div>
+      <div id="build">Build: v1.0</div>
+    </div>
+  </div>
+
+  <!-- QUICK SEARCH MODAL (Strg+K) -->
+  <div id="modal"
+       style="position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+              background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); z-index:999;">
+    <div style="width:min(720px, 92vw); border-radius:18px; padding:14px;
+                background: linear-gradient(180deg, rgba(20,22,28,0.72), rgba(20,22,28,0.52));
+                border:1px solid rgba(255,255,255,0.14); box-shadow: 0 24px 70px rgba(0,0,0,0.55);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div style="font-weight:900;">Schnell-Suche</div>
+        <div class="btn" id="btnCloseModal">✖ <span class="label">Schließen</span></div>
+      </div>
+
+      <input id="search"
+             placeholder="Tippe z.B. 'Einsätze', 'BOLO', 'Karte'…"
+             style="margin-top:10px; width:100%; padding:12px 12px; border-radius:14px;
+                    border:1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.24);
+                    color: rgba(255,255,255,0.92); outline:none; font-size:14px;" />
+
+      <div id="results" style="margin-top:10px; display:grid; gap:10px;"></div>
+      <div class="small" style="margin-top:10px;">Enter = öffnen • Esc = schließen</div>
+    </div>
+  </div>
+
+  <script>
+    // ===================== BASIC STATE (Demo) =====================
+    const LINKS = [
+      { name:"Einsätze", link:"einsatz.html", icon:"📟", hint:"Calls, Prio, Units" },
+      { name:"Streifen / Units", link:"units.html", icon:"🚓", hint:"10-8/10-7, Zuweisung" },
+      { name:"BOLO / WANTED", link:"bolo.html", icon:"🧾", hint:"Fahndungen, Plates" },
+      { name:"Funk", link:"funk.html", icon:"📻", hint:"10-Codes & Logs" },
+      { name:"Haftbefehle", link:"haftbefehle.html", icon:"⚖️", hint:"Warrants & Status" },
+      { name:"Fahrzeuge / DMV", link:"fahrzeuge.html", icon:"🗂️", hint:"Plates, Flags" },
+      { name:"Personen", link:"personen.html", icon:"👤", hint:"Notizen, Vorstrafen" },
+      { name:"Karte", link:"karte.html", icon:"🗺️", hint:"Interaktive Map" },
+      { name:"Dienst / Schicht", link:"dienstplan.html", icon:"🕒", hint:"Besetzung & Übergabe" },
+      { name:"Admin", link:"#admin", icon:"⚙️", hint:"Einstellungen" },
+      { name:"Neuer Einsatz", link:"#newcall", icon:"➕", hint:"Call anlegen" }
+    ];
+
+    const SAMPLE_EVENTS = [
+      { time:"14:12", info:"10-50 Traffic Collision • Integrity Way", prio:"P2", status:"Offen" },
+      { time:"14:05", info:"10-66 Suspicious Person • Vespucci Blvd", prio:"P3", status:"In Bearbeitung" },
+      { time:"13:58", info:"10-31 Armed Robbery • Strawberry Ave", prio:"P1", status:"Units zugewiesen" },
+      { time:"13:44", info:"BOLO Update: Blue Sultan RS • 49XKZ", prio:"INFO", status:"Broadcast" }
+    ];
+
+    // ===================== CLOCK =====================
+    function pad(n){ return String(n).padStart(2,"0"); }
+    function tick(){
+      const d = new Date();
+      const txt = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      document.getElementById("now").textContent = txt;
+    }
+    tick();
+    setInterval(tick, 15000);
+
+    // ===================== TILE LINKS =====================
+    document.querySelectorAll(".tile").forEach(t => {
+      t.addEventListener("click", () => {
+        const link = t.getAttribute("data-link");
+        go(link);
+      });
+    });
+
+    function go(link){
+      if(!link) return;
+
+      // Platzhalter Routen:
+      if(link === "#admin"){
+        alert("Admin: hier kannst du später z.B. Rollen, Kanäle, Register etc. verwalten.");
+        return;
+      }
+      if(link === "#newcall"){
+        alert("Neuer Einsatz: hier würdest du ein Call-Formular öffnen oder zu einsatz.html?new=1 gehen.");
+        return;
+      }
+
+      // Normale Navigation:
+      window.location.href = link;
+    }
+
+    // ===================== EVENTS TABLE =====================
+    function renderEvents(list){
+      const tb = document.getElementById("eventsBody");
+      tb.innerHTML = "";
+      list.forEach(e => {
+        const tr = document.createElement("tr");
+
+        const td1 = document.createElement("td");
+        td1.textContent = e.time;
+
+        const td2 = document.createElement("td");
+        td2.textContent = e.info;
+
+        const td3 = document.createElement("td");
+        td3.innerHTML = prioTag(e.prio);
+
+        const td4 = document.createElement("td");
+        td4.innerHTML = statusTag(e.status);
+
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        tb.appendChild(tr);
+      });
+    }
+
+    function prioTag(p){
+      if(p === "P1") return `<span class="tag bad"><span class="miniDot"></span>${p}</span>`;
+      if(p === "P2") return `<span class="tag warn"><span class="miniDot"></span>${p}</span>`;
+      if(p === "P3") return `<span class="tag"><span class="miniDot"></span>${p}</span>`;
+      return `<span class="tag"><span class="miniDot"></span>${p}</span>`;
+    }
+    function statusTag(s){
+      const low = (s||"").toLowerCase();
+      if(low.includes("offen")) return `<span class="tag warn"><span class="miniDot"></span>${s}</span>`;
+      if(low.includes("zugewiesen")) return `<span class="tag bad"><span class="miniDot"></span>${s}</span>`;
+      if(low.includes("broadcast")) return `<span class="tag"><span class="miniDot"></span>${s}</span>`;
+      return `<span class="tag"><span class="miniDot"></span>${s}</span>`;
+    }
+
+    renderEvents(SAMPLE_EVENTS);
+
+    // ===================== KPIs (Demo) =====================
+    // In echt würdest du das aus Supabase/DB ziehen.
+    function setKPIs({units=6,calls=3,high=1,radio="PD-1"}={}){
+      document.getElementById("kpiUnits").textContent = units;
+      document.getElementById("kpiCalls").textContent = calls;
+      document.getElementById("kpiHigh").textContent = high;
+      document.getElementById("kpiRadio").textContent = radio;
+      document.getElementById("radioChan").textContent = radio;
+    }
+    setKPIs();
+
+    // ===================== DISPATCHER NAME (localStorage) =====================
+    const dnKey = "lspd_dispatcher_name";
+    const notesKey = "lspd_dispatch_notes";
+
+    function loadDispatcher(){
+      const v = localStorage.getItem(dnKey) || "Unbekannt";
+      document.getElementById("dispatcherName").textContent = v;
+    }
+    loadDispatcher();
+
+    document.getElementById("btnSetDispatcher").addEventListener("click", () => {
+      const cur = localStorage.getItem(dnKey) || "";
+      const v = prompt("Dispatcher Name / Callsign:", cur);
+      if(v === null) return;
+      localStorage.setItem(dnKey, v.trim() || "Unbekannt");
+      loadDispatcher();
+    });
+
+    // ===================== NOTES (localStorage) =====================
+    const notesEl = document.getElementById("notes");
+    const savedEl = document.getElementById("notesSaved");
+
+    function loadNotes(){
+      notesEl.value = localStorage.getItem(notesKey) || "";
+      savedEl.textContent = localStorage.getItem(notesKey) ? "Gespeichert" : "—";
+    }
+    loadNotes();
+
+    document.getElementById("btnSaveNotes").addEventListener("click", () => {
+      localStorage.setItem(notesKey, notesEl.value || "");
+      savedEl.textContent = "Gespeichert: " + new Date().toLocaleString();
+    });
+
+    document.getElementById("btnClearNotes").addEventListener("click", () => {
+      if(!confirm("Notizen wirklich leeren?")) return;
+      notesEl.value = "";
+      localStorage.setItem(notesKey, "");
+      savedEl.textContent = "—";
+    });
+
+    // ===================== TOPBAR BUTTONS =====================
+    document.getElementById("btnNewCall").addEventListener("click", () => go("#newcall"));
+    document.getElementById("btnAdmin").addEventListener("click", () => go("#admin"));
+    document.getElementById("btnLogout").addEventListener("click", async () => {
+      // Hier könntest du später Supabase signOut machen.
+      // await supabase.auth.signOut();
+      alert("Logout: hier würdest du später deine Session beenden und zur Login-Seite gehen.");
+      // window.location.href = "login.html";
+    });
+
+    // ===================== AUTO REFRESH (Demo) =====================
+    let autoRefresh = false;
+    let refreshTimer = null;
+
+    function setRefreshUI(){
+      document.getElementById("refreshLabel").textContent = autoRefresh ? "An (20s)" : "Aus";
+    }
+    setRefreshUI();
+
+    document.getElementById("btnToggleRefresh").addEventListener("click", () => {
+      autoRefresh = !autoRefresh;
+      if(refreshTimer) clearInterval(refreshTimer);
+
+      if(autoRefresh){
+        refreshTimer = setInterval(() => {
+          // Demo: shuffle sample events a bit
+          const copy = [...SAMPLE_EVENTS];
+          copy.unshift(copy.pop());
+          renderEvents(copy);
+        }, 20000);
+      }
+      setRefreshUI();
+    });
+
+    // ===================== QUICK SEARCH (CTRL+K) =====================
+    const modal = document.getElementById("modal");
+    const search = document.getElementById("search");
+    const results = document.getElementById("results");
+
+    function openModal(){
+      modal.style.display = "flex";
+      search.value = "";
+      renderResults("");
+      setTimeout(() => search.focus(), 20);
+    }
+    function closeModal(){
+      modal.style.display = "none";
+    }
+
+    function renderResults(q){
+      const query = (q||"").trim().toLowerCase();
+      const items = LINKS.filter(x => x.name.toLowerCase().includes(query) || (x.hint||"").toLowerCase().includes(query));
+      results.innerHTML = "";
+
+      items.slice(0, 8).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "tile";
+        div.style.minHeight = "unset";
+        div.innerHTML = `
+          <div class="title"><div class="icon">${item.icon}</div> ${item.name}</div>
+          <p class="desc">${item.hint || ""}</p>
+        `;
+        div.addEventListener("click", () => {
+          closeModal();
+          go(item.link);
+        });
+        results.appendChild(div);
+      });
+
+      if(items.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "small";
+        empty.style.padding = "10px 2px";
+        empty.textContent = "Keine Treffer.";
+        results.appendChild(empty);
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const isMac = navigator.platform.toLowerCase().includes("mac");
+      const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+      if(ctrlOrCmd && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        openModal();
+      }
+      if(e.key === "Escape" && modal.style.display === "flex"){
+        closeModal();
+      }
+    });
+
+    search.addEventListener("input", () => renderResults(search.value));
+    search.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){
+        // open first result
+        const first = results.querySelector(".tile");
+        if(first) first.click();
+      }
+      if(e.key === "Escape") closeModal();
+    });
+
+    document.getElementById("btnCloseModal").addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
+
+    // ===================== SYSTEM STATUS DOT (Demo) =====================
+    // Du kannst hier später z.B. DB-Verbindung / Heartbeat anzeigen.
+    const sysDot = document.getElementById("sysDot");
+    const sysText = document.getElementById("sysText");
+
+    function setStatus(mode){
+      // mode: "online" | "warn" | "bad"
+      sysDot.className = "dot";
+      if(mode === "warn"){ sysDot.classList.add("warn"); sysText.textContent = "DEGRADED"; }
+      else if(mode === "bad"){ sysDot.classList.add("bad"); sysText.textContent = "OFFLINE"; }
+      else { sysText.textContent = "ONLINE"; }
+    }
+    setStatus("online");
+  </script>
+</body>
+</html>
