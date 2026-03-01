@@ -88,19 +88,9 @@
       position:relative;
     }
 
-    .panel.collapseX{
-      transition: opacity .18s ease, transform .25s ease;
-    }
-    .app.leftCollapsed #panelLeft{
-      opacity:0;
-      transform: translateX(-10px);
-      pointer-events:none;
-    }
-    .app.rightCollapsed #panelRight{
-      opacity:0;
-      transform: translateX(10px);
-      pointer-events:none;
-    }
+    .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
+    .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+    .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
 
     .panelHeader{
       padding:14px 14px 12px;
@@ -138,11 +128,7 @@
     .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    .content{
-      padding:14px;
-      overflow:auto;
-      min-height:0;
-    }
+    .content{ padding:14px; overflow:auto; min-height:0; }
 
     .row{ display:flex; gap:10px; }
     .field{
@@ -164,7 +150,6 @@
     }
     textarea{ resize:vertical; min-height:120px; }
 
-    /* Buttons */
     .btn{
       border:1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.08);
@@ -202,18 +187,8 @@
     }
     .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
 
-    .btnWide{
-      padding-left:18px;
-      padding-right:18px;
-      min-width:160px;
-    }
-
-    .btnIcon{
-      width:44px;
-      padding:0;
-      font-size:18px;
-      line-height:1;
-    }
+    .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
+    .btnIcon{ width:44px; padding:0; font-size:18px; line-height:1; }
 
     .pill{
       display:inline-flex;
@@ -544,7 +519,7 @@
       gap:10px;
     }
 
-    /* Mülleimer nur hover + selected + admin */
+    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
     #btnDeleteOfficer{
       opacity:0;
       pointer-events:none;
@@ -598,12 +573,7 @@
       min-width:0;
     }
     .modalBody{ padding:16px; }
-    .modalBody p{
-      margin:0;
-      opacity:0.88;
-      line-height:1.45;
-      font-size:13px;
-    }
+    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
     .modalHint{
       margin-top:10px;
       padding:10px 12px;
@@ -624,8 +594,7 @@
       flex-wrap:wrap;
     }
     .modalCloseX{
-      width:40px;
-      height:40px;
+      width:40px; height:40px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06);
@@ -668,7 +637,7 @@
         <div class="loginErr" id="loginErr">—</div>
         <div style="height:12px"></div>
         <div class="row">
-          <button class="btn btnPrimary" id="btnLogin">Login</button>
+          <button class="btn btnPrimary" id="btnLogin" type="button">Login</button>
         </div>
       </div>
     </div>
@@ -689,7 +658,7 @@
             <span class="dot off" id="connDot"></span>
             <span id="connText">Leitstelle</span>
           </span>
-          <button class="btn btnGhost btnLogoutRed" id="btnLogout" title="Logout">Logout</button>
+          <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
         </div>
       </div>
 
@@ -713,9 +682,9 @@
             <div style="height:12px"></div>
 
             <div class="createActions">
-              <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
-              <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
-              <button class="btn btnDanger btnIcon" id="btnDeleteOfficer" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
+              <button class="btn btnPrimary" id="btnCreateOfficer" type="button">Beamter speichern</button>
+              <button class="btn btnGhost" id="btnRemember" type="button">Eingaben löschen</button>
+              <button class="btn btnDanger btnIcon" id="btnDeleteOfficer" type="button" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
             </div>
 
             <div style="height:10px"></div>
@@ -759,7 +728,7 @@
           <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
             <span class="dot on"></span><span id="onDutyCount">0</span>
           </span>
-          <button class="btn btnWide" id="btnAddPatrol">+ Streife</button>
+          <button class="btn btnWide" id="btnAddPatrol" type="button">+ Streife</button>
         </div>
       </div>
 
@@ -836,8 +805,8 @@
       </div>
 
       <div class="modalFooter">
-        <button class="btn btnGhost" id="confirmCancel">Abbrechen</button>
-        <button class="btn btnDanger" id="confirmDelete">Löschen</button>
+        <button class="btn btnGhost" id="confirmCancel" type="button">Abbrechen</button>
+        <button class="btn btnDanger" id="confirmDelete" type="button">Löschen</button>
       </div>
     </div>
   </div>
@@ -863,7 +832,8 @@
     const perms = {
       email: "",
       role: "guest",            // admin | leitstelle | officer | guest
-      canCreateOfficer: false,
+      canCreateOfficer: false,  // create new
+      canEditOfficer: false,    // edit selected
       canDeleteOfficer: false,
       canSelectPoolForEdit: false
     };
@@ -875,23 +845,34 @@
       if(e === OFFICER_EMAIL){
         perms.role = "officer";
         perms.canCreateOfficer = false;
+        perms.canEditOfficer = false;
         perms.canDeleteOfficer = false;
         perms.canSelectPoolForEdit = false;
       }else if(e === LEITSTELLE_EMAIL){
-        // ✅ Leitstelle darf bearbeiten + erstellen (aber NICHT löschen)
+        // ✅ Leitstelle: darf erstellen + bearbeiten, darf NICHT löschen
         perms.role = "leitstelle";
-        perms.canCreateOfficer = true;     // FIX
+        perms.canCreateOfficer = true;
+        perms.canEditOfficer = true;
         perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = true; // FIX
-      }else if(e === ADMIN_EMAIL || e){
-        // admin alles
+        perms.canSelectPoolForEdit = true;
+      }else if(e === ADMIN_EMAIL){
         perms.role = "admin";
         perms.canCreateOfficer = true;
+        perms.canEditOfficer = true;
         perms.canDeleteOfficer = true;
+        perms.canSelectPoolForEdit = true;
+      }else if(e){
+        // falls du später weitere Accounts hast -> standardmäßig wie Admin? NEIN: sicherer = Leitstelle-Rechte?
+        // Ich lasse es bewusst restriktiv:
+        perms.role = "leitstelle";
+        perms.canCreateOfficer = true;
+        perms.canEditOfficer = true;
+        perms.canDeleteOfficer = false;
         perms.canSelectPoolForEdit = true;
       }else{
         perms.role = "guest";
         perms.canCreateOfficer = false;
+        perms.canEditOfficer = false;
         perms.canDeleteOfficer = false;
         perms.canSelectPoolForEdit = false;
       }
@@ -903,6 +884,12 @@
      * DOM
      ***********************/
     const app = document.getElementById("app");
+    const loginOverlay = document.getElementById("loginOverlay");
+    const inpLoginName = document.getElementById("inpLoginName");
+    const inpLoginPw = document.getElementById("inpLoginPw");
+    const btnLogin = document.getElementById("btnLogin");
+    const loginErr = document.getElementById("loginErr");
+
     const btnToggleLeft = document.getElementById("btnToggleLeft");
     const btnToggleRight = document.getElementById("btnToggleRight");
     const edgeLeft = document.getElementById("edgeLeft");
@@ -914,7 +901,6 @@
 
     const inpName = document.getElementById("inpName");
     const inpDienstnr = document.getElementById("inpDienstnr");
-
     const btnCreateOfficer = document.getElementById("btnCreateOfficer");
     const btnRemember = document.getElementById("btnRemember");
     const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
@@ -926,7 +912,6 @@
 
     const patrolGrid = document.getElementById("patrolGrid");
     const btnAddPatrol = document.getElementById("btnAddPatrol");
-
     const onDutyCountEl = document.getElementById("onDutyCount");
 
     const txtNotes = document.getElementById("txtNotes");
@@ -944,56 +929,24 @@
     const confirmCancel = document.getElementById("confirmCancel");
     const confirmDelete = document.getElementById("confirmDelete");
 
-    const btnLogout = document.getElementById("btnLogout");
-
     /***********************
-     * APPLY ROLE UI
+     * HELPERS
      ***********************/
-    function applyRoleUi(){
-      // Officer sieht Create-Kachel nicht
-      app.classList.toggle("hideCreateCard", perms.role === "officer");
-
-      // + Streife für alle verfügbar
-      btnAddPatrol.disabled = false;
-
-      updateCreateControls();
-      renderCreatedPool(); // Klickbarkeit/Selection im Pool aktualisieren
+    function toast(msg){
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 1800);
     }
 
-    function updateCreateControls(){
-      const hasSel = (selectedOfficerId != null);
-
-      if(perms.role === "officer"){
-        btnCreateOfficer.disabled = true;
-        btnRemember.disabled = true;
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-        return;
-      }
-
-      // Leitstelle/Admin: speichern erlaubt (Leitstelle auch ohne Auswahl => erstellen)
-      btnCreateOfficer.disabled = !perms.canCreateOfficer;
-
-      // Delete: nur Admin + selected
-      if(perms.canDeleteOfficer && hasSel){
-        btnDeleteOfficer.disabled = false;
-        btnDeleteOfficer.classList.add("show"); // sichtbar nur bei hover (CSS)
-      }else{
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-      }
-
-      btnRemember.disabled = false;
-    }
-
-    /***********************
-     * LOGIN
-     ***********************/
-    const loginOverlay = document.getElementById("loginOverlay");
-    const inpLoginName = document.getElementById("inpLoginName");
-    const inpLoginPw = document.getElementById("inpLoginPw");
-    const btnLogin = document.getElementById("btnLogin");
-    const loginErr = document.getElementById("loginErr");
+    // Quick debug for silent JS errors (hilft extrem beim “geht erst nach reload”)
+    window.addEventListener("error", (e)=>{
+      console.error("JS ERROR:", e.error || e.message);
+      toast("JS Fehler (Konsole prüfen)");
+    });
+    window.addEventListener("unhandledrejection", (e)=>{
+      console.error("Unhandled Promise:", e.reason);
+      toast("Promise Fehler (Konsole prüfen)");
+    });
 
     function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
     function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
@@ -1028,89 +981,77 @@
       return "Login fehlgeschlagen.";
     }
 
-    async function doLogin(){
-      const name = normalizeSpaces(inpLoginName.value);
-      const pw = (inpLoginPw.value ?? "").toString();
-      loginErr.style.display = "none";
-      loginErr.textContent = "";
-
-      if(!name) return showLogin("Bitte Namen eingeben.");
-      if(!pw) return showLogin("Bitte Passwort eingeben.");
-
-      const email = emailFromName(name);
-      try{
-        btnLogin.disabled = true;
-        btnLogin.textContent = "Login…";
-
-        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-        if(error) throw error;
-
-        hideLogin();
-        toast("Eingeloggt");
-      }catch(e){
-        console.error(e);
-        showLogin(friendlyAuthError(e));
-      }finally{
-        btnLogin.disabled = false;
-        btnLogin.textContent = "Login";
-      }
-    }
-
-    /* Logout (stabil) */
-    async function doLogout(){
-      try{
-        const { error } = await sb.auth.signOut();
-        if(error) console.error("signOut error:", error);
-      }catch(e){
-        console.error("signOut throw:", e);
-      }finally{
-        try{ await stopLeitstellePresence(); }catch(e){ console.error("stop presence error:", e); }
-        selectedOfficerId = null;
-        setRoleFromEmail("");
-        showLogin("");
-        toast("Ausgeloggt");
-      }
-    }
-
-    /***********************
-     * ✅ FIX: Logout per Event Delegation (funktioniert IMMER)
-     ***********************/
-    document.addEventListener("click", (e) => {
-      const t = e.target.closest("#btnLogout");
-      if(!t) return;
-      e.preventDefault();
-      doLogout();
-    }, true);
-
-    /***********************
-     * FUNKCODES / STATUS
-     ***********************/
-    const FUNCODES = [
-      ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
-      ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
-      ["10-33", "Verunfallt"], ["10-50", "Verkehrsunfall"], ["10-60", "Allgemeine Verkehrskontrolle"],
-      ["10-80", "Verfolgungsjagd"], ["11-90", "Officers in Bedrängnis"], ["11-99", "Officer unter Beschuss"],
-      ["10-20", "Positionsabfrage"], ["10-22", "Abholung benötigt"], ["CODE 0", "Kopfschmerzen"],
-      ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
-      ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
-    ];
-    const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
-
     function escapeHtml(s){
       return (s ?? "").toString().replace(/[&<>"']/g, m => ({
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
-    function statusOptionsHtml(selected){
-      return PATROL_STATUSES.map(v=>{
-        const sel = (selected === v) ? "selected" : "";
-        return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
-      }).join("");
+
+    function timeAgo(iso){
+      try{
+        const t = new Date(iso).getTime();
+        const diff = Math.max(0, Date.now() - t);
+        const min = Math.floor(diff/60000);
+        if(min < 1) return "gerade eben";
+        if(min < 60) return `${min} min`;
+        const h = Math.floor(min/60);
+        return `${h} h`;
+      }catch{ return "—"; }
     }
-    function statusLabel(v){ return v || "Auf Streife"; }
+
+    function upsertLocal(arr, row){
+      const i = arr.findIndex(x => x.id === row.id);
+      if(i >= 0) arr[i] = row;
+      else arr.push(row);
+    }
+
+    function dnNum(v){
+      const s = (v ?? "").toString().trim();
+      if(!s) return Number.POSITIVE_INFINITY;
+      const n = parseInt(s.replace(/[^\d]/g, ""), 10);
+      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+    }
 
     /***********************
-     * COLLAPSE STATE
+     * UI: Role
+     ***********************/
+    let selectedOfficerId = null;
+
+    function updateCreateControls(){
+      const hasSel = (selectedOfficerId != null);
+
+      if(perms.role === "officer"){
+        btnCreateOfficer.disabled = true;
+        btnRemember.disabled = true;
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+        return;
+      }
+
+      // speichern: erlaubt wenn (edit selected && canEdit) oder (create new && canCreate)
+      const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
+      btnCreateOfficer.disabled = !canSave;
+
+      // delete: nur admin + selected
+      if(perms.canDeleteOfficer && hasSel){
+        btnDeleteOfficer.disabled = false;
+        btnDeleteOfficer.classList.add("show");
+      }else{
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+      }
+
+      btnRemember.disabled = false;
+    }
+
+    function applyRoleUi(){
+      app.classList.toggle("hideCreateCard", perms.role === "officer");
+      updateCreateControls();
+      renderCreatedPool();
+    }
+
+    /***********************
+     * Collapsible Panels
      ***********************/
     const LS_UI = "lspd_ui_panels";
     function loadUi(){
@@ -1148,40 +1089,7 @@
     });
 
     /***********************
-     * STATE
-     ***********************/
-    let patrols = [];
-    let officers = [];
-    let noteAutosaveTimer = null;
-
-    let sortables = [];
-    let patrolSortable = null;
-    let selectedOfficerId = null;
-
-    let rtChannels = [];
-    let rtResubTimer = null;
-
-    const LS_PATROL_ORDER = "lspd_patrol_order";
-    function loadPatrolOrder(){
-      try{
-        const raw = localStorage.getItem(LS_PATROL_ORDER);
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr.map(Number).filter(n => Number.isFinite(n)) : [];
-      }catch{ return []; }
-    }
-    function savePatrolOrder(order){ try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{} }
-    function normalizePatrolOrder(){
-      const order = loadPatrolOrder();
-      const ids = patrols.map(p => p.id);
-      const set = new Set(ids);
-      const cleaned = order.filter(id => set.has(id));
-      for(const id of ids){ if(!cleaned.includes(id)) cleaned.push(id); }
-      savePatrolOrder(cleaned);
-      return cleaned;
-    }
-
-    /***********************
-     * LEITSTELLE ONLINE/OFFLINE (Presence)
+     * Leitstelle Online/Offline (Presence)
      ***********************/
     let presenceChannel = null;
 
@@ -1215,22 +1123,17 @@
         const session = data?.session;
         const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
 
-        presenceChannel = sb.channel("presence-leitstelle", {
-          config: { presence: { key } }
-        });
+        presenceChannel = sb.channel("presence-leitstelle", { config: { presence: { key } } });
 
         presenceChannel
           .on("presence", { event: "sync" }, () => {
-            const state = presenceChannel.presenceState();
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
           })
           .on("presence", { event: "join" }, () => {
-            const state = presenceChannel.presenceState();
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
           })
           .on("presence", { event: "leave" }, () => {
-            const state = presenceChannel.presenceState();
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
           });
 
         presenceChannel.subscribe(async (status) => {
@@ -1239,12 +1142,7 @@
             if(email === LEITSTELLE_EMAIL){
               try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
             }
-            try{
-              const state = presenceChannel.presenceState();
-              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
-            }catch{
-              setLeitstelleIndicator(false);
-            }
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
           }
         });
       }catch(e){
@@ -1253,7 +1151,7 @@
       }
     }
 
-    async function stopLeitstellePresence(){
+    async function stopPresence(){
       try{
         if(!presenceChannel) return;
         const { data } = await sb.auth.getSession();
@@ -1261,48 +1159,47 @@
         if(email === LEITSTELLE_EMAIL){
           try{ await presenceChannel.untrack(); }catch{}
         }
-      }catch(e){
-        console.error("presence untrack error:", e);
-      }
-      try{
-        if(presenceChannel){ sb.removeChannel(presenceChannel); }
-      }catch(e){
-        console.error("remove presence channel error:", e);
-      }
+      }catch(e){ console.error("presence untrack error:", e); }
+      try{ if(presenceChannel) sb.removeChannel(presenceChannel); }catch(e){ console.error("remove presence error:", e); }
       presenceChannel = null;
       setLeitstelleIndicator(false);
     }
 
     /***********************
-     * UI HELPERS
+     * FUNKCODES / STATUS
      ***********************/
-    function toast(msg){
-      toastEl.textContent = msg;
-      toastEl.classList.add("show");
-      setTimeout(() => toastEl.classList.remove("show"), 1800);
+    const FUNCODES = [
+      ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
+      ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
+      ["10-33", "Verunfallt"], ["10-50", "Verkehrsunfall"], ["10-60", "Allgemeine Verkehrskontrolle"],
+      ["10-80", "Verfolgungsjagd"], ["11-90", "Officers in Bedrängnis"], ["11-99", "Officer unter Beschuss"],
+      ["10-20", "Positionsabfrage"], ["10-22", "Abholung benötigt"], ["CODE 0", "Kopfschmerzen"],
+      ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
+      ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
+    ];
+    const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
+
+    function statusOptionsHtml(selected){
+      return PATROL_STATUSES.map(v=>{
+        const sel = (selected === v) ? "selected" : "";
+        return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
+      }).join("");
     }
-    function timeAgo(iso){
-      try{
-        const t = new Date(iso).getTime();
-        const diff = Math.max(0, Date.now() - t);
-        const min = Math.floor(diff/60000);
-        if(min < 1) return "gerade eben";
-        if(min < 60) return `${min} min`;
-        const h = Math.floor(min/60);
-        return `${h} h`;
-      }catch{ return "—"; }
+    function statusLabel(v){ return v || "Auf Streife"; }
+
+    function renderFuncodes(){
+      funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
+        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
+      `).join("");
     }
-    function upsertLocal(arr, row){
-      const i = arr.findIndex(x => x.id === row.id);
-      if(i >= 0) arr[i] = row;
-      else arr.push(row);
-    }
-    function dnNum(v){
-      const s = (v ?? "").toString().trim();
-      if(!s) return Number.POSITIVE_INFINITY;
-      const n = parseInt(s.replace(/[^\d]/g, ""), 10);
-      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-    }
+
+    /***********************
+     * STATE + RENDER
+     ***********************/
+    let patrols = [];
+    let officers = [];
+    let noteAutosaveTimer = null;
+
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
@@ -1334,19 +1231,6 @@
         saveCreateCollapsed(false);
         applyCreateCollapsed();
       }
-    }
-
-    function renderAll(){
-      renderCreatedPool();
-      renderPatrolGrid();
-      updateOnDutyCount();
-      updateCreateControls();
-    }
-
-    function renderFuncodes(){
-      funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
-        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
-      `).join("");
     }
 
     function matchesSearch(officer, q){
@@ -1428,6 +1312,28 @@
       }
     }
 
+    let sortables = [];
+    let patrolSortable = null;
+
+    const LS_PATROL_ORDER = "lspd_patrol_order";
+    function loadPatrolOrder(){
+      try{
+        const raw = localStorage.getItem(LS_PATROL_ORDER);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.map(Number).filter(n => Number.isFinite(n)) : [];
+      }catch{ return []; }
+    }
+    function savePatrolOrder(order){ try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{} }
+    function normalizePatrolOrder(){
+      const order = loadPatrolOrder();
+      const ids = patrols.map(p => p.id);
+      const set = new Set(ids);
+      const cleaned = order.filter(id => set.has(id));
+      for(const id of ids){ if(!cleaned.includes(id)) cleaned.push(id); }
+      savePatrolOrder(cleaned);
+      return cleaned;
+    }
+
     function renderPatrolGrid(){
       for(const s of sortables){ try{s.destroy();}catch{} }
       sortables = [];
@@ -1464,7 +1370,7 @@
               </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
+                <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}" type="button">Zurück in Pool</button>
               </div>
             </div>
           `;
@@ -1483,7 +1389,7 @@
                 ${statusOptionsHtml(status)}
               </select>
 
-              <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen">✕</button>
+              <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen" type="button">✕</button>
             </div>
 
             <div class="cardBody">
@@ -1579,8 +1485,15 @@
       });
     }
 
+    function renderAll(){
+      renderCreatedPool();
+      renderPatrolGrid();
+      updateOnDutyCount();
+      updateCreateControls();
+    }
+
     /***********************
-     * CRUD
+     * CRUD (Supabase)
      ***********************/
     async function loadAll(){
       const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
@@ -1636,49 +1549,37 @@
       }
     }
 
-    async function createOfficer(){
-      if(perms.role === "officer"){
-        toast("Keine Berechtigung");
-        return;
-      }
+    async function createOrEditOfficer(){
+      if(perms.role === "officer"){ toast("Keine Berechtigung"); return; }
 
       const name = inpName.value.trim();
       const dienstnummer = inpDienstnr.value.trim();
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
-      try{
-        if(selectedOfficerId != null){
-          const cur = officers.find(x => x.id === selectedOfficerId);
-          if(!cur){
-            selectedOfficerId = null;
-            updateCreateControls();
-            toast("Auswahl verloren");
-            return;
-          }
-          await upsertOfficer({
-            name,
-            dienstnummer,
-            patrol_id: cur.patrol_id,
-            status: cur.status,
-            forceId: selectedOfficerId
-          });
-          toast("Beamter gespeichert");
-          clearOfficerSelection();
-          return;
-        }
+      const hasSel = (selectedOfficerId != null);
 
-        if(!perms.canCreateOfficer){
-          toast("Keine Berechtigung zum Erstellen");
-          return;
-        }
+      // edit
+      if(hasSel){
+        if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
+        const cur = officers.find(x => x.id === selectedOfficerId);
+        if(!cur){ clearOfficerSelection(); toast("Auswahl verloren"); return; }
 
-        await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
+        await upsertOfficer({
+          name, dienstnummer,
+          patrol_id: cur.patrol_id,
+          status: cur.status,
+          forceId: selectedOfficerId
+        });
         toast("Beamter gespeichert");
-      }catch(e){
-        console.error(e);
-        toast("Fehler: " + (e?.message || "save"));
+        clearOfficerSelection();
+        return;
       }
+
+      // create new
+      if(!perms.canCreateOfficer){ toast("Keine Berechtigung zum Erstellen"); return; }
+      await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
+      toast("Beamter gespeichert");
     }
 
     async function moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, status){
@@ -1715,50 +1616,23 @@
       toast(toPatrolId == null ? "In Pool" : "Auf Streife");
     }
 
-    async function deleteOfficer(id){
-      if(!perms.canDeleteOfficer){
-        toast("Keine Berechtigung zum Löschen");
-        return;
-      }
-
-      const before = officers.slice();
-      officers = officers.filter(o => o.id !== id);
-      if(selectedOfficerId === id) selectedOfficerId = null;
-      renderAll();
-
-      const res = await sb.from("officers").delete().eq("id", id);
-      if(res.error){
-        console.error("deleteOfficer error:", res.error);
-        toast("Fehler Löschen: " + (res.error.message || "unknown"));
-        officers = before;
-        renderAll();
-        return;
-      }
-      toast("Officer gelöscht");
-    }
-
     async function addPatrol(){
-      try{
-        const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
-        if(res.error){
-          console.error("addPatrol error:", res.error);
-          toast("Fehler +Streife: " + (res.error.message || "unknown"));
-          return;
-        }
-
-        upsertLocal(patrols, res.data);
-        patrols.sort((a,b)=>a.id-b.id);
-
-        const order = loadPatrolOrder();
-        if(!order.includes(res.data.id)) order.push(res.data.id);
-        savePatrolOrder(order);
-
-        renderAll();
-        toast("Streife erstellt");
-      }catch(e){
-        console.error("addPatrol throw:", e);
-        toast("Fehler +Streife: " + (e?.message || "unknown"));
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
+      if(res.error){
+        console.error("addPatrol error:", res.error);
+        toast("Fehler +Streife: " + (res.error.message || "unknown"));
+        return;
       }
+
+      upsertLocal(patrols, res.data);
+      patrols.sort((a,b)=>a.id-b.id);
+
+      const order = loadPatrolOrder();
+      if(!order.includes(res.data.id)) order.push(res.data.id);
+      savePatrolOrder(order);
+
+      renderAll();
+      toast("Streife erstellt");
     }
 
     async function renamePatrol(id, name){
@@ -1841,16 +1715,32 @@
       noteStatus.textContent = `gespeichert • ${new Date().toLocaleTimeString()}`;
     }
 
+    async function deleteOfficer(id){
+      if(!perms.canDeleteOfficer){ toast("Keine Berechtigung zum Löschen"); return; }
+
+      const before = officers.slice();
+      officers = officers.filter(o => o.id !== id);
+      if(selectedOfficerId === id) selectedOfficerId = null;
+      renderAll();
+
+      const res = await sb.from("officers").delete().eq("id", id);
+      if(res.error){
+        console.error("deleteOfficer error:", res.error);
+        toast("Fehler Löschen: " + (res.error.message || "unknown"));
+        officers = before;
+        renderAll();
+        return;
+      }
+      toast("Officer gelöscht");
+    }
+
     /***********************
      * MODAL
      ***********************/
     let pendingDeleteId = null;
 
     function openDeleteModal(officer){
-      if(!perms.canDeleteOfficer){
-        toast("Keine Berechtigung");
-        return;
-      }
+      if(!perms.canDeleteOfficer){ toast("Keine Berechtigung"); return; }
       pendingDeleteId = officer?.id ?? null;
       const name = officer?.name || "Officer";
       const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
@@ -1868,20 +1758,13 @@
 
     confirmClose.addEventListener("click", closeDeleteModal);
     confirmCancel.addEventListener("click", closeDeleteModal);
-    confirmOverlay.addEventListener("click", (e)=>{
-      if(e.target === confirmOverlay) closeDeleteModal();
-    });
-    document.addEventListener("keydown", (e)=>{
-      if(confirmOverlay.style.display === "flex" && e.key === "Escape"){
-        closeDeleteModal();
-      }
-    });
+    confirmOverlay.addEventListener("click", (e)=>{ if(e.target === confirmOverlay) closeDeleteModal(); });
+    document.addEventListener("keydown", (e)=>{ if(confirmOverlay.style.display === "flex" && e.key === "Escape") closeDeleteModal(); });
 
     confirmDelete.addEventListener("click", async ()=>{
       if(pendingDeleteId == null) return closeDeleteModal();
       const id = pendingDeleteId;
       closeDeleteModal();
-
       await deleteOfficer(id);
       inpName.value = "";
       inpDienstnr.value = "";
@@ -1891,12 +1774,15 @@
     /***********************
      * REALTIME
      ***********************/
+    let rtChannels = [];
+    let rtResubTimer = null;
+    let rtBackoffMs = 800;
+
     function teardownRealtime(){
       try{ rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} }); }catch{}
       rtChannels = [];
     }
-
-    let rtBackoffMs = 800;
+    function resetBackoff(){ rtBackoffMs = 800; }
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
       const wait = Math.min(rtBackoffMs, 8000);
@@ -1906,7 +1792,6 @@
       }, wait);
       rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
     }
-    function resetBackoff(){ rtBackoffMs = 800; }
 
     function setupRealtime(){
       try{ sb.realtime.connect(); }catch{}
@@ -1964,30 +1849,97 @@
       rtChannels.push(chOfficers, chPatrols, chNotes);
     }
 
-    document.addEventListener("visibilitychange", () => {
-      if(!document.hidden){
-        scheduleResubscribe();
-        setupPresence();
-      }
-    });
-    window.addEventListener("online", () => {
-      scheduleResubscribe();
-      setupPresence();
-    });
+    /***********************
+     * ✅ POST-LOGIN INIT (Fix für "geht erst nach reload")
+     ***********************/
+    async function postLoginInit(){
+      const { data } = await sb.auth.getSession();
+      const session = data?.session;
+      if(!session) return;
+
+      const email = (session.user?.email || "").toLowerCase();
+      setRoleFromEmail(email);
+
+      // wichtig: Presence + Realtime + Daten neu initialisieren
+      await setupPresence();
+      setupRealtime();
+
+      // Daten neu laden, damit alle Aktionen direkt funktionieren
+      await loadAll();
+    }
 
     /***********************
-     * EVENTS
+     * LOGIN / LOGOUT
      ***********************/
-    btnCreateOfficer.addEventListener("click", createOfficer);
+    async function doLogin(){
+      const name = normalizeSpaces(inpLoginName.value);
+      const pw = (inpLoginPw.value ?? "").toString();
+      loginErr.style.display = "none";
+      loginErr.textContent = "";
+
+      if(!name) return showLogin("Bitte Namen eingeben.");
+      if(!pw) return showLogin("Bitte Passwort eingeben.");
+
+      const email = emailFromName(name);
+
+      try{
+        btnLogin.disabled = true;
+        btnLogin.textContent = "Login…";
+
+        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+        if(error) throw error;
+
+        hideLogin();
+        toast("Eingeloggt");
+        await postLoginInit(); // ✅ Fix
+      }catch(e){
+        console.error(e);
+        showLogin(friendlyAuthError(e));
+      }finally{
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Login";
+      }
+    }
+
+    async function doLogout(){
+      try{
+        await stopPresence();
+        teardownRealtime();
+        selectedOfficerId = null;
+        setRoleFromEmail("");
+      }catch(e){
+        console.error("pre logout cleanup error:", e);
+      }
+
+      try{
+        const { error } = await sb.auth.signOut();
+        if(error) console.error("signOut error:", error);
+      }catch(e){
+        console.error("signOut throw:", e);
+      }finally{
+        showLogin("");
+        toast("Ausgeloggt");
+      }
+    }
+
+    /***********************
+     * ✅ Event Delegation für Buttons (noch robuster)
+     ***********************/
+    document.addEventListener("click", (e) => {
+      const logout = e.target.closest("#btnLogout");
+      if(logout){ e.preventDefault(); doLogout(); return; }
+
+      const add = e.target.closest("#btnAddPatrol");
+      if(add){ e.preventDefault(); addPatrol(); return; }
+
+      const save = e.target.closest("#btnCreateOfficer");
+      if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
+    }, true);
+
+    /***********************
+     * EVENTS (rest)
+     ***********************/
     inpSearch.addEventListener("input", renderCreatedPool);
-    btnAddPatrol.addEventListener("click", addPatrol);
-
-    txtNotes.addEventListener("input", ()=>{
-      noteStatus.textContent = "tippt…";
-      if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
-      noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
-    });
-
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
@@ -2003,6 +1955,12 @@
       openDeleteModal(o);
     });
 
+    txtNotes.addEventListener("input", ()=>{
+      noteStatus.textContent = "tippt…";
+      if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
+      noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
+    });
+
     inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
@@ -2014,7 +1972,6 @@
       applyUi();
       applyCreateCollapsed();
       renderFuncodes();
-
       setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
@@ -2024,8 +1981,7 @@
 
         if(session){
           hideLogin();
-          const email = (session.user?.email || "").toLowerCase();
-          setRoleFromEmail(email);
+          await postLoginInit(); // ✅ wenn Session schon da ist
           toast("Eingeloggt");
         }else{
           showLogin("");
@@ -2036,24 +1992,31 @@
       }
 
       sb.auth.onAuthStateChange(async (evt, session) => {
+        // Manche Browser/Setups feuern das Event nicht zuverlässig in deinem Flow,
+        // deswegen ist postLoginInit() zusätzlich direkt in doLogin() drin.
         if(session){
           hideLogin();
-          const email = (session.user?.email || "").toLowerCase();
-          setRoleFromEmail(email);
+          await postLoginInit();
         }else{
+          await stopPresence();
+          teardownRealtime();
+          selectedOfficerId = null;
           setRoleFromEmail("");
           showLogin("");
         }
-        await setupPresence();
       });
 
-      loadAll().catch((e)=>{
-        console.error(e);
-        toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
+      // Falls offline/online/visibility: Presence/Realtime stabil halten
+      document.addEventListener("visibilitychange", () => {
+        if(!document.hidden){
+          scheduleResubscribe();
+          setupPresence();
+        }
       });
-
-      setupRealtime();
-      setupPresence();
+      window.addEventListener("online", () => {
+        scheduleResubscribe();
+        setupPresence();
+      });
     })();
   </script>
 </body>
