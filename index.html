@@ -88,7 +88,6 @@
       position:relative;
     }
 
-    /* Panels collapse animation */
     .panel.collapseX{
       transition: opacity .18s ease, transform .25s ease;
     }
@@ -112,16 +111,9 @@
       gap:10px;
       min-width:0;
     }
-
-    /* Platz für Dock-Button reservieren */
     #panelLeft .panelHeader{ padding-right:56px; }
     #panelRight .panelHeader{ padding-left:56px; }
-
-    /* Center-Header nach innen schieben */
-    #panelCenter .panelHeader{
-      padding-left: 60px;
-      padding-right: 60px;
-    }
+    #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
     .badge{
@@ -172,6 +164,7 @@
     }
     textarea{ resize:vertical; min-height:120px; }
 
+    /* ✅ Buttons: einheitliche Höhe + flex zentriert */
     .btn{
       border:1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.08);
@@ -184,9 +177,18 @@
       transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
       user-select:none;
       white-space:nowrap;
+
+      height:44px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
     }
     .btn:hover{ background: rgba(255,255,255,0.12); }
     .btn:active{ transform: translateY(1px); }
+    .btn:disabled{
+      opacity:0.45;
+      cursor:not-allowed;
+    }
 
     .btnPrimary{
       background: linear-gradient(135deg, rgba(0,255,195,0.22), rgba(0,140,255,0.18));
@@ -210,15 +212,10 @@
       min-width:160px;
     }
 
-    /* ✅ Icon-Button (Mülleimer) – gleiche Höhe/Radius wie Buttons, aber kompakt */
+    /* ✅ Icon-Button: gleiche Höhe, kompakte Breite */
     .btnIcon{
       width:44px;
-      height:44px;
       padding:0;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:14px;
       font-size:18px;
       line-height:1;
     }
@@ -320,6 +317,7 @@
       width:auto;
       flex: 0 1 220px;
       min-width:160px;
+      height:44px;
     }
     @media (max-width: 900px){
       .statusSelect{ flex: 1 1 100%; }
@@ -351,7 +349,7 @@
       background: rgba(0,255,195,0.07);
     }
 
-    /* ✅ Drag-Handle volle Höhe */
+    /* Drag-Handle volle Höhe */
     .dragHandle{
       cursor:grab;
       user-select:none;
@@ -414,8 +412,6 @@
       z-index:998;
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
-
-    /* ⛔️ Entfernt: Löschen im Pool per Hover */
 
     .officerLine .btnBack{
       opacity:0;
@@ -551,6 +547,109 @@
       padding-bottom:0;
     }
     .collapsedUp .chev{ transform: rotate(-90deg); }
+
+    /* ========= Create Actions (symmetrisch) ========= */
+    .createActions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    /* ✅ Mülleimer: nur anzeigen wenn ausgewählt UND hover auf Action-Reihe */
+    #btnDeleteOfficer{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .createActions:hover #btnDeleteOfficer.show{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    /* ========= MODAL (schön) ========= */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:1000;
+      background:
+        radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
+        radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
+        rgba(0,0,0,0.62);
+      backdrop-filter: blur(10px);
+    }
+    .modalCard{
+      width:min(520px, 100%);
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 18, 28, 0.78);
+      backdrop-filter: blur(12px);
+      border-radius:22px;
+      box-shadow: 0 18px 70px rgba(0,0,0,0.60);
+      overflow:hidden;
+    }
+    .modalHeader{
+      padding:14px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .modalTitle{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:0.5px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .modalBody{ padding:16px; }
+    .modalBody p{
+      margin:0;
+      opacity:0.88;
+      line-height:1.45;
+      font-size:13px;
+    }
+    .modalHint{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .modalHint .dot{ margin-top:3px; }
+    .modalFooter{
+      padding:14px 16px 16px;
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .modalCloseX{
+      width:40px;
+      height:40px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      transition: background .2s ease, transform .08s ease;
+      flex:0 0 auto;
+    }
+    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+    .modalCloseX:active{ transform: translateY(1px); }
   </style>
 </head>
 
@@ -621,13 +720,10 @@
 
             <div style="height:12px"></div>
 
-            <!-- ✅ Symmetrische Button-Reihe: Speichern links, Löschen-Eingaben mittig, Mülleimer rechts -->
-            <div class="row" style="justify-content:space-between; align-items:center;">
+            <!-- ✅ symmetrisch + Mülleimer nur bei Hover+Auswahl -->
+            <div class="createActions">
               <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
-
               <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
-
-              <!-- ✅ neuer Icon-Delete (nur bei Auswahl aktiv) -->
               <button class="btn btnDanger btnIcon" id="btnDeleteOfficer" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
             </div>
 
@@ -729,6 +825,35 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- ✅ Delete Confirm Modal -->
+  <div class="modalOverlay" id="confirmOverlay" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modalHeader">
+        <div class="modalTitle" id="confirmTitle">
+          <span class="dot red"></span>
+          <span>Beamten wirklich löschen?</span>
+        </div>
+        <div class="modalCloseX" id="confirmClose" title="Schließen">✕</div>
+      </div>
+
+      <div class="modalBody">
+        <p id="confirmText">—</p>
+
+        <div class="modalHint">
+          <span class="dot off"></span>
+          <div class="muted" style="opacity:.85;">
+            Diese Aktion kann nicht rückgängig gemacht werden.
+          </div>
+        </div>
+      </div>
+
+      <div class="modalFooter">
+        <button class="btn btnGhost" id="confirmCancel">Abbrechen</button>
+        <button class="btn btnDanger" id="confirmDelete">Löschen</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     /***********************
      * CONFIG
@@ -748,15 +873,10 @@
     const inpLoginPw = document.getElementById("inpLoginPw");
     const btnLogin = document.getElementById("btnLogin");
     const loginErr = document.getElementById("loginErr");
-
     const btnLogout = document.getElementById("btnLogout");
 
-    function normalizeSpaces(s){
-      return (s ?? "").toString().replace(/\s+/g, " ").trim();
-    }
-    function normalizeKey(name){
-      return normalizeSpaces(name).toLowerCase();
-    }
+    function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
+    function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
     function emailFromName(name){
       const key = normalizeKey(name);
       return key ? `${key}@gta.local` : "";
@@ -801,10 +921,8 @@
       try{
         btnLogin.disabled = true;
         btnLogin.textContent = "Login…";
-
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
-
         hideLogin();
         toast("Eingeloggt");
       }catch(e){
@@ -838,14 +956,7 @@
     /***********************
      * STATUS pro Streife
      ***********************/
-    const PATROL_STATUSES = [
-      "Auf Streife",
-      "Stand-By",
-      "Einsatz",
-      "Pause",
-      "Im PD",
-      "Ausbildung"
-    ];
+    const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
 
     function escapeHtml(s){
       return (s ?? "").toString().replace(/[&<>"']/g, m => ({
@@ -899,6 +1010,13 @@
     const createToggle = document.getElementById("createToggle");
     const createMiniHint = document.getElementById("createMiniHint");
 
+    /* Modal DOM */
+    const confirmOverlay = document.getElementById("confirmOverlay");
+    const confirmText = document.getElementById("confirmText");
+    const confirmClose = document.getElementById("confirmClose");
+    const confirmCancel = document.getElementById("confirmCancel");
+    const confirmDelete = document.getElementById("confirmDelete");
+
     /***********************
      * COLLAPSE STATE
      ***********************/
@@ -910,9 +1028,7 @@
         return { left: !!v.left, right: !!v.right };
       }catch{ return { left:false, right:false }; }
     }
-    function saveUi(state){
-      try{ localStorage.setItem(LS_UI, JSON.stringify(state)); }catch{}
-    }
+    function saveUi(state){ try{ localStorage.setItem(LS_UI, JSON.stringify(state)); }catch{} }
     const ui = loadUi();
     function applyUi(){
       app.classList.toggle("leftCollapsed", ui.left);
@@ -926,12 +1042,8 @@
     edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); });
 
     const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
-    function loadCreateCollapsed(){
-      try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; }
-    }
-    function saveCreateCollapsed(v){
-      try{ localStorage.setItem(LS_CREATE_COLLAPSE, v ? "1":"0"); }catch{}
-    }
+    function loadCreateCollapsed(){ try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; } }
+    function saveCreateCollapsed(v){ try{ localStorage.setItem(LS_CREATE_COLLAPSE, v ? "1":"0"); }catch{} }
     let createCollapsed = loadCreateCollapsed();
     function applyCreateCollapsed(){
       createCard.classList.toggle("collapsedUp", createCollapsed);
@@ -965,17 +1077,13 @@
         return Array.isArray(arr) ? arr.map(Number).filter(n => Number.isFinite(n)) : [];
       }catch{ return []; }
     }
-    function savePatrolOrder(order){
-      try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{}
-    }
+    function savePatrolOrder(order){ try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{} }
     function normalizePatrolOrder(){
       const order = loadPatrolOrder();
       const ids = patrols.map(p => p.id);
       const set = new Set(ids);
       const cleaned = order.filter(id => set.has(id));
-      for(const id of ids){
-        if(!cleaned.includes(id)) cleaned.push(id);
-      }
+      for(const id of ids){ if(!cleaned.includes(id)) cleaned.push(id); }
       savePatrolOrder(cleaned);
       return cleaned;
     }
@@ -1036,11 +1144,9 @@
     }
 
     function updateDeleteBtnState(){
-      // Button nur aktiv, wenn ein Officer ausgewählt ist
       const active = (selectedOfficerId != null);
       btnDeleteOfficer.disabled = !active;
-      btnDeleteOfficer.style.opacity = active ? "1" : "0.45";
-      btnDeleteOfficer.style.cursor = active ? "pointer" : "not-allowed";
+      btnDeleteOfficer.classList.toggle("show", active); // ✅ nur wenn aktiv darf er beim hover erscheinen
     }
 
     function selectOfficerForEdit(officerId){
@@ -1053,6 +1159,7 @@
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
       updateDeleteBtnState();
+
       if(createCollapsed){
         createCollapsed = false;
         saveCreateCollapsed(false);
@@ -1130,7 +1237,6 @@
               </div>
             </div>
 
-            <!-- ✅ kein Löschen mehr im Pool -->
             <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
               <span class="muted" style="opacity:.55;">&nbsp;</span>
             </div>
@@ -1255,20 +1361,15 @@
       initDragAndDrop();
     }
 
-    const SORTABLE_SCROLL_OPTS = {
-      scroll: true,
-      scrollSensitivity: 90,
-      scrollSpeed: 18,
-      bubbleScroll: true
-    };
+    const SORTABLE_SCROLL_OPTS = { scroll:true, scrollSensitivity:90, scrollSpeed:18, bubbleScroll:true };
 
     function initPatrolOrderDrag(){
       patrolSortable = new Sortable(patrolGrid, {
-        animation: 160,
-        handle: ".patrolDrag",
-        draggable: ".card",
-        ghostClass: "sortable-ghost",
-        chosenClass: "sortable-chosen",
+        animation:160,
+        handle:".patrolDrag",
+        draggable:".card",
+        ghostClass:"sortable-ghost",
+        chosenClass:"sortable-chosen",
         ...SORTABLE_SCROLL_OPTS,
         onEnd: () => {
           const ids = Array.from(patrolGrid.querySelectorAll(".card"))
@@ -1284,11 +1385,11 @@
       const zones = document.querySelectorAll(".dropZone[data-dropzone='1']");
       zones.forEach(zone=>{
         const sortable = new Sortable(zone, {
-          group: "officers-shared",
-          animation: 150,
-          handle: ".dragHandle",
-          ghostClass: "sortable-ghost",
-          chosenClass: "sortable-chosen",
+          group:"officers-shared",
+          animation:150,
+          handle:".dragHandle",
+          ghostClass:"sortable-ghost",
+          chosenClass:"sortable-chosen",
           ...SORTABLE_SCROLL_OPTS,
           onEnd: async (evt) => {
             const item = evt.item;
@@ -1305,6 +1406,7 @@
 
             if(toPatrolId == null && selectedOfficerId === officerId){
               selectedOfficerId = null;
+              updateDeleteBtnState();
             }
 
             const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
@@ -1383,6 +1485,7 @@
           const cur = officers.find(x => x.id === selectedOfficerId);
           if(!cur){
             selectedOfficerId = null;
+            updateDeleteBtnState();
             await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
             toast("Beamter gespeichert");
             return;
@@ -1557,6 +1660,51 @@
     }
 
     /***********************
+     * MODAL
+     ***********************/
+    let pendingDeleteId = null;
+
+    function openDeleteModal(officer){
+      pendingDeleteId = officer?.id ?? null;
+      const name = officer?.name || "Officer";
+      const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
+      confirmText.innerHTML = `
+        Du bist dabei, <b>${escapeHtml(name)}</b> (<span class="muted" style="opacity:.9;">${escapeHtml(dn)}</span>) zu löschen.
+      `;
+      confirmOverlay.style.display = "flex";
+      confirmOverlay.setAttribute("aria-hidden", "false");
+      setTimeout(()=> confirmDelete.focus(), 50);
+    }
+
+    function closeDeleteModal(){
+      pendingDeleteId = null;
+      confirmOverlay.style.display = "none";
+      confirmOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    confirmClose.addEventListener("click", closeDeleteModal);
+    confirmCancel.addEventListener("click", closeDeleteModal);
+    confirmOverlay.addEventListener("click", (e)=>{
+      if(e.target === confirmOverlay) closeDeleteModal();
+    });
+    document.addEventListener("keydown", (e)=>{
+      if(confirmOverlay.style.display === "flex" && e.key === "Escape"){
+        closeDeleteModal();
+      }
+    });
+
+    confirmDelete.addEventListener("click", async ()=>{
+      if(pendingDeleteId == null) return closeDeleteModal();
+      const id = pendingDeleteId;
+      closeDeleteModal();
+
+      await deleteOfficer(id);
+      inpName.value = "";
+      inpDienstnr.value = "";
+      clearOfficerSelection();
+    });
+
+    /***********************
      * REALTIME
      ***********************/
     function teardownRealtime(){
@@ -1593,13 +1741,8 @@
           renderAll();
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            markRealtimeOk();
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chPatrols = sb.channel("rt-patrols")
@@ -1619,13 +1762,8 @@
           renderAll();
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            markRealtimeOk();
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chNotes = sb.channel("rt-notes")
@@ -1638,13 +1776,8 @@
           }
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            markRealtimeOk();
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       rtChannels.push(chOfficers, chPatrols, chNotes);
@@ -1680,23 +1813,15 @@
       try{ localStorage.removeItem("lspd_me"); }catch{}
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
-      // Auswahl bewusst nicht löschen? -> doch, macht Sinn:
       clearOfficerSelection();
     });
 
-    // ✅ Beamten löschen jetzt in der Erstellen-Kachel (Mülleimer)
-    btnDeleteOfficer.addEventListener("click", async ()=>{
+    // ✅ Mülleimer: nur wenn ausgewählt (Hover macht ihn sichtbar) + Modal
+    btnDeleteOfficer.addEventListener("click", ()=>{
       if(selectedOfficerId == null) return;
       const o = officers.find(x => x.id === selectedOfficerId);
       if(!o) return;
-
-      const ok = confirm(`Beamten wirklich löschen?\n\n${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`);
-      if(!ok) return;
-
-      await deleteOfficer(selectedOfficerId);
-      inpName.value = "";
-      inpDienstnr.value = "";
-      clearOfficerSelection();
+      openDeleteModal(o);
     });
 
     function loadRemembered(){
