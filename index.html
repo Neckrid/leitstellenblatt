@@ -858,13 +858,6 @@
     const ADMIN_EMAIL = "admin@gta.local";
 
     /***********************
-     * GLOBAL ERROR GUARD (damit nix "still" kaputt geht)
-     ***********************/
-    window.addEventListener("error", (e)=>{
-      try{ toast("JS-Fehler: " + (e?.message || "unknown")); }catch{}
-    });
-
-    /***********************
      * ROLE / PERMISSIONS
      ***********************/
     const perms = {
@@ -885,11 +878,13 @@
         perms.canDeleteOfficer = false;
         perms.canSelectPoolForEdit = false;
       }else if(e === LEITSTELLE_EMAIL){
+        // ✅ Leitstelle darf bearbeiten + erstellen (aber NICHT löschen)
         perms.role = "leitstelle";
-        perms.canCreateOfficer = false;
+        perms.canCreateOfficer = true;     // FIX
         perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = true;
-      }else if(e){
+        perms.canSelectPoolForEdit = true; // FIX
+      }else if(e === ADMIN_EMAIL || e){
+        // admin alles
         perms.role = "admin";
         perms.canCreateOfficer = true;
         perms.canDeleteOfficer = true;
@@ -904,15 +899,70 @@
       applyRoleUi();
     }
 
-    function applyRoleUi(){
-      app.classList.toggle("hideCreateCard", perms.role === "officer");
-      updateCreateControls();
+    /***********************
+     * DOM
+     ***********************/
+    const app = document.getElementById("app");
+    const btnToggleLeft = document.getElementById("btnToggleLeft");
+    const btnToggleRight = document.getElementById("btnToggleRight");
+    const edgeLeft = document.getElementById("edgeLeft");
+    const edgeRight = document.getElementById("edgeRight");
 
-      // ✅ + Streife bleibt für ALLE sichtbar & klickbar (wie du es beschrieben hast)
+    const connDot = document.getElementById("connDot");
+    const connText = document.getElementById("connText");
+    const toastEl = document.getElementById("toast");
+
+    const inpName = document.getElementById("inpName");
+    const inpDienstnr = document.getElementById("inpDienstnr");
+
+    const btnCreateOfficer = document.getElementById("btnCreateOfficer");
+    const btnRemember = document.getElementById("btnRemember");
+    const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
+    const meHint = document.getElementById("meHint");
+
+    const inpSearch = document.getElementById("inpSearch");
+    const createdList = document.getElementById("createdList");
+    const createdCount = document.getElementById("createdCount");
+
+    const patrolGrid = document.getElementById("patrolGrid");
+    const btnAddPatrol = document.getElementById("btnAddPatrol");
+
+    const onDutyCountEl = document.getElementById("onDutyCount");
+
+    const txtNotes = document.getElementById("txtNotes");
+    const noteStatus = document.getElementById("noteStatus");
+
+    const funcodeList = document.getElementById("funcodeList");
+
+    const createCard = document.getElementById("createCard");
+    const createToggle = document.getElementById("createToggle");
+    const createMiniHint = document.getElementById("createMiniHint");
+
+    const confirmOverlay = document.getElementById("confirmOverlay");
+    const confirmText = document.getElementById("confirmText");
+    const confirmClose = document.getElementById("confirmClose");
+    const confirmCancel = document.getElementById("confirmCancel");
+    const confirmDelete = document.getElementById("confirmDelete");
+
+    const btnLogout = document.getElementById("btnLogout");
+
+    /***********************
+     * APPLY ROLE UI
+     ***********************/
+    function applyRoleUi(){
+      // Officer sieht Create-Kachel nicht
+      app.classList.toggle("hideCreateCard", perms.role === "officer");
+
+      // + Streife für alle verfügbar
       btnAddPatrol.disabled = false;
+
+      updateCreateControls();
+      renderCreatedPool(); // Klickbarkeit/Selection im Pool aktualisieren
     }
 
     function updateCreateControls(){
+      const hasSel = (selectedOfficerId != null);
+
       if(perms.role === "officer"){
         btnCreateOfficer.disabled = true;
         btnRemember.disabled = true;
@@ -921,15 +971,13 @@
         return;
       }
 
-      const hasSel = (selectedOfficerId != null);
-
-      // Leitstelle: nur bearbeiten (wenn selected)
-      btnCreateOfficer.disabled = (perms.role === "leitstelle") ? !hasSel : false;
+      // Leitstelle/Admin: speichern erlaubt (Leitstelle auch ohne Auswahl => erstellen)
+      btnCreateOfficer.disabled = !perms.canCreateOfficer;
 
       // Delete: nur Admin + selected
       if(perms.canDeleteOfficer && hasSel){
         btnDeleteOfficer.disabled = false;
-        btnDeleteOfficer.classList.add("show"); // sichtbar nur bei hover per CSS
+        btnDeleteOfficer.classList.add("show"); // sichtbar nur bei hover (CSS)
       }else{
         btnDeleteOfficer.disabled = true;
         btnDeleteOfficer.classList.remove("show");
@@ -946,7 +994,6 @@
     const inpLoginPw = document.getElementById("inpLoginPw");
     const btnLogin = document.getElementById("btnLogin");
     const loginErr = document.getElementById("loginErr");
-    const btnLogout = document.getElementById("btnLogout");
 
     function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
     function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
@@ -1009,16 +1056,16 @@
       }
     }
 
-    /* ✅ FIX: Logout immer zuverlässig (auch bei Officer) */
+    /* Logout (stabil) */
     async function doLogout(){
       try{
-        // zuerst signOut (damit UI safe ist)
         const { error } = await sb.auth.signOut();
         if(error) console.error("signOut error:", error);
       }catch(e){
         console.error("signOut throw:", e);
       }finally{
         try{ await stopLeitstellePresence(); }catch(e){ console.error("stop presence error:", e); }
+        selectedOfficerId = null;
         setRoleFromEmail("");
         showLogin("");
         toast("Ausgeloggt");
@@ -1026,7 +1073,17 @@
     }
 
     /***********************
-     * FUNKCODES / PATROL STATUS
+     * ✅ FIX: Logout per Event Delegation (funktioniert IMMER)
+     ***********************/
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest("#btnLogout");
+      if(!t) return;
+      e.preventDefault();
+      doLogout();
+    }, true);
+
+    /***********************
+     * FUNKCODES / STATUS
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
@@ -1051,51 +1108,6 @@
       }).join("");
     }
     function statusLabel(v){ return v || "Auf Streife"; }
-
-    /***********************
-     * DOM
-     ***********************/
-    const app = document.getElementById("app");
-    const btnToggleLeft = document.getElementById("btnToggleLeft");
-    const btnToggleRight = document.getElementById("btnToggleRight");
-    const edgeLeft = document.getElementById("edgeLeft");
-    const edgeRight = document.getElementById("edgeRight");
-
-    const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText");
-    const toastEl = document.getElementById("toast");
-
-    const inpName = document.getElementById("inpName");
-    const inpDienstnr = document.getElementById("inpDienstnr");
-
-    const btnCreateOfficer = document.getElementById("btnCreateOfficer");
-    const btnRemember = document.getElementById("btnRemember");
-    const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
-    const meHint = document.getElementById("meHint");
-
-    const inpSearch = document.getElementById("inpSearch");
-    const createdList = document.getElementById("createdList");
-    const createdCount = document.getElementById("createdCount");
-
-    const patrolGrid = document.getElementById("patrolGrid");
-    const btnAddPatrol = document.getElementById("btnAddPatrol");
-
-    const onDutyCountEl = document.getElementById("onDutyCount");
-
-    const txtNotes = document.getElementById("txtNotes");
-    const noteStatus = document.getElementById("noteStatus");
-
-    const funcodeList = document.getElementById("funcodeList");
-
-    const createCard = document.getElementById("createCard");
-    const createToggle = document.getElementById("createToggle");
-    const createMiniHint = document.getElementById("createMiniHint");
-
-    const confirmOverlay = document.getElementById("confirmOverlay");
-    const confirmText = document.getElementById("confirmText");
-    const confirmClose = document.getElementById("confirmClose");
-    const confirmCancel = document.getElementById("confirmCancel");
-    const confirmDelete = document.getElementById("confirmDelete");
 
     /***********************
      * COLLAPSE STATE
@@ -1225,11 +1237,7 @@
           if(status === "SUBSCRIBED"){
             const email = (session?.user?.email || "").toLowerCase();
             if(email === LEITSTELLE_EMAIL){
-              try{
-                await presenceChannel.track({ email, ts: new Date().toISOString() });
-              }catch(e){
-                console.error("presence track error:", e);
-              }
+              try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
             }
             try{
               const state = presenceChannel.presenceState();
@@ -1300,15 +1308,24 @@
       onDutyCountEl.textContent = cnt;
     }
 
+    function clearOfficerSelection(){
+      selectedOfficerId = null;
+      renderCreatedPool();
+      updateCreateControls();
+    }
+
     function selectOfficerForEdit(officerId){
       if(!perms.canSelectPoolForEdit) return;
       const o = officers.find(x => x.id === officerId);
       if(!o) return;
+
       selectedOfficerId = officerId;
       inpName.value = o.name ?? "";
       inpDienstnr.value = (o.dienstnummer ?? "").toString();
+
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
+
       renderCreatedPool();
       updateCreateControls();
 
@@ -1317,11 +1334,6 @@
         saveCreateCollapsed(false);
         applyCreateCollapsed();
       }
-    }
-    function clearOfficerSelection(){
-      selectedOfficerId = null;
-      renderCreatedPool();
-      updateCreateControls();
     }
 
     function renderAll(){
@@ -1452,7 +1464,7 @@
               </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btnBack" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
+                <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
               </div>
             </div>
           `;
@@ -1559,11 +1571,6 @@
             const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
             if(same) return;
 
-            if(toPatrolId == null && selectedOfficerId === officerId){
-              selectedOfficerId = null;
-              updateCreateControls();
-            }
-
             const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
             await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
           }
@@ -1662,7 +1669,7 @@
         }
 
         if(!perms.canCreateOfficer){
-          toast("Leitstelle darf keine neuen Beamten erstellen");
+          toast("Keine Berechtigung zum Erstellen");
           return;
         }
 
@@ -1730,7 +1737,6 @@
       toast("Officer gelöscht");
     }
 
-    /* ✅ FIX: + Streife zeigt Fehler sauber (RLS/Permission etc.) */
     async function addPatrol(){
       try{
         const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
@@ -2000,7 +2006,6 @@
     inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
-    btnLogout.addEventListener("click", doLogout);
 
     /***********************
      * INIT
