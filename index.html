@@ -205,16 +205,6 @@
     }
     .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
 
-    /* ✅ Icon-Button (Logout ohne Text) */
-    .btnIcon{
-      padding:10px;
-      width:42px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-    }
-
     .pill{
       display:inline-flex;
       align-items:center;
@@ -597,10 +587,9 @@
           </div>
         </div>
 
-        <!-- ✅ Reihenfolge: Online/Offline zuerst, Logout rechts daneben + Logout ohne Text -->
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btnGhost btnLogoutRed" id="btnLogout" title="Logout">Logout</button>
           <span class="pill"><span class="dot off" id="connDot"></span><span id="connText">offline</span></span>
-          <button class="btn btnGhost btnLogoutRed btnIcon" id="btnLogout" title="Logout" aria-label="Logout">⎋</button>
         </div>
       </div>
 
@@ -659,10 +648,11 @@
     <!-- CENTER -->
     <section class="panel" id="panelCenter">
       <div class="panelHeader">
-        <!-- ✅ Nur der Titel "STREIFENEINTEILUNG" -->
         <div class="brand">
+          <div class="badge">10</div>
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
+            <div class="subtitle">Drag & Drop • Status pro Streife • Live Sync</div>
           </div>
         </div>
 
@@ -686,9 +676,12 @@
       <div class="dockBtn" id="btnToggleRight" title="Rechts ein/aus">❯</div>
 
       <div class="panelHeader">
-        <!-- ✅ Text links neben Button entfernt (nur Badge bleibt) -->
         <div class="brand">
           <div class="badge">⟡</div>
+          <div class="titleWrap">
+            <div class="title">LEITSTELLEN-TOOLS</div>
+            <div class="subtitle">Notizen, Funcodes, Funkkanäle</div>
+          </div>
         </div>
         <button class="btn btnGhost" id="btnSaveNote">Notiz speichern</button>
       </div>
@@ -733,7 +726,7 @@
      * CONFIG
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
