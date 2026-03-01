@@ -15,7 +15,6 @@
       margin:0;
       font-family: Arial, Helvetica, sans-serif;
       color:#fff;
-
       overflow:hidden;
       background:
         radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
@@ -1032,7 +1031,7 @@
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
-    /* ✅ FIX: Fokus + Cursor beim Re-Render behalten (Streifenname Input) */
+    /* ✅ FIX: Streifenname-Fokus + Cursor beim Re-Render behalten */
     function capturePatrolNameFocus(){
       const el = document.activeElement;
       if(el && el.matches && el.matches("input[data-act='renamePatrol']")){
@@ -1051,16 +1050,26 @@
       requestAnimationFrame(() => {
         const inp = patrolGrid.querySelector(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
         if(!inp) return;
-
-        inp.value = snapshot.value; // typed text behalten
+        inp.value = snapshot.value;
         inp.focus({ preventScroll:true });
-
         try{
           if(snapshot.start != null && snapshot.end != null){
             inp.setSelectionRange(snapshot.start, snapshot.end);
           }
         }catch{}
       });
+    }
+
+    /* ✅ FIX: Während Drag aktiv ist NICHT neu rendern (Realtime/Updates killen sonst den Drop) */
+    let isDragging = false;
+    let pendingRender = false;
+
+    function endDragAndFlush(){
+      isDragging = false;
+      if(pendingRender){
+        pendingRender = false;
+        renderAll(); // (renderAll ist drag-aware)
+      }
     }
 
     /***********************
@@ -1431,7 +1440,10 @@
     }
 
     function renderPatrolGrid(){
-      const focusSnap = capturePatrolNameFocus(); // ✅ FIX: Fokus/Cursor merken
+      // ✅ Drag-Schutz: während Drag keine DOM-Neuaufbau-Aktion
+      if(isDragging){ pendingRender = true; return; }
+
+      const focusSnap = capturePatrolNameFocus();
 
       for(const s of sortables){ try{s.destroy();}catch{} }
       sortables = [];
@@ -1517,10 +1529,7 @@
           queuePatrolRename(id, inp.value);
         });
 
-        inp.addEventListener("input", ()=>{
-          // Fokus bleibt jetzt auch bei Re-Render (restorePatrolNameFocus)
-          queuePatrolRename(id, inp.value);
-        });
+        inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
         inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
 
@@ -1535,7 +1544,7 @@
       initPatrolOrderDrag();
       initDragAndDrop();
 
-      restorePatrolNameFocus(focusSnap); // ✅ FIX: Fokus/Cursor zurücksetzen
+      restorePatrolNameFocus(focusSnap);
     }
 
     const SORTABLE_SCROLL_OPTS = { scroll:true, scrollSensitivity:90, scrollSpeed:18, bubbleScroll:true };
@@ -1548,11 +1557,18 @@
         ghostClass:"sortable-ghost",
         chosenClass:"sortable-chosen",
         ...SORTABLE_SCROLL_OPTS,
-        onEnd: () => {
-          persistPatrolOrderFromDom().catch(e=>{
+
+        onStart: () => { isDragging = true; },
+
+        onEnd: async () => {
+          try{
+            await persistPatrolOrderFromDom();
+          }catch(e){
             console.error(e);
             toast("Fehler Reihenfolge");
-          });
+          }finally{
+            endDragAndFlush();
+          }
         }
       });
     }
@@ -1567,20 +1583,27 @@
           ghostClass:"sortable-ghost",
           chosenClass:"sortable-chosen",
           ...SORTABLE_SCROLL_OPTS,
+
+          onStart: () => { isDragging = true; },
+
           onEnd: async (evt) => {
-            const item = evt.item;
-            const officerId = Number(item.getAttribute("data-officer-id"));
-            const raw = evt.to.getAttribute("data-patrol-id");
-            const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
+            try{
+              const item = evt.item;
+              const officerId = Number(item.getAttribute("data-officer-id"));
+              const raw = evt.to.getAttribute("data-patrol-id");
+              const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
 
-            const o = officers.find(x => x.id === officerId);
-            if(!o) return;
+              const o = officers.find(x => x.id === officerId);
+              if(!o) return;
 
-            const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
-            if(same) return;
+              const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
+              if(same) return;
 
-            const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
-            await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
+              const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
+              await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
+            }finally{
+              endDragAndFlush();
+            }
           }
         });
         sortables.push(sortable);
@@ -1588,6 +1611,8 @@
     }
 
     function renderAll(){
+      // ✅ drag-aware render (Realtime soll Drops nicht killen)
+      if(isDragging){ pendingRender = true; return; }
       renderCreatedPool();
       renderPatrolGrid();
       updateOnDutyCount();
@@ -1732,7 +1757,6 @@
       toast("Streife erstellt");
     }
 
-    // ✅ renamePatrol bleibt als Utility (rendert NICHT beim Tippen)
     async function renamePatrol(id, name){
       const safeName = (name || "").trim() || "Streife";
       const p = patrols.find(x => x.id === id);
@@ -1929,7 +1953,7 @@
           }else{
             upsertLocal(officers, payload.new);
           }
-          renderAll();
+          renderAll(); // drag-aware
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1968,13 +1992,13 @@
 
           const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
           if(sortChanged){
-            renderPatrolGrid();
+            renderPatrolGrid(); // drag-aware
             return;
           }
 
           const patched = patchPatrolCard(incoming, before);
           if(!patched){
-            renderPatrolGrid();
+            renderPatrolGrid(); // drag-aware
           }
         })
         .subscribe(async (status) => {
