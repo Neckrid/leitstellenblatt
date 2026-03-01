@@ -827,16 +827,17 @@
     const ADMIN_EMAIL = "admin@gta.local";
 
     /***********************
-     * ✅ Realtime Auth Sync (RLS Fix)
+     * ✅ Realtime Auth Sync (RLS Fix) + Fallback
      ***********************/
     async function syncRealtimeAuth(){
       try{
         const { data } = await sb.auth.getSession();
         const token = data?.session?.access_token || null;
-        if(token){
-          // sorgt dafür, dass postgres_changes / RLS korrekt laufen
-          sb.realtime.setAuth(token);
-        }
+        if(!token) return;
+
+        // kompatibel mit mehr supabase-js v2 builds
+        if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
+        else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
       }catch(e){
         console.warn("syncRealtimeAuth failed:", e);
       }
@@ -948,16 +949,19 @@
     function toast(msg){
       toastEl.textContent = msg;
       toastEl.classList.add("show");
-      setTimeout(() => toastEl.classList.remove("show"), 1800);
+      setTimeout(() => toastEl.classList.remove("show"), 2200);
     }
 
+    // ✅ bessere Fehlermeldung (zeigt echte Ursache)
     window.addEventListener("error", (e)=>{
-      console.error("JS ERROR:", e.error || e.message);
-      toast("JS Fehler (Konsole prüfen)");
+      const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
+      console.error("JS ERROR:", e.error || e.message, e);
+      toast("JS: " + msg.slice(0, 140));
     });
     window.addEventListener("unhandledrejection", (e)=>{
-      console.error("Unhandled Promise:", e.reason);
-      toast("Promise Fehler (Konsole prüfen)");
+      const msg = (e?.reason?.message || String(e?.reason) || "Unbekannte Promise-Rejection");
+      console.error("Unhandled Promise:", e.reason, e);
+      toast("Promise: " + msg.slice(0, 140));
     });
 
     function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
@@ -1780,13 +1784,12 @@
     });
 
     /***********************
-     * REALTIME (✅ robust + RLS + Catch-up Sync)
+     * REALTIME (robust + RLS + Catch-up Sync)
      ***********************/
     let rtChannels = [];
     let rtResubTimer = null;
     let rtBackoffMs = 800;
 
-    // ✅ nach Reconnect einmal loadAll(), damit keine Events “verpasst” werden
     let rtNeedsResync = false;
 
     function teardownRealtime(){
@@ -1901,14 +1904,9 @@
       const email = (session.user?.email || "").toLowerCase();
       setRoleFromEmail(email);
 
-      // ✅ wichtig: Realtime Token setzen (RLS)
       await syncRealtimeAuth();
-
-      // Presence + Realtime
       await setupPresence();
       setupRealtime();
-
-      // Initialdaten
       await loadAll();
     }
 
@@ -1936,9 +1934,7 @@
         hideLogin();
         toast("Eingeloggt");
 
-        // ✅ sicherstellen, dass Realtime Auth sofort stimmt
         await syncRealtimeAuth();
-
         await postLoginInit();
       }catch(e){
         console.error(e);
