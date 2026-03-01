@@ -210,6 +210,19 @@
       min-width:160px;
     }
 
+    /* ✅ Icon-Button (Mülleimer) – gleiche Höhe/Radius wie Buttons, aber kompakt */
+    .btnIcon{
+      width:44px;
+      height:44px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      font-size:18px;
+      line-height:1;
+    }
+
     .pill{
       display:inline-flex;
       align-items:center;
@@ -338,7 +351,7 @@
       background: rgba(0,255,195,0.07);
     }
 
-    /* ✅ FIX: Drag-Handle volle Höhe */
+    /* ✅ Drag-Handle volle Höhe */
     .dragHandle{
       cursor:grab;
       user-select:none;
@@ -402,16 +415,7 @@
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
 
-    .officerLine .btnDanger{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .officerLine:hover .btnDanger{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
+    /* ⛔️ Entfernt: Löschen im Pool per Hover */
 
     .officerLine .btnBack{
       opacity:0;
@@ -616,9 +620,15 @@
             <input id="inpDienstnr" placeholder="z.B. 4711"/>
 
             <div style="height:12px"></div>
-            <div class="row">
+
+            <!-- ✅ Symmetrische Button-Reihe: Speichern links, Löschen-Eingaben mittig, Mülleimer rechts -->
+            <div class="row" style="justify-content:space-between; align-items:center;">
               <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
+
               <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
+
+              <!-- ✅ neuer Icon-Delete (nur bei Auswahl aktiv) -->
+              <button class="btn btnDanger btnIcon" id="btnDeleteOfficer" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
             </div>
 
             <div style="height:10px"></div>
@@ -868,6 +878,7 @@
 
     const btnCreateOfficer = document.getElementById("btnCreateOfficer");
     const btnRemember = document.getElementById("btnRemember");
+    const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
     const meHint = document.getElementById("meHint");
 
     const inpSearch = document.getElementById("inpSearch");
@@ -1024,6 +1035,14 @@
       onDutyCountEl.textContent = cnt;
     }
 
+    function updateDeleteBtnState(){
+      // Button nur aktiv, wenn ein Officer ausgewählt ist
+      const active = (selectedOfficerId != null);
+      btnDeleteOfficer.disabled = !active;
+      btnDeleteOfficer.style.opacity = active ? "1" : "0.45";
+      btnDeleteOfficer.style.cursor = active ? "pointer" : "not-allowed";
+    }
+
     function selectOfficerForEdit(officerId){
       const o = officers.find(x => x.id === officerId);
       if(!o) return;
@@ -1033,6 +1052,7 @@
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
+      updateDeleteBtnState();
       if(createCollapsed){
         createCollapsed = false;
         saveCreateCollapsed(false);
@@ -1042,12 +1062,14 @@
     function clearOfficerSelection(){
       selectedOfficerId = null;
       renderCreatedPool();
+      updateDeleteBtnState();
     }
 
     function renderAll(){
       renderCreatedPool();
       renderPatrolGrid();
       updateOnDutyCount();
+      updateDeleteBtnState();
     }
 
     function renderFuncodes(){
@@ -1108,8 +1130,9 @@
               </div>
             </div>
 
+            <!-- ✅ kein Löschen mehr im Pool -->
             <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-              <button class="btn btnDanger" data-act="remove" data-id="${o.id}">Löschen</button>
+              <span class="muted" style="opacity:.55;">&nbsp;</span>
             </div>
           </div>
         `;
@@ -1127,15 +1150,6 @@
             return;
           }
           selectOfficerForEdit(id);
-        });
-      });
-
-      createdList.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async (e)=>{
-          e.stopPropagation();
-          const act = btn.getAttribute("data-act");
-          const id = Number(btn.getAttribute("data-id"));
-          if(act === "remove") return deleteOfficer(id);
         });
       });
     }
@@ -1666,6 +1680,23 @@
       try{ localStorage.removeItem("lspd_me"); }catch{}
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
+      // Auswahl bewusst nicht löschen? -> doch, macht Sinn:
+      clearOfficerSelection();
+    });
+
+    // ✅ Beamten löschen jetzt in der Erstellen-Kachel (Mülleimer)
+    btnDeleteOfficer.addEventListener("click", async ()=>{
+      if(selectedOfficerId == null) return;
+      const o = officers.find(x => x.id === selectedOfficerId);
+      if(!o) return;
+
+      const ok = confirm(`Beamten wirklich löschen?\n\n${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`);
+      if(!ok) return;
+
+      await deleteOfficer(selectedOfficerId);
+      inpName.value = "";
+      inpDienstnr.value = "";
+      clearOfficerSelection();
     });
 
     function loadRemembered(){
@@ -1696,6 +1727,7 @@
       startConnWatch();
 
       loadRemembered();
+      updateDeleteBtnState();
 
       try{
         const { data } = await sb.auth.getSession();
