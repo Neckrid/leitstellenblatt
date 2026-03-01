@@ -124,9 +124,6 @@
       font-size:12px;
       flex:0 0 auto;
     }
-    .titleWrap{ line-height:1.05; min-width:0; }
-    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .content{ padding:14px; overflow:auto; min-height:0; }
 
@@ -335,26 +332,6 @@
     }
     .dragHandle:active{ cursor:grabbing; }
 
-    .rightBox h3{
-      margin:0 0 10px 0;
-      font-size:13px;
-      letter-spacing:0.6px;
-      opacity:0.9;
-    }
-    .codeList{ display:flex; flex-direction:column; gap:8px; }
-    .codeRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-    }
-    .codeRow b{ font-size:12px; white-space:nowrap; }
-    .codeRow span{ font-size:12px; opacity:0.82; }
-
     .topActions{
       display:flex;
       gap:8px;
@@ -495,7 +472,6 @@
       transition: transform .18s ease, background .2s ease;
       flex:0 0 auto;
     }
-    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
     .collapseBody{
       padding:0 10px 10px 10px;
       transform-origin: top;
@@ -519,7 +495,6 @@
       gap:10px;
     }
 
-    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
     #btnDeleteOfficer{
       opacity:0;
       pointer-events:none;
@@ -563,28 +538,6 @@
       justify-content:space-between;
       gap:12px;
     }
-    .modalTitle{
-      font-size:13px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-    .modalBody{ padding:16px; }
-    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
-    .modalHint{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.22);
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-    }
-    .modalHint .dot{ margin-top:3px; }
     .modalFooter{
       padding:14px 16px 16px;
       border-top:1px solid rgba(255,255,255,0.08);
@@ -593,6 +546,7 @@
       justify-content:flex-end;
       flex-wrap:wrap;
     }
+
     .modalCloseX{
       width:40px; height:40px;
       border-radius:14px;
@@ -606,8 +560,6 @@
       transition: background .2s ease, transform .08s ease;
       flex:0 0 auto;
     }
-    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
-    .modalCloseX:active{ transform: translateY(1px); }
 
     /* Role hide */
     .hideCreateCard #createCard{ display:none !important; }
@@ -760,20 +712,20 @@
 
         <div style="height:12px"></div>
 
-        <div class="field rightBox">
-          <h3>Funcodes</h3>
-          <div class="codeList" id="funcodeList"></div>
+        <div class="field">
+          <div style="margin:0 0 10px 0; font-size:13px; letter-spacing:0.6px; opacity:0.9; font-weight:800;">Funcodes</div>
+          <div id="funcodeList"></div>
         </div>
 
         <div style="height:12px"></div>
 
-        <div class="field rightBox">
-          <h3>Funkkanäle</h3>
-          <div class="codeList">
-            <div class="codeRow"><b>LSPD</b><span>-1</span></div>
-            <div class="codeRow"><b>LSMD</b><span>-2</span></div>
-            <div class="codeRow"><b>DOJ</b><span>-3</span></div>
-            <div class="codeRow"><b>Army</b><span>-6</span></div>
+        <div class="field">
+          <div style="margin:0 0 10px 0; font-size:13px; letter-spacing:0.6px; opacity:0.9; font-weight:800;">Funkkanäle</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">LSPD</b><span style="font-size:12px; opacity:.82;">-1</span></div>
+            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">LSMD</b><span style="font-size:12px; opacity:.82;">-2</span></div>
+            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">DOJ</b><span style="font-size:12px; opacity:.82;">-3</span></div>
+            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">Army</b><span style="font-size:12px; opacity:.82;">-6</span></div>
           </div>
         </div>
       </div>
@@ -789,17 +741,17 @@
   <div class="modalOverlay" id="confirmOverlay" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="modalHeader">
-        <div class="modalTitle" id="confirmTitle">
+        <div class="modalTitle" id="confirmTitle" style="display:flex; align-items:center; gap:10px;">
           <span class="dot red"></span>
-          <span>Beamten wirklich löschen?</span>
+          <span style="font-size:13px; font-weight:900; letter-spacing:0.5px;">Beamten wirklich löschen?</span>
         </div>
         <div class="modalCloseX" id="confirmClose" title="Schließen">✕</div>
       </div>
 
-      <div class="modalBody">
-        <p id="confirmText">—</p>
-        <div class="modalHint">
-          <span class="dot off"></span>
+      <div class="modalBody" style="padding:16px;">
+        <p id="confirmText" style="margin:0; opacity:0.88; line-height:1.45; font-size:13px;">—</p>
+        <div style="margin-top:10px; padding:10px 12px; border-radius:16px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.22); display:flex; gap:10px; align-items:flex-start;">
+          <span class="dot off" style="margin-top:3px;"></span>
           <div class="muted" style="opacity:.85;">Diese Aktion kann nicht rückgängig gemacht werden.</div>
         </div>
       </div>
@@ -834,7 +786,6 @@
         const { data } = await sb.auth.getSession();
         const token = data?.session?.access_token || null;
         if(!token) return;
-
         if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
         else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
       }catch(e){
@@ -1031,17 +982,14 @@
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
-    /* ✅ FIX: Streifenname-Fokus + Cursor beim Re-Render behalten */
+    /***********************
+     * ✅ FIX: Streifenname-Fokus + Cursor behalten
+     ***********************/
     function capturePatrolNameFocus(){
       const el = document.activeElement;
       if(el && el.matches && el.matches("input[data-act='renamePatrol']")){
         const id = Number(el.getAttribute("data-id"));
-        return {
-          id,
-          value: el.value,
-          start: el.selectionStart ?? null,
-          end: el.selectionEnd ?? null
-        };
+        return { id, value: el.value, start: el.selectionStart ?? null, end: el.selectionEnd ?? null };
       }
       return null;
     }
@@ -1060,7 +1008,9 @@
       });
     }
 
-    /* ✅ FIX: Während Drag aktiv ist NICHT neu rendern (Realtime/Updates killen sonst den Drop) */
+    /***********************
+     * ✅ Drag Guard
+     ***********************/
     let isDragging = false;
     let pendingRender = false;
 
@@ -1072,11 +1022,42 @@
       }
     }
 
-    /* ✅ FIX: Tabwechsel/Focus -> Drag-Status hängt manchmal, daher hart resetten */
-    function cancelDragAndReinit(){
+    /***********************
+     * ✅ HARD FIX: Sortable nach Tabwechsel neu bauen
+     ***********************/
+    function destroyAllSortables(){
+      try{
+        if(patrolSortable){ try{ patrolSortable.destroy(); }catch{} }
+      }catch{}
+      patrolSortable = null;
+
+      try{
+        (sortables || []).forEach(s => { try{ s.destroy(); }catch{} });
+      }catch{}
+      sortables = [];
+    }
+
+    function rebuildSortablesHard(){
+      // Nur wenn UI sichtbar ist
+      if(app.style.display === "none") return;
+
+      // Drag-Flags resetten
       isDragging = false;
       pendingRender = false;
-      try{ renderAll(); }catch(e){ console.error(e); }
+
+      // Sortable komplett neu initialisieren
+      destroyAllSortables();
+
+      // Wichtig: DOM muss da sein (PatrolGrid+Zonen existieren)
+      try{ initPatrolOrderDrag(); }catch(e){ console.error("initPatrolOrderDrag failed:", e); }
+      try{ initDragAndDrop(); }catch(e){ console.error("initDragAndDrop failed:", e); }
+    }
+
+    function scheduleRebuildSortablesHard(){
+      // kleiner Delay, damit Browser nach Focus/Tabwechsel Layout fertig hat
+      setTimeout(() => {
+        rebuildSortablesHard();
+      }, 80);
     }
 
     /***********************
@@ -1254,7 +1235,10 @@
 
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
-        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);">
+          <b style="font-size:12px; white-space:nowrap;">${escapeHtml(c)}</b>
+          <span style="font-size:12px; opacity:.82;">${escapeHtml(d)}</span>
+        </div>
       `).join("");
     }
 
@@ -1265,7 +1249,6 @@
     let officers = [];
     let noteAutosaveTimer = null;
 
-    // ✅ Live-Rename Debounce / Schutz gegen Überschreiben beim Tippen
     const patrolRenameTimers = new Map();
     const patrolRenameLastSent = new Map();
     let editingPatrolNameId = null;
@@ -1273,34 +1256,6 @@
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
-    }
-
-    function clearOfficerSelection(){
-      selectedOfficerId = null;
-      renderCreatedPool();
-      updateCreateControls();
-    }
-
-    function selectOfficerForEdit(officerId){
-      if(!perms.canSelectPoolForEdit) return;
-      const o = officers.find(x => x.id === officerId);
-      if(!o) return;
-
-      selectedOfficerId = officerId;
-      inpName.value = o.name ?? "";
-      inpDienstnr.value = (o.dienstnummer ?? "").toString();
-
-      meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
-      setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
-
-      renderCreatedPool();
-      updateCreateControls();
-
-      if(createCollapsed){
-        createCollapsed = false;
-        saveCreateCollapsed(false);
-        applyCreateCollapsed();
-      }
     }
 
     function matchesSearch(officer, q){
@@ -1357,10 +1312,6 @@
                 <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
               </div>
             </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-              <span class="muted" style="opacity:.55;">&nbsp;</span>
-            </div>
           </div>
         `;
       }).join("");
@@ -1372,11 +1323,30 @@
 
             const id = Number(line.getAttribute("data-officer-id"));
             if(selectedOfficerId === id){
-              clearOfficerSelection();
+              selectedOfficerId = null;
+              renderCreatedPool();
+              updateCreateControls();
               toast("Auswahl aufgehoben");
               return;
             }
-            selectOfficerForEdit(id);
+
+            const o = officers.find(x => x.id === id);
+            if(!o) return;
+
+            selectedOfficerId = id;
+            inpName.value = o.name ?? "";
+            inpDienstnr.value = (o.dienstnummer ?? "").toString();
+            meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
+            setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
+
+            if(createCollapsed){
+              createCollapsed = false;
+              saveCreateCollapsed(false);
+              applyCreateCollapsed();
+            }
+
+            renderCreatedPool();
+            updateCreateControls();
           });
         });
       }
@@ -1403,8 +1373,6 @@
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
       });
-      sortPatrolsInMemory();
-      renderPatrolGrid();
 
       const payload = ids.map((id, idx)=>({ id, sort_index: idx + 1 }));
       const res = await sb.from("patrols").upsert(payload, { onConflict: "id" });
@@ -1447,10 +1415,7 @@
       if(isDragging){ pendingRender = true; return; }
 
       const focusSnap = capturePatrolNameFocus();
-
-      for(const s of sortables){ try{s.destroy();}catch{} }
-      sortables = [];
-      if(patrolSortable){ try{patrolSortable.destroy();}catch{} patrolSortable = null; }
+      destroyAllSortables();
 
       sortPatrolsInMemory();
       const sortedPatrols = patrols.slice();
@@ -1475,7 +1440,6 @@
                   </div>
                 </div>
               </div>
-
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                 <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}" type="button">Zurück in Pool</button>
               </div>
@@ -1538,14 +1502,12 @@
       patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
         sel.addEventListener("change", async ()=>{
           const id = Number(sel.getAttribute("data-id"));
-          const status = sel.value;
-          await updatePatrolStatus(id, status);
+          await updatePatrolStatus(id, sel.value);
         });
       });
 
       initPatrolOrderDrag();
       initDragAndDrop();
-
       restorePatrolNameFocus(focusSnap);
     }
 
@@ -1559,9 +1521,7 @@
         ghostClass:"sortable-ghost",
         chosenClass:"sortable-chosen",
         ...SORTABLE_SCROLL_OPTS,
-
         onStart: () => { isDragging = true; },
-
         onEnd: async () => {
           try{
             await persistPatrolOrderFromDom();
@@ -1585,9 +1545,7 @@
           ghostClass:"sortable-ghost",
           chosenClass:"sortable-chosen",
           ...SORTABLE_SCROLL_OPTS,
-
           onStart: () => { isDragging = true; },
-
           onEnd: async (evt) => {
             try{
               const item = evt.item;
@@ -1691,7 +1649,7 @@
       if(hasSel){
         if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
         const cur = officers.find(x => x.id === selectedOfficerId);
-        if(!cur){ clearOfficerSelection(); toast("Auswahl verloren"); return; }
+        if(!cur){ selectedOfficerId=null; renderAll(); toast("Auswahl verloren"); return; }
 
         await upsertOfficer({
           name, dienstnummer,
@@ -1700,7 +1658,8 @@
           forceId: selectedOfficerId
         });
         toast("Beamter gespeichert");
-        clearOfficerSelection();
+        selectedOfficerId=null;
+        renderAll();
         return;
       }
 
@@ -1745,7 +1704,10 @@
 
     async function addPatrol(){
       const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
-      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
+      const res = await sb.from("patrols")
+        .insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 })
+        .select("*").single();
+
       if(res.error){
         console.error("addPatrol error:", res.error);
         toast("Fehler +Streife: " + (res.error.message || "unknown"));
@@ -1753,7 +1715,6 @@
       }
 
       upsertLocal(patrols, res.data);
-      sortPatrolsInMemory();
       renderAll();
       toast("Streife erstellt");
     }
@@ -1867,7 +1828,8 @@
       await deleteOfficer(id);
       inpName.value = "";
       inpDienstnr.value = "";
-      clearOfficerSelection();
+      selectedOfficerId = null;
+      renderAll();
     });
 
     /***********************
@@ -1934,7 +1896,7 @@
           }else{
             upsertLocal(officers, payload.new);
           }
-          renderAll(); // drag-aware
+          renderAll();
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -2018,7 +1980,7 @@
     }
 
     /***********************
-     * ✅ POST-LOGIN INIT
+     * POST-LOGIN INIT
      ***********************/
     async function postLoginInit(){
       const { data } = await sb.auth.getSession();
@@ -2032,6 +1994,9 @@
       await setupPresence();
       setupRealtime();
       await loadAll();
+
+      // ✅ nach initialem Render sicher Sortables aktiv
+      scheduleRebuildSortablesHard();
     }
 
     /***********************
@@ -2073,6 +2038,7 @@
       try{
         await stopPresence();
         teardownRealtime();
+        destroyAllSortables();
         selectedOfficerId = null;
         setRoleFromEmail("");
       }catch(e){
@@ -2091,30 +2057,42 @@
     }
 
     /***********************
-     * ✅ Event Delegation
-     ***********************/
-    document.addEventListener("click", (e) => {
-      const logout = e.target.closest("#btnLogout");
-      if(logout){ e.preventDefault(); doLogout(); return; }
-
-      const add = e.target.closest("#btnAddPatrol");
-      if(add){ e.preventDefault(); addPatrol(); return; }
-
-      const save = e.target.closest("#btnCreateOfficer");
-      if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
-    }, true);
-
-    /***********************
-     * EVENTS (rest)
+     * Events
      ***********************/
     inpSearch.addEventListener("input", renderCreatedPool);
+
+    function updateCreateControls(){
+      const hasSel = (selectedOfficerId != null);
+
+      if(perms.role === "officer"){
+        btnCreateOfficer.disabled = true;
+        btnRemember.disabled = true;
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+        return;
+      }
+
+      const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
+      btnCreateOfficer.disabled = !canSave;
+
+      if(perms.canDeleteOfficer && hasSel){
+        btnDeleteOfficer.disabled = false;
+        btnDeleteOfficer.classList.add("show");
+      }else{
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+      }
+
+      btnRemember.disabled = false;
+    }
 
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
-      clearOfficerSelection();
+      selectedOfficerId = null;
+      renderAll();
     });
 
     btnDeleteOfficer.addEventListener("click", ()=>{
@@ -2134,28 +2112,50 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
-    /* ✅ FIX: Tabwechsel -> Drag unlock */
-    window.addEventListener("blur", () => {
-      isDragging = false;
-      pendingRender = false;
-    });
-    window.addEventListener("focus", () => {
-      cancelDragAndReinit();
-    });
-    document.addEventListener("pointerup", () => {
-      if(isDragging) cancelDragAndReinit();
+    document.addEventListener("click", (e) => {
+      const logout = e.target.closest("#btnLogout");
+      if(logout){ e.preventDefault(); doLogout(); return; }
+
+      const add = e.target.closest("#btnAddPatrol");
+      if(add){ e.preventDefault(); addPatrol(); return; }
+
+      const save = e.target.closest("#btnCreateOfficer");
+      if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
     }, true);
+
+    /***********************
+     * ✅ TAB / FOCUS FIX: Sortables neu bauen
+     ***********************/
+    window.addEventListener("focus", () => {
+      scheduleRebuildSortablesHard();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if(!document.hidden){
+        scheduleRebuildSortablesHard();
+      }else{
+        // wenn tab hidden wird, drag resetten
+        isDragging = false;
+        pendingRender = false;
+      }
+    });
+
+    // bfcache (Zurück/Weiter Navigation) – extrem häufige Ursache
+    window.addEventListener("pageshow", (e) => {
+      // pageshow feuert auch bei bfcache restore
+      scheduleRebuildSortablesHard();
+    });
 
     /***********************
      * INIT
      ***********************/
-    (async function init(){
-      applyUi();
-      applyCreateCollapsed();
-      renderFuncodes();
-      setLeitstelleIndicator(false);
-      setRoleFromEmail("");
+    renderFuncodes();
+    setLeitstelleIndicator(false);
+    setRoleFromEmail("");
+    applyUi();
+    applyCreateCollapsed();
 
+    (async function init(){
       try{
         const { data } = await sb.auth.getSession();
         const session = data?.session;
@@ -2181,6 +2181,7 @@
         }else{
           await stopPresence();
           teardownRealtime();
+          destroyAllSortables();
           selectedOfficerId = null;
           setRoleFromEmail("");
           showLogin("");
@@ -2188,19 +2189,16 @@
       });
 
       document.addEventListener("visibilitychange", () => {
-        if(document.hidden){
-          isDragging = false;
-          pendingRender = false;
-          return;
+        if(!document.hidden){
+          scheduleResubscribe();
+          setupPresence();
+          scheduleRebuildSortablesHard();
         }
-        cancelDragAndReinit();
-        scheduleResubscribe();
-        setupPresence();
       });
-
       window.addEventListener("online", () => {
         scheduleResubscribe();
         setupPresence();
+        scheduleRebuildSortablesHard();
       });
     })();
   </script>
