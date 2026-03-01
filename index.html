@@ -815,29 +815,33 @@
       return cleaned;
     }
 
-    // stable conn indicator
-    let connOfflineTimer = null;
-    function setConnStable(ok){
-      if(ok){
-        if(connOfflineTimer) clearTimeout(connOfflineTimer);
-        connDot.classList.add("on");
-        connDot.classList.remove("off");
-        connText.textContent = "online";
-        return;
-      }
-      if(connOfflineTimer) clearTimeout(connOfflineTimer);
-      connOfflineTimer = setTimeout(() => {
-        connDot.classList.remove("on");
-        connDot.classList.add("off");
-        connText.textContent = "offline";
-      }, 900);
+    /***********************
+     * ✅ ONLINE-INDIKATOR (stabil, kein Flackern)
+     * Idee: "online", wenn in den letzten X Sekunden
+     * (a) mindestens ein Channel SUBSCRIBED war oder
+     * (b) irgendein Realtime-Payload ankam.
+     ***********************/
+    let lastRealtimeOkAt = 0;
+    let connWatchTimer = null;
+
+    function markRealtimeOk(){
+      lastRealtimeOkAt = Date.now();
     }
 
-    const rtState = { officers: "INIT", patrols: "INIT", notes: "INIT" };
-    function recomputeConn(){
-      const vals = Object.values(rtState);
-      const anySubscribed = vals.some(v => v === "SUBSCRIBED");
-      setConnStable(anySubscribed);
+    function applyConnUi(isOnline){
+      connDot.classList.toggle("on", isOnline);
+      connDot.classList.toggle("off", !isOnline);
+      connText.textContent = isOnline ? "online" : "offline";
+    }
+
+    function startConnWatch(){
+      if(connWatchTimer) clearInterval(connWatchTimer);
+      // alle 600ms checken -> super smooth, aber ohne flackern
+      connWatchTimer = setInterval(() => {
+        const age = Date.now() - lastRealtimeOkAt;
+        const online = age < 7000; // 7s Fenster
+        applyConnUi(online);
+      }, 600);
     }
 
     /***********************
@@ -1411,12 +1415,19 @@
       rtChannels = [];
     }
 
+    // ✅ Resubscribe mit Backoff (verhindert "Ping-Pong" / Flackern)
+    let rtBackoffMs = 800;
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
+      const wait = Math.min(rtBackoffMs, 8000);
       rtResubTimer = setTimeout(() => {
         teardownRealtime();
         setupRealtime();
-      }, 500);
+      }, wait);
+      rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
+    }
+    function resetBackoff(){
+      rtBackoffMs = 800;
     }
 
     function setupRealtime(){
@@ -1425,6 +1436,7 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
+          markRealtimeOk(); // ✅ Payload angekommen -> online
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             officers = officers.filter(o => o.id !== id);
@@ -1435,13 +1447,18 @@
           renderAll();
         })
         .subscribe((status) => {
-          rtState.officers = status;
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
-          recomputeConn();
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            markRealtimeOk(); // ✅ subscribed -> online
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       const chPatrols = sb.channel("rt-patrols")
         .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
+          markRealtimeOk();
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             patrols = patrols.filter(p => p.id !== id);
@@ -1456,13 +1473,18 @@
           renderAll();
         })
         .subscribe((status) => {
-          rtState.patrols = status;
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
-          recomputeConn();
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            markRealtimeOk();
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
+          markRealtimeOk();
           const next = payload.new?.content ?? "";
           if (document.activeElement !== txtNotes) {
             txtNotes.value = next;
@@ -1470,18 +1492,30 @@
           }
         })
         .subscribe((status) => {
-          rtState.notes = status;
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleResubscribe();
-          recomputeConn();
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            markRealtimeOk();
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       rtChannels.push(chOfficers, chPatrols, chNotes);
     }
 
+    // Beim Zurückkommen in den Tab: nur "sanft" neu verbinden (ohne direkt offline/online zu flippen)
     document.addEventListener("visibilitychange", () => {
-      if(!document.hidden) scheduleResubscribe();
+      if(!document.hidden){
+        // mark ok (UI bleibt online) und resubscribe nur, wenn wirklich nötig
+        markRealtimeOk();
+        scheduleResubscribe();
+      }
     });
-    window.addEventListener("online", scheduleResubscribe);
+    window.addEventListener("online", () => {
+      markRealtimeOk();
+      scheduleResubscribe();
+    });
 
     /***********************
      * EVENTS
@@ -1524,14 +1558,19 @@
       applyUi();
       applyCreateCollapsed();
       renderFuncodes();
-      setConnStable(false);
+
+      // ✅ Start: offline, dann online sobald subscribed/payload
+      applyConnUi(false);
+      lastRealtimeOkAt = 0;
+      startConnWatch();
+
       loadRemembered();
 
       loadAll()
         .catch((e)=>{
           console.error(e);
           toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
-          setConnStable(false);
+          applyConnUi(false);
         });
 
       setupRealtime();
