@@ -164,7 +164,7 @@
     }
     textarea{ resize:vertical; min-height:120px; }
 
-    /* ✅ Buttons: einheitliche Höhe + flex zentriert */
+    /* ✅ Buttons: einheitliche Höhe + flex */
     .btn{
       border:1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.08);
@@ -650,6 +650,9 @@
     }
     .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
     .modalCloseX:active{ transform: translateY(1px); }
+
+    /* ✅ Role helper class: hide create panel for officer */
+    .hideCreateCard #createCard{ display:none !important; }
   </style>
 </head>
 
@@ -693,7 +696,8 @@
         </div>
 
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span class="pill" title="Realtime Verbindung">
+          <!-- ✅ Jetzt: Leitstelle Online/Offline (Presence), nicht "Realtime health" -->
+          <span class="pill" title="Leitstelle Online/Offline">
             <span class="dot off" id="connDot"></span>
             <span id="connText">Leitstelle</span>
           </span>
@@ -720,7 +724,6 @@
 
             <div style="height:12px"></div>
 
-            <!-- ✅ symmetrisch + Mülleimer nur bei Hover+Auswahl -->
             <div class="createActions">
               <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
               <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
@@ -825,7 +828,7 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- ✅ Delete Confirm Modal -->
+  <!-- Delete Confirm Modal -->
   <div class="modalOverlay" id="confirmOverlay" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="modalHeader">
@@ -838,12 +841,9 @@
 
       <div class="modalBody">
         <p id="confirmText">—</p>
-
         <div class="modalHint">
           <span class="dot off"></span>
-          <div class="muted" style="opacity:.85;">
-            Diese Aktion kann nicht rückgängig gemacht werden.
-          </div>
+          <div class="muted" style="opacity:.85;">Diese Aktion kann nicht rückgängig gemacht werden.</div>
         </div>
       </div>
 
@@ -864,6 +864,95 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
+
+    const LEITSTELLE_EMAIL = "leitstelle@gta.local";
+    const OFFICER_EMAIL = "officer@gta.local";
+    // Admin ist "alles andere" (oder wenn du willst: explizit "admin@gta.local")
+    const ADMIN_EMAIL = "admin@gta.local";
+
+    /***********************
+     * ROLE / PERMISSIONS
+     ***********************/
+    const perms = {
+      email: "",
+      role: "guest",            // admin | leitstelle | officer | guest
+      canCreateOfficer: false,
+      canDeleteOfficer: false,
+      canSelectPoolForEdit: false
+    };
+
+    function setRoleFromEmail(email){
+      const e = (email || "").toLowerCase().trim();
+      perms.email = e;
+
+      if(e === OFFICER_EMAIL){
+        perms.role = "officer";
+        perms.canCreateOfficer = false;
+        perms.canDeleteOfficer = false;
+        perms.canSelectPoolForEdit = false;
+      }else if(e === LEITSTELLE_EMAIL){
+        perms.role = "leitstelle";
+        perms.canCreateOfficer = false;   // ✅ darf KEINE neuen erstellen
+        perms.canDeleteOfficer = false;   // ✅ darf NICHT löschen
+        perms.canSelectPoolForEdit = true; // ✅ darf auswählen/ändern (nur nicht neu/löschen)
+      }else{
+        // ✅ Admin (z.B. admin@gta.local) oder "alles andere"
+        perms.role = "admin";
+        perms.canCreateOfficer = true;
+        perms.canDeleteOfficer = true;
+        perms.canSelectPoolForEdit = true;
+      }
+      applyRoleUi();
+    }
+
+    function applyRoleUi(){
+      // Officer sieht Create-Kachel gar nicht
+      app.classList.toggle("hideCreateCard", perms.role === "officer");
+
+      // Leitstelle: Create-Button aus, Delete-Button aus (sichtbar nur hover+selected UND admin)
+      btnCreateOfficer.disabled = !perms.canCreateOfficer && selectedOfficerId == null; // nur relevant, wenn keine Auswahl
+      btnDeleteOfficer.disabled = true;
+      btnDeleteOfficer.classList.remove("show");
+
+      // Inputs: für Officer eh hidden. Für Leitstelle/Admin: sichtbar.
+      // Leitstelle darf bearbeiten (wenn selectedOfficerId != null), aber nicht neu erstellen:
+      // - Button wird dynamisch in updateCreateControls() gesetzt
+      updateCreateControls();
+
+      // Pool auswählen: wird im renderCreatedPool berücksichtigt
+    }
+
+    function updateCreateControls(){
+      // Officer: komplett hidden via CSS, aber sicherheitshalber:
+      if(perms.role === "officer"){
+        btnCreateOfficer.disabled = true;
+        btnRemember.disabled = true;
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+        return;
+      }
+
+      const hasSel = (selectedOfficerId != null);
+
+      // "Beamter speichern":
+      // - Admin: immer
+      // - Leitstelle: nur wenn Bearbeitung (selected)
+      // - Leitstelle: NICHT wenn "neu"
+      btnCreateOfficer.disabled = perms.role === "leitstelle" ? !hasSel : false;
+
+      // Mülleimer:
+      // - nur Admin
+      if(perms.canDeleteOfficer && hasSel){
+        btnDeleteOfficer.disabled = false;
+        btnDeleteOfficer.classList.add("show"); // Sichtbarkeit bleibt hover-gated per CSS
+      }else{
+        btnDeleteOfficer.disabled = true;
+        btnDeleteOfficer.classList.remove("show");
+      }
+
+      // "Eingaben löschen" bleibt immer ok
+      btnRemember.disabled = false;
+    }
 
     /***********************
      * LOGIN
@@ -921,8 +1010,10 @@
       try{
         btnLogin.disabled = true;
         btnLogin.textContent = "Login…";
+
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
+
         hideLogin();
         toast("Eingeloggt");
       }catch(e){
@@ -935,6 +1026,7 @@
     }
 
     async function doLogout(){
+      try{ await stopLeitstellePresence(); }catch{}
       try{ await sb.auth.signOut(); }catch(e){ console.error(e); }
       showLogin("");
       toast("Ausgeloggt");
@@ -1089,23 +1181,105 @@
     }
 
     /***********************
-     * ONLINE-INDIKATOR
+     * LEITSTELLE ONLINE/OFFLINE (Presence)
      ***********************/
-    let lastRealtimeOkAt = 0;
-    let connWatchTimer = null;
+    let presenceChannel = null;
 
-    function markRealtimeOk(){ lastRealtimeOkAt = Date.now(); }
-    function applyConnUi(isOnline){
-      connDot.classList.toggle("on", isOnline);
+    function setLeitstelleIndicator(isOnline){
+      connDot.classList.toggle("on", !!isOnline);
       connDot.classList.toggle("off", !isOnline);
       connText.textContent = "Leitstelle";
     }
-    function startConnWatch(){
-      if(connWatchTimer) clearInterval(connWatchTimer);
-      connWatchTimer = setInterval(() => {
-        const age = Date.now() - lastRealtimeOkAt;
-        applyConnUi(age < 7000);
-      }, 600);
+
+    function computeLeitstelleOnlineFromPresence(state){
+      // state: { [key]: [ { ...payload } ] }
+      try{
+        for(const key of Object.keys(state || {})){
+          const arr = state[key] || [];
+          for(const item of arr){
+            const email = (item?.email || "").toLowerCase();
+            if(email === LEITSTELLE_EMAIL) return true;
+          }
+        }
+      }catch{}
+      return false;
+    }
+
+    async function setupPresence(){
+      try{
+        if(presenceChannel){
+          try{ sb.removeChannel(presenceChannel); }catch{}
+          presenceChannel = null;
+        }
+
+        const { data } = await sb.auth.getSession();
+        const session = data?.session;
+        const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
+
+        presenceChannel = sb.channel("presence-leitstelle", {
+          config: { presence: { key } }
+        });
+
+        presenceChannel
+          .on("presence", { event: "sync" }, () => {
+            const state = presenceChannel.presenceState();
+            const online = computeLeitstelleOnlineFromPresence(state);
+            setLeitstelleIndicator(online);
+          })
+          .on("presence", { event: "join" }, () => {
+            const state = presenceChannel.presenceState();
+            const online = computeLeitstelleOnlineFromPresence(state);
+            setLeitstelleIndicator(online);
+          })
+          .on("presence", { event: "leave" }, () => {
+            const state = presenceChannel.presenceState();
+            const online = computeLeitstelleOnlineFromPresence(state);
+            setLeitstelleIndicator(online);
+          });
+
+        await presenceChannel.subscribe(async (status) => {
+          // Wenn Leitstelle eingeloggt ist: Presence tracken
+          if(status === "SUBSCRIBED"){
+            const email = (session?.user?.email || "").toLowerCase();
+            if(email === LEITSTELLE_EMAIL){
+              try{
+                await presenceChannel.track({
+                  email,
+                  ts: new Date().toISOString()
+                });
+              }catch{}
+            }
+            // direkt sync auswerten
+            try{
+              const state = presenceChannel.presenceState();
+              const online = computeLeitstelleOnlineFromPresence(state);
+              setLeitstelleIndicator(online);
+            }catch{
+              setLeitstelleIndicator(false);
+            }
+          }
+        });
+      }catch(e){
+        console.error("presence setup error:", e);
+        setLeitstelleIndicator(false);
+      }
+    }
+
+    async function stopLeitstellePresence(){
+      try{
+        if(!presenceChannel) return;
+        // nur relevant wenn Leitstelle
+        const { data } = await sb.auth.getSession();
+        const email = (data?.session?.user?.email || "").toLowerCase();
+        if(email === LEITSTELLE_EMAIL){
+          try{ await presenceChannel.untrack(); }catch{}
+        }
+      }catch{}
+      try{
+        if(presenceChannel){ sb.removeChannel(presenceChannel); }
+      }catch{}
+      presenceChannel = null;
+      setLeitstelleIndicator(false);
     }
 
     /***********************
@@ -1143,13 +1317,8 @@
       onDutyCountEl.textContent = cnt;
     }
 
-    function updateDeleteBtnState(){
-      const active = (selectedOfficerId != null);
-      btnDeleteOfficer.disabled = !active;
-      btnDeleteOfficer.classList.toggle("show", active); // ✅ nur wenn aktiv darf er beim hover erscheinen
-    }
-
     function selectOfficerForEdit(officerId){
+      if(!perms.canSelectPoolForEdit) return; // officer darf nicht
       const o = officers.find(x => x.id === officerId);
       if(!o) return;
       selectedOfficerId = officerId;
@@ -1158,7 +1327,7 @@
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
-      updateDeleteBtnState();
+      updateCreateControls();
 
       if(createCollapsed){
         createCollapsed = false;
@@ -1169,14 +1338,14 @@
     function clearOfficerSelection(){
       selectedOfficerId = null;
       renderCreatedPool();
-      updateDeleteBtnState();
+      updateCreateControls();
     }
 
     function renderAll(){
       renderCreatedPool();
       renderPatrolGrid();
       updateOnDutyCount();
-      updateDeleteBtnState();
+      updateCreateControls();
     }
 
     function renderFuncodes(){
@@ -1210,13 +1379,16 @@
         return;
       }
 
+      const canClickSelect = perms.canSelectPoolForEdit;
+
       createdList.innerHTML = pool.map(o => {
         const isOn = o.status === "10-1";
         const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
-        const selected = (selectedOfficerId === o.id) ? "selected" : "";
+        const selected = (selectedOfficerId === o.id && canClickSelect) ? "selected" : "";
+        const clickableClass = canClickSelect ? "clickable" : "";
 
         return `
-          <div class="officerLine clickable ${selected}" data-officer-id="${o.id}" title="Klicken zum Bearbeiten">
+          <div class="officerLine ${clickableClass} ${selected}" data-officer-id="${o.id}" title="${canClickSelect ? "Klicken zum Bearbeiten" : ""}">
             <div style="display:flex; gap:10px; align-items:stretch; min-width:0; flex:1;">
               <div class="dragHandle" title="Ziehen">≡</div>
 
@@ -1244,20 +1416,22 @@
         `;
       }).join("");
 
-      createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
-        line.addEventListener("click", (e)=>{
-          if(e.target.closest("button")) return;
-          if(e.target.closest(".dragHandle")) return;
+      if(canClickSelect){
+        createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
+          line.addEventListener("click", (e)=>{
+            if(e.target.closest("button")) return;
+            if(e.target.closest(".dragHandle")) return;
 
-          const id = Number(line.getAttribute("data-officer-id"));
-          if(selectedOfficerId === id){
-            clearOfficerSelection();
-            toast("Auswahl aufgehoben");
-            return;
-          }
-          selectOfficerForEdit(id);
+            const id = Number(line.getAttribute("data-officer-id"));
+            if(selectedOfficerId === id){
+              clearOfficerSelection();
+              toast("Auswahl aufgehoben");
+              return;
+            }
+            selectOfficerForEdit(id);
+          });
         });
-      });
+      }
     }
 
     function renderPatrolGrid(){
@@ -1406,7 +1580,7 @@
 
             if(toPatrolId == null && selectedOfficerId === officerId){
               selectedOfficerId = null;
-              updateDeleteBtnState();
+              updateCreateControls();
             }
 
             const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
@@ -1475,19 +1649,25 @@
     }
 
     async function createOfficer(){
+      // ✅ Officer darf es nie
+      if(perms.role === "officer"){
+        toast("Keine Berechtigung");
+        return;
+      }
+
       const name = inpName.value.trim();
       const dienstnummer = inpDienstnr.value.trim();
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
+        // ✅ Bearbeiten
         if(selectedOfficerId != null){
           const cur = officers.find(x => x.id === selectedOfficerId);
           if(!cur){
             selectedOfficerId = null;
-            updateDeleteBtnState();
-            await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
-            toast("Beamter gespeichert");
+            updateCreateControls();
+            toast("Auswahl verloren");
             return;
           }
           await upsertOfficer({
@@ -1499,6 +1679,12 @@
           });
           toast("Beamter gespeichert");
           clearOfficerSelection();
+          return;
+        }
+
+        // ✅ Neu anlegen: nur Admin
+        if(!perms.canCreateOfficer){
+          toast("Leitstelle darf keine neuen Beamten erstellen");
           return;
         }
 
@@ -1547,6 +1733,11 @@
     }
 
     async function deleteOfficer(id){
+      if(!perms.canDeleteOfficer){
+        toast("Keine Berechtigung zum Löschen");
+        return;
+      }
+
       const before = officers.slice();
       officers = officers.filter(o => o.id !== id);
       if(selectedOfficerId === id) selectedOfficerId = null;
@@ -1665,6 +1856,10 @@
     let pendingDeleteId = null;
 
     function openDeleteModal(officer){
+      if(!perms.canDeleteOfficer){
+        toast("Keine Berechtigung");
+        return;
+      }
       pendingDeleteId = officer?.id ?? null;
       const name = officer?.name || "Officer";
       const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
@@ -1730,7 +1925,6 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          markRealtimeOk();
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             officers = officers.filter(o => o.id !== id);
@@ -1741,13 +1935,12 @@
           renderAll();
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "SUBSCRIBED"){ resetBackoff(); }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chPatrols = sb.channel("rt-patrols")
         .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
-          markRealtimeOk();
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             patrols = patrols.filter(p => p.id !== id);
@@ -1762,13 +1955,12 @@
           renderAll();
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "SUBSCRIBED"){ resetBackoff(); }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
-          markRealtimeOk();
           const next = payload.new?.content ?? "";
           if (document.activeElement !== txtNotes) {
             txtNotes.value = next;
@@ -1776,7 +1968,7 @@
           }
         })
         .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); markRealtimeOk(); }
+          if(status === "SUBSCRIBED"){ resetBackoff(); }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
@@ -1785,13 +1977,13 @@
 
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden){
-        markRealtimeOk();
         scheduleResubscribe();
+        setupPresence(); // ✅ presence resync
       }
     });
     window.addEventListener("online", () => {
-      markRealtimeOk();
       scheduleResubscribe();
+      setupPresence(); // ✅ presence resync
     });
 
     /***********************
@@ -1810,29 +2002,18 @@
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
-      try{ localStorage.removeItem("lspd_me"); }catch{}
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
       clearOfficerSelection();
     });
 
-    // ✅ Mülleimer: nur wenn ausgewählt (Hover macht ihn sichtbar) + Modal
+    // ✅ Mülleimer: nur Admin + Modal
     btnDeleteOfficer.addEventListener("click", ()=>{
       if(selectedOfficerId == null) return;
       const o = officers.find(x => x.id === selectedOfficerId);
       if(!o) return;
       openDeleteModal(o);
     });
-
-    function loadRemembered(){
-      try{
-        const raw = localStorage.getItem("lspd_me");
-        if(!raw) return;
-        const me = JSON.parse(raw);
-        inpName.value = me.name || "";
-        inpDienstnr.value = me.dienstnummer || "";
-      }catch{}
-    }
 
     inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
@@ -1847,38 +2028,49 @@
       applyCreateCollapsed();
       renderFuncodes();
 
-      applyConnUi(false);
-      lastRealtimeOkAt = 0;
-      startConnWatch();
-
-      loadRemembered();
-      updateDeleteBtnState();
+      // Default: Leitstelle offline bis presence sync kommt
+      setLeitstelleIndicator(false);
 
       try{
         const { data } = await sb.auth.getSession();
-        if(data?.session){
+        const session = data?.session;
+
+        if(session){
           hideLogin();
+          const email = (session.user?.email || "").toLowerCase();
+          setRoleFromEmail(email);
           toast("Eingeloggt");
         }else{
+          // guest
+          setRoleFromEmail("");
           showLogin("");
         }
       }catch(e){
         console.error(e);
+        setRoleFromEmail("");
         showLogin("Auth-Fehler.");
       }
 
-      sb.auth.onAuthStateChange((evt, session) => {
-        if(session){ hideLogin(); }
-        else{ showLogin(""); }
+      sb.auth.onAuthStateChange(async (evt, session) => {
+        if(session){
+          hideLogin();
+          const email = (session.user?.email || "").toLowerCase();
+          setRoleFromEmail(email);
+        }else{
+          setRoleFromEmail("");
+          showLogin("");
+        }
+        // ✅ Presence immer neu setzen (Leitstelle trackt nur wenn leitstelle-email)
+        await setupPresence();
       });
 
       loadAll().catch((e)=>{
         console.error(e);
         toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
-        applyConnUi(false);
       });
 
       setupRealtime();
+      setupPresence();
     })();
   </script>
 </body>
