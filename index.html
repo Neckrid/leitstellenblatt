@@ -1059,17 +1059,51 @@
     }
 
     /***********************
-     * ✅ Drag Guard
+     * ✅ Drag Guard + ✅ Realtime Queue (MULTI-USER FIX)
      ***********************/
     let isDragging = false;
     let pendingRender = false;
 
+    // while dragging, buffer realtime mutations to prevent DOM/state desync
+    let rtQueue = [];
+
+    function applyQueuedRealtime(){
+      if(!rtQueue.length) return;
+      const q = rtQueue.slice();
+      rtQueue = [];
+      for(const fn of q){
+        try{ fn(); }catch(e){ console.error("applyQueuedRealtime fn error:", e); }
+      }
+    }
+
+    function handleRealtimeSafely(fn){
+      if(isDragging){
+        rtQueue.push(fn);
+        pendingRender = true;
+        return;
+      }
+      try{ fn(); }catch(e){ console.error("handleRealtimeSafely fn error:", e); }
+      renderAll();
+    }
+
     function endDragAndFlush(){
       isDragging = false;
+      applyQueuedRealtime();
       if(pendingRender){
         pendingRender = false;
         renderAll();
       }
+    }
+
+    /***********************
+     * ✅ Post-Move Catch-up (MULTI-USER FIX)
+     ***********************/
+    let postMoveResyncTimer = null;
+    function schedulePostMoveResync(){
+      if(postMoveResyncTimer) clearTimeout(postMoveResyncTimer);
+      postMoveResyncTimer = setTimeout(()=> {
+        loadAll().catch(e => console.warn("postMove loadAll failed:", e));
+      }, 350);
     }
 
     /***********************
@@ -1401,6 +1435,7 @@
         return;
       }
       toast("Streifen-Reihenfolge gespeichert");
+      schedulePostMoveResync(); // ✅ catch-up for multi-user races
     }
 
     function destroyAllSortables(){
@@ -1595,14 +1630,18 @@
             try{
               const item = evt.item;
               const officerId = Number(item.getAttribute("data-officer-id"));
-              const raw = evt.to.getAttribute("data-patrol-id");
-              const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
+
+              const toRaw = evt.to.getAttribute("data-patrol-id");
+              const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
+
+              // ✅ MULTI-USER FIX: decide change by DOM zones, NOT by possibly stale officers[] state
+              const fromRaw = evt.from.getAttribute("data-patrol-id");
+              const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
+              const changedZone = (fromPatrolId !== toPatrolId);
+              if(!changedZone) return;
 
               const o = officers.find(x => x.id === officerId);
               if(!o) return;
-
-              const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
-              if(same) return;
 
               const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
               await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
@@ -1744,6 +1783,9 @@
       upsertLocal(officers, res.data);
       renderAll();
       toast(toPatrolId == null ? "In Pool" : "Auf Streife");
+
+      // ✅ MULTI-USER CATCH-UP
+      schedulePostMoveResync();
     }
 
     async function addPatrol(){
@@ -1758,6 +1800,7 @@
       upsertLocal(patrols, res.data);
       renderAll();
       toast("Streife erstellt");
+      schedulePostMoveResync();
     }
 
     async function updatePatrolStatus(id, status){
@@ -1780,6 +1823,7 @@
       upsertLocal(patrols, res.data);
       renderPatrolGrid();
       toast("Status gespeichert");
+      schedulePostMoveResync();
     }
 
     async function deletePatrol(id){
@@ -1800,6 +1844,7 @@
         return;
       }
       toast("Streife gelöscht");
+      schedulePostMoveResync();
     }
 
     async function saveNote(){
@@ -1833,6 +1878,7 @@
         return;
       }
       toast("Officer gelöscht");
+      schedulePostMoveResync();
     }
 
     /***********************
@@ -1929,14 +1975,15 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          if(payload.eventType === "DELETE"){
-            const id = payload.old?.id;
-            officers = officers.filter(o => o.id !== id);
-            if(selectedOfficerId === id) selectedOfficerId = null;
-          }else{
-            upsertLocal(officers, payload.new);
-          }
-          renderAll();
+          handleRealtimeSafely(() => {
+            if(payload.eventType === "DELETE"){
+              const id = payload.old?.id;
+              officers = officers.filter(o => o.id !== id);
+              if(selectedOfficerId === id) selectedOfficerId = null;
+            }else{
+              upsertLocal(officers, payload.new);
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1952,37 +1999,38 @@
 
       const chPatrols = sb.channel("rt-patrols")
         .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
-          if(payload.eventType === "DELETE"){
-            const id = payload.old?.id;
-            patrols = patrols.filter(p => p.id !== id);
-            officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-            renderAll();
-            return;
-          }
+          handleRealtimeSafely(() => {
+            if(payload.eventType === "DELETE"){
+              const id = payload.old?.id;
+              patrols = patrols.filter(p => p.id !== id);
+              officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+              return;
+            }
 
-          if(payload.eventType === "INSERT"){
-            upsertLocal(patrols, payload.new);
-            renderAll();
-            return;
-          }
+            if(payload.eventType === "INSERT"){
+              upsertLocal(patrols, payload.new);
+              return;
+            }
 
-          const incoming = payload.new;
-          const id = incoming?.id;
-          const existing = patrols.find(p => p.id === id);
-          const before = existing ? { ...existing } : null;
+            const incoming = payload.new;
+            const id = incoming?.id;
+            const existing = patrols.find(p => p.id === id);
+            const before = existing ? { ...existing } : null;
 
-          upsertLocal(patrols, incoming);
+            upsertLocal(patrols, incoming);
 
-          const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-          if(sortChanged){
-            renderPatrolGrid();
-            return;
-          }
+            const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
+            if(sortChanged){
+              // will renderAll after fn (or queued) anyway
+              return;
+            }
 
-          const patched = patchPatrolCard(incoming, before);
-          if(!patched){
-            renderPatrolGrid();
-          }
+            // patch attempt; if not possible it will renderAll anyway
+            const patched = patchPatrolCard(incoming, before);
+            if(!patched){
+              // renderAll will handle
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1998,11 +2046,13 @@
 
       const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
-          const next = payload.new?.content ?? "";
-          if (document.activeElement !== txtNotes) {
-            txtNotes.value = next;
-            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
-          }
+          handleRealtimeSafely(() => {
+            const next = payload.new?.content ?? "";
+            if (document.activeElement !== txtNotes) {
+              txtNotes.value = next;
+              noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -2152,7 +2202,6 @@
         try{ sb.realtime.connect(); }catch{}
 
         // Mini-resync (damit state + drop-logic wieder sauber sind)
-        // -> verhindert "Drag nur visuell / nicht gespeichert"
         try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
 
         // Sortables neu, aber safe
@@ -2171,6 +2220,7 @@
         // Drag resetten
         isDragging = false;
         pendingRender = false;
+        rtQueue = [];
       }
     });
 
