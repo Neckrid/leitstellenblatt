@@ -80,8 +80,8 @@
 
     /* ✅ FIX: Center-Header nach innen schieben (verhindert Overlap mit Edge-Buttons) */
     #panelCenter .panelHeader{
-      padding-left: 60px;   /* links (Badge+Text) nach rechts */
-      padding-right: 60px;  /* rechts (Actions) nach links */
+      padding-left: 60px;
+      padding-right: 60px;
     }
 
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
@@ -351,6 +351,19 @@
       pointer-events:auto;
       transform: translateY(0);
     }
+
+    /* ✅ Zurück-in-Pool Button nur bei Hover anzeigen */
+    .officerLine .btnBack{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .officerLine:hover .btnBack{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
     .cardHeader .btnDanger{
       opacity:0;
       pointer-events:none;
@@ -757,7 +770,6 @@
     function applyCreateCollapsed(){
       createCard.classList.toggle("collapsedUp", createCollapsed);
       createMiniHint.style.display = createCollapsed ? "inline" : "none";
-      // Chevron symbol stays the same; rotation handles direction
     }
     createToggle.addEventListener("click", ()=>{
       createCollapsed = !createCollapsed;
@@ -1025,7 +1037,7 @@
               </div>
 
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
+                <button class="btn btnBack" data-act="backToPool" data-id="${o.id}">Zurück in Pool</button>
               </div>
             </div>
           `;
