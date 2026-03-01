@@ -1023,6 +1023,21 @@
     }
 
     /***********************
+     * ✅ STATE (NUR EINMAL!)  <-- FIX
+     ***********************/
+    let patrols = [];
+    let officers = [];
+    let noteAutosaveTimer = null;
+
+    let sortables = [];
+    let patrolSortable = null;
+
+    // Rename / typing guards
+    const patrolRenameTimers = new Map();
+    const patrolRenameLastSent = new Map();
+    let editingPatrolNameId = null;
+
+    /***********************
      * ✅ HARD FIX: Sortable nach Tabwechsel neu bauen
      ***********************/
     function destroyAllSortables(){
@@ -1048,17 +1063,41 @@
       // Sortable komplett neu initialisieren
       destroyAllSortables();
 
-      // Wichtig: DOM muss da sein (PatrolGrid+Zonen existieren)
       try{ initPatrolOrderDrag(); }catch(e){ console.error("initPatrolOrderDrag failed:", e); }
       try{ initDragAndDrop(); }catch(e){ console.error("initDragAndDrop failed:", e); }
     }
 
     function scheduleRebuildSortablesHard(){
-      // kleiner Delay, damit Browser nach Focus/Tabwechsel Layout fertig hat
-      setTimeout(() => {
-        rebuildSortablesHard();
-      }, 80);
+      setTimeout(() => { rebuildSortablesHard(); }, 80);
     }
+
+    /***********************
+     * ✅ CHROME TAB SLEEP FIX (WICHTIG)
+     ***********************/
+    window.addEventListener("blur", () => {
+      // Chrome "parkt" Tabs -> Sortable kann hängen bleiben
+      destroyAllSortables();
+      isDragging = false;
+      pendingRender = false;
+    });
+
+    window.addEventListener("focus", () => {
+      // Chrome braucht manchmal 2x nachdem Layout zurück ist
+      scheduleRebuildSortablesHard();
+      setTimeout(scheduleRebuildSortablesHard, 250);
+    });
+
+    window.addEventListener("pageshow", () => {
+      // bfcache restore / zurück in tab
+      scheduleRebuildSortablesHard();
+      setTimeout(scheduleRebuildSortablesHard, 250);
+    });
+
+    ["pointerup","mouseup","touchend","pointercancel"].forEach(ev=>{
+      window.addEventListener(ev, () => {
+        if(isDragging) endDragAndFlush();
+      }, true);
+    });
 
     /***********************
      * UI: Role
@@ -1245,14 +1284,6 @@
     /***********************
      * STATE + RENDER
      ***********************/
-    let patrols = [];
-    let officers = [];
-    let noteAutosaveTimer = null;
-
-    const patrolRenameTimers = new Map();
-    const patrolRenameLastSent = new Map();
-    let editingPatrolNameId = null;
-
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
@@ -1351,9 +1382,6 @@
         });
       }
     }
-
-    let sortables = [];
-    let patrolSortable = null;
 
     function sortPatrolsInMemory(){
       patrols = patrols.slice().sort((a,b)=>{
@@ -1598,6 +1626,9 @@
 
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
+
+      // ✅ Nach jedem Load: Sortables sicher aktiv
+      scheduleRebuildSortablesHard();
     }
 
     function findOfficerIdentity(name, dienstnummer){
@@ -1995,8 +2026,8 @@
       setupRealtime();
       await loadAll();
 
-      // ✅ nach initialem Render sicher Sortables aktiv
       scheduleRebuildSortablesHard();
+      setTimeout(scheduleRebuildSortablesHard, 250);
     }
 
     /***********************
@@ -2061,31 +2092,6 @@
      ***********************/
     inpSearch.addEventListener("input", renderCreatedPool);
 
-    function updateCreateControls(){
-      const hasSel = (selectedOfficerId != null);
-
-      if(perms.role === "officer"){
-        btnCreateOfficer.disabled = true;
-        btnRemember.disabled = true;
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-        return;
-      }
-
-      const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
-      btnCreateOfficer.disabled = !canSave;
-
-      if(perms.canDeleteOfficer && hasSel){
-        btnDeleteOfficer.disabled = false;
-        btnDeleteOfficer.classList.add("show");
-      }else{
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-      }
-
-      btnRemember.disabled = false;
-    }
-
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
@@ -2124,26 +2130,25 @@
     }, true);
 
     /***********************
-     * ✅ TAB / FOCUS FIX: Sortables neu bauen
+     * ✅ TAB / VISIBILITY / ONLINE FIX
      ***********************/
-    window.addEventListener("focus", () => {
-      scheduleRebuildSortablesHard();
-    });
-
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden){
+        scheduleResubscribe();
+        setupPresence();
         scheduleRebuildSortablesHard();
+        setTimeout(scheduleRebuildSortablesHard, 250);
       }else{
-        // wenn tab hidden wird, drag resetten
         isDragging = false;
         pendingRender = false;
       }
     });
 
-    // bfcache (Zurück/Weiter Navigation) – extrem häufige Ursache
-    window.addEventListener("pageshow", (e) => {
-      // pageshow feuert auch bei bfcache restore
+    window.addEventListener("online", () => {
+      scheduleResubscribe();
+      setupPresence();
       scheduleRebuildSortablesHard();
+      setTimeout(scheduleRebuildSortablesHard, 250);
     });
 
     /***********************
@@ -2186,19 +2191,6 @@
           setRoleFromEmail("");
           showLogin("");
         }
-      });
-
-      document.addEventListener("visibilitychange", () => {
-        if(!document.hidden){
-          scheduleResubscribe();
-          setupPresence();
-          scheduleRebuildSortablesHard();
-        }
-      });
-      window.addEventListener("online", () => {
-        scheduleResubscribe();
-        setupPresence();
-        scheduleRebuildSortablesHard();
       });
     })();
   </script>
