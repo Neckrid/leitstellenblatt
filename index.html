@@ -827,7 +827,7 @@
     const ADMIN_EMAIL = "admin@gta.local";
 
     /***********************
-     * ✅ Realtime Auth Sync (RLS Fix) + Fallback
+     * ✅ Realtime Auth Sync (RLS Fix)
      ***********************/
     async function syncRealtimeAuth(){
       try{
@@ -1217,6 +1217,11 @@
     let officers = [];
     let noteAutosaveTimer = null;
 
+    // ✅ Live-Rename Debounce / Schutz gegen Überschreiben beim Tippen
+    const patrolRenameTimers = new Map();     // id -> timeout
+    const patrolRenameLastSent = new Map();   // id -> last sent value
+    let editingPatrolNameId = null;           // aktuell fokussiertes Namensfeld
+
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
@@ -1346,7 +1351,7 @@
         .map(el => Number(el.getAttribute("data-patrol-card")))
         .filter(n => Number.isFinite(n));
 
-      // optimistic: sofort im UI korrekt
+      // optimistic
       ids.forEach((id, idx)=>{
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
@@ -1354,9 +1359,7 @@
       sortPatrolsInMemory();
       renderPatrolGrid();
 
-      // DB: batch update
       const payload = ids.map((id, idx)=>({ id, sort_index: idx + 1 }));
-
       const res = await sb.from("patrols").upsert(payload, { onConflict: "id" });
       if(res.error){
         console.error("persistPatrolOrder error:", res.error);
@@ -1364,6 +1367,29 @@
         return;
       }
       toast("Streifen-Reihenfolge gespeichert");
+    }
+
+    // ✅ Debounced Live-Rename (schreibt in DB, ohne Spam)
+    function queuePatrolRename(id, rawName){
+      const name = (rawName || "").trim() || "Streife";
+      if(patrolRenameLastSent.get(id) === name) return;
+
+      if(patrolRenameTimers.has(id)){
+        clearTimeout(patrolRenameTimers.get(id));
+      }
+
+      const t = setTimeout(async ()=>{
+        patrolRenameTimers.delete(id);
+        patrolRenameLastSent.set(id, name);
+        try{
+          await renamePatrol(id, name);
+        }catch(e){
+          console.error("queuePatrolRename error:", e);
+          toast("Fehler Name");
+        }
+      }, 450);
+
+      patrolRenameTimers.set(id, t);
     }
 
     function renderPatrolGrid(){
@@ -1441,12 +1467,18 @@
         });
       });
 
+      // ✅ Streifennamen: live speichern (debounced) + Schutz beim Tippen
       patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
-        inp.addEventListener("change", async ()=>{
-          const id = Number(inp.getAttribute("data-id"));
-          const name = inp.value.trim() || "Streife";
-          await renamePatrol(id, name);
+        const id = Number(inp.getAttribute("data-id"));
+
+        inp.addEventListener("focus", ()=>{ editingPatrolNameId = id; });
+        inp.addEventListener("blur", ()=>{
+          editingPatrolNameId = null;
+          queuePatrolRename(id, inp.value); // final speichern
         });
+
+        inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
+        inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
 
       patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
@@ -1521,8 +1553,9 @@
      * CRUD (Supabase)
      ***********************/
     async function loadAll(){
-      // ✅ direkt sortiert aus DB (WICHTIG)
-      const pRes = await sb.from("patrols").select("*").order("sort_index", {ascending:true, nullsFirst:false}).order("id", {ascending:true});
+      const pRes = await sb.from("patrols").select("*")
+        .order("sort_index", {ascending:true, nullsFirst:false})
+        .order("id", {ascending:true});
       if(pRes.error) throw pRes.error;
       patrols = pRes.data || [];
 
@@ -1640,7 +1673,6 @@
     }
 
     async function addPatrol(){
-      // ✅ sort_index = max+1
       const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
       const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
       if(res.error){
@@ -1659,21 +1691,22 @@
       const p = patrols.find(x => x.id === id);
       if(!p) return;
 
+      const safeName = (name || "").trim() || "Streife";
       const before = { ...p };
-      patrols = patrols.map(x => x.id === id ? { ...x, name } : x);
-      renderAll();
 
-      const res = await sb.from("patrols").update({ name }).eq("id", id).select("*").single();
+      patrols = patrols.map(x => x.id === id ? { ...x, name: safeName } : x);
+      renderPatrolGrid(); // weniger aggressiv als renderAll()
+
+      const res = await sb.from("patrols").update({ name: safeName }).eq("id", id).select("*").single();
       if(res.error){
         console.error("renamePatrol error:", res.error);
         toast("Fehler Name: " + (res.error.message || "unknown"));
         patrols = patrols.map(x => x.id === id ? before : x);
-        renderAll();
+        renderPatrolGrid();
         return;
       }
       upsertLocal(patrols, res.data);
-      renderAll();
-      toast("Streifenname gespeichert");
+      renderPatrolGrid();
     }
 
     async function updatePatrolStatus(id, status){
@@ -1683,18 +1716,18 @@
 
       const before = { ...p };
       patrols = patrols.map(x => x.id === id ? { ...x, funcode: safe } : x);
-      renderAll();
+      renderPatrolGrid();
 
       const res = await sb.from("patrols").update({ funcode: safe }).eq("id", id).select("*").single();
       if(res.error){
         console.error("updatePatrolStatus error:", res.error);
         toast("Fehler Status: " + (res.error.message || "unknown"));
         patrols = patrols.map(x => x.id === id ? before : x);
-        renderAll();
+        renderPatrolGrid();
         return;
       }
       upsertLocal(patrols, res.data);
-      renderAll();
+      renderPatrolGrid();
       toast("Status gespeichert");
     }
 
@@ -1789,7 +1822,7 @@
     });
 
     /***********************
-     * REALTIME (robust + RLS + Catch-up Sync)
+     * REALTIME (robust + Catch-up)
      ***********************/
     let rtChannels = [];
     let rtResubTimer = null;
@@ -1810,6 +1843,34 @@
         setupRealtime();
       }, wait);
       rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
+    }
+
+    function patchPatrolCard(incoming, before){
+      const id = incoming?.id;
+      const card = patrolGrid.querySelector(`.card[data-patrol-card="${id}"]`);
+      if(!card) return false;
+
+      const nameChanged = before && (before.name !== incoming.name);
+      const statusChanged = before && (before.funcode !== incoming.funcode);
+
+      // Name nur updaten, wenn nicht gerade getippt wird
+      const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
+      if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
+        nameInp.value = incoming.name || "Streife";
+      }
+
+      if(statusChanged){
+        const sel = card.querySelector(`select[data-act="patrolStatus"][data-id="${id}"]`);
+        if(sel && document.activeElement !== sel){
+          sel.value = incoming.funcode || "Auf Streife";
+        }
+        const pill = card.querySelector(".cardBody .pill");
+        if(pill){
+          const s = incoming.funcode || "Auf Streife";
+          pill.innerHTML = `<b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(s))}`;
+        }
+      }
+      return true;
     }
 
     function setupRealtime(){
@@ -1845,10 +1906,33 @@
             const id = payload.old?.id;
             patrols = patrols.filter(p => p.id !== id);
             officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-          }else{
-            upsertLocal(patrols, payload.new);
+            renderAll();
+            return;
           }
-          renderAll();
+
+          if(payload.eventType === "INSERT"){
+            upsertLocal(patrols, payload.new);
+            renderAll();
+            return;
+          }
+
+          // UPDATE: möglichst DOM patch statt full render
+          const incoming = payload.new;
+          const id = incoming?.id;
+          const before = patrols.find(p => p.id === id) ? { ...patrols.find(p => p.id === id) } : null;
+
+          upsertLocal(patrols, incoming);
+
+          const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
+          if(sortChanged){
+            renderPatrolGrid();
+            return;
+          }
+
+          const patched = patchPatrolCard(incoming, before);
+          if(!patched){
+            renderPatrolGrid();
+          }
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1886,7 +1970,7 @@
     }
 
     /***********************
-     * ✅ POST-LOGIN INIT (robust)
+     * ✅ POST-LOGIN INIT
      ***********************/
     async function postLoginInit(){
       const { data } = await sb.auth.getSession();
@@ -1959,7 +2043,7 @@
     }
 
     /***********************
-     * ✅ Event Delegation (robust)
+     * ✅ Event Delegation
      ***********************/
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
@@ -1976,6 +2060,7 @@
      * EVENTS (rest)
      ***********************/
     inpSearch.addEventListener("input", renderCreatedPool);
+
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
