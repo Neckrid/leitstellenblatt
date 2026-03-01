@@ -835,7 +835,6 @@
         const token = data?.session?.access_token || null;
         if(!token) return;
 
-        // kompatibel mit mehr supabase-js v2 builds
         if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
         else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
       }catch(e){
@@ -848,9 +847,9 @@
      ***********************/
     const perms = {
       email: "",
-      role: "guest",            // admin | leitstelle | officer | guest
-      canCreateOfficer: false,  // create new
-      canEditOfficer: false,    // edit selected
+      role: "guest",
+      canCreateOfficer: false,
+      canEditOfficer: false,
       canDeleteOfficer: false,
       canSelectPoolForEdit: false
     };
@@ -952,7 +951,6 @@
       setTimeout(() => toastEl.classList.remove("show"), 2200);
     }
 
-    // ✅ bessere Fehlermeldung (zeigt echte Ursache)
     window.addEventListener("error", (e)=>{
       const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
       console.error("JS ERROR:", e.error || e.message, e);
@@ -1025,6 +1023,11 @@
       const s = (v ?? "").toString().trim();
       if(!s) return Number.POSITIVE_INFINITY;
       const n = parseInt(s.replace(/[^\d]/g, ""), 10);
+      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+    }
+
+    function numOrInf(v){
+      const n = Number(v);
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
@@ -1329,23 +1332,38 @@
     let sortables = [];
     let patrolSortable = null;
 
-    const LS_PATROL_ORDER = "lspd_patrol_order";
-    function loadPatrolOrder(){
-      try{
-        const raw = localStorage.getItem(LS_PATROL_ORDER);
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr.map(Number).filter(n => Number.isFinite(n)) : [];
-      }catch{ return []; }
+    function sortPatrolsInMemory(){
+      patrols = patrols.slice().sort((a,b)=>{
+        const sa = numOrInf(a.sort_index);
+        const sbx = numOrInf(b.sort_index);
+        if(sa !== sbx) return sa - sbx;
+        return (a.id ?? 0) - (b.id ?? 0);
+      });
     }
-    function savePatrolOrder(order){ try{ localStorage.setItem(LS_PATROL_ORDER, JSON.stringify(order)); }catch{} }
-    function normalizePatrolOrder(){
-      const order = loadPatrolOrder();
-      const ids = patrols.map(p => p.id);
-      const set = new Set(ids);
-      const cleaned = order.filter(id => set.has(id));
-      for(const id of ids){ if(!cleaned.includes(id)) cleaned.push(id); }
-      savePatrolOrder(cleaned);
-      return cleaned;
+
+    async function persistPatrolOrderFromDom(){
+      const ids = Array.from(patrolGrid.querySelectorAll(".card"))
+        .map(el => Number(el.getAttribute("data-patrol-card")))
+        .filter(n => Number.isFinite(n));
+
+      // optimistic: sofort im UI korrekt
+      ids.forEach((id, idx)=>{
+        const p = patrols.find(x => x.id === id);
+        if(p) p.sort_index = idx + 1;
+      });
+      sortPatrolsInMemory();
+      renderPatrolGrid();
+
+      // DB: batch update
+      const payload = ids.map((id, idx)=>({ id, sort_index: idx + 1 }));
+
+      const res = await sb.from("patrols").upsert(payload, { onConflict: "id" });
+      if(res.error){
+        console.error("persistPatrolOrder error:", res.error);
+        toast("Fehler Reihenfolge speichern");
+        return;
+      }
+      toast("Streifen-Reihenfolge gespeichert");
     }
 
     function renderPatrolGrid(){
@@ -1353,14 +1371,8 @@
       sortables = [];
       if(patrolSortable){ try{patrolSortable.destroy();}catch{} patrolSortable = null; }
 
-      const order = normalizePatrolOrder();
-      const orderIndex = new Map(order.map((id,i)=>[id,i]));
-      const sortedPatrols = patrols.slice().sort((a,b)=>{
-        const ia = orderIndex.has(a.id) ? orderIndex.get(a.id) : 1e9;
-        const ib = orderIndex.has(b.id) ? orderIndex.get(b.id) : 1e9;
-        if(ia !== ib) return ia - ib;
-        return a.id - b.id;
-      });
+      sortPatrolsInMemory();
+      const sortedPatrols = patrols.slice();
 
       patrolGrid.innerHTML = sortedPatrols.map(p => {
         const list = officers.filter(o => o.patrol_id === p.id).slice()
@@ -1460,11 +1472,10 @@
         chosenClass:"sortable-chosen",
         ...SORTABLE_SCROLL_OPTS,
         onEnd: () => {
-          const ids = Array.from(patrolGrid.querySelectorAll(".card"))
-            .map(el => Number(el.getAttribute("data-patrol-card")))
-            .filter(n => Number.isFinite(n));
-          savePatrolOrder(ids);
-          toast("Streifen-Reihenfolge gespeichert");
+          persistPatrolOrderFromDom().catch(e=>{
+            console.error(e);
+            toast("Fehler Reihenfolge");
+          });
         }
       });
     }
@@ -1510,7 +1521,8 @@
      * CRUD (Supabase)
      ***********************/
     async function loadAll(){
-      const pRes = await sb.from("patrols").select("*").order("id", {ascending:true});
+      // ✅ direkt sortiert aus DB (WICHTIG)
+      const pRes = await sb.from("patrols").select("*").order("sort_index", {ascending:true, nullsFirst:false}).order("id", {ascending:true});
       if(pRes.error) throw pRes.error;
       patrols = pRes.data || [];
 
@@ -1522,7 +1534,6 @@
       if(nRes.error) throw nRes.error;
       txtNotes.value = nRes.data?.content ?? "";
 
-      normalizePatrolOrder();
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
@@ -1629,7 +1640,9 @@
     }
 
     async function addPatrol(){
-      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
+      // ✅ sort_index = max+1
+      const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
       if(res.error){
         console.error("addPatrol error:", res.error);
         toast("Fehler +Streife: " + (res.error.message || "unknown"));
@@ -1637,12 +1650,7 @@
       }
 
       upsertLocal(patrols, res.data);
-      patrols.sort((a,b)=>a.id-b.id);
-
-      const order = loadPatrolOrder();
-      if(!order.includes(res.data.id)) order.push(res.data.id);
-      savePatrolOrder(order);
-
+      sortPatrolsInMemory();
       renderAll();
       toast("Streife erstellt");
     }
@@ -1693,11 +1701,9 @@
     async function deletePatrol(id){
       const beforePatrols = patrols.slice();
       const beforeOfficers = officers.slice();
-      const beforeOrder = loadPatrolOrder();
 
       patrols = patrols.filter(p => p.id !== id);
       officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-      savePatrolOrder(beforeOrder.filter(x => x !== id));
       renderAll();
 
       const res = await sb.from("patrols").delete().eq("id", id);
@@ -1706,7 +1712,6 @@
         toast("Fehler Löschen: " + (res.error.message || "unknown"));
         patrols = beforePatrols;
         officers = beforeOfficers;
-        savePatrolOrder(beforeOrder);
         renderAll();
         return;
       }
@@ -1789,7 +1794,6 @@
     let rtChannels = [];
     let rtResubTimer = null;
     let rtBackoffMs = 800;
-
     let rtNeedsResync = false;
 
     function teardownRealtime(){
@@ -1799,9 +1803,7 @@
     function resetBackoff(){ rtBackoffMs = 800; }
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
-
       rtNeedsResync = true;
-
       const wait = Math.min(rtBackoffMs, 8000);
       rtResubTimer = setTimeout(() => {
         teardownRealtime();
@@ -1834,9 +1836,7 @@
               try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
             }
           }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chPatrols = sb.channel("rt-patrols")
@@ -1845,12 +1845,8 @@
             const id = payload.old?.id;
             patrols = patrols.filter(p => p.id !== id);
             officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-            const order = loadPatrolOrder().filter(x => x !== id);
-            savePatrolOrder(order);
           }else{
             upsertLocal(patrols, payload.new);
-            patrols.sort((a,b)=>a.id-b.id);
-            normalizePatrolOrder();
           }
           renderAll();
         })
@@ -1863,9 +1859,7 @@
               try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
             }
           }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       const chNotes = sb.channel("rt-notes")
@@ -1885,9 +1879,7 @@
               try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
             }
           }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-            scheduleResubscribe();
-          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
         });
 
       rtChannels.push(chOfficers, chPatrols, chNotes);
