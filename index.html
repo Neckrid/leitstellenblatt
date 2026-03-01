@@ -164,7 +164,7 @@
     }
     textarea{ resize:vertical; min-height:120px; }
 
-    /* ✅ Buttons: einheitliche Höhe + flex */
+    /* Buttons */
     .btn{
       border:1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.08);
@@ -177,7 +177,6 @@
       transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
       user-select:none;
       white-space:nowrap;
-
       height:44px;
       display:inline-flex;
       align-items:center;
@@ -185,10 +184,7 @@
     }
     .btn:hover{ background: rgba(255,255,255,0.12); }
     .btn:active{ transform: translateY(1px); }
-    .btn:disabled{
-      opacity:0.45;
-      cursor:not-allowed;
-    }
+    .btn:disabled{ opacity:0.45; cursor:not-allowed; }
 
     .btnPrimary{
       background: linear-gradient(135deg, rgba(0,255,195,0.22), rgba(0,140,255,0.18));
@@ -212,7 +208,6 @@
       min-width:160px;
     }
 
-    /* ✅ Icon-Button: gleiche Höhe, kompakte Breite */
     .btnIcon{
       width:44px;
       padding:0;
@@ -349,7 +344,6 @@
       background: rgba(0,255,195,0.07);
     }
 
-    /* Drag-Handle volle Höhe */
     .dragHandle{
       cursor:grab;
       user-select:none;
@@ -359,7 +353,6 @@
       background: rgba(255,255,255,0.06);
       font-weight:900;
       opacity:0.9;
-
       align-self: stretch;
       display:flex;
       align-items:center;
@@ -459,7 +452,6 @@
     }
     .dockBtn:hover{ background: rgba(255,255,255,0.12); }
     .dockBtn:active{ transform: translateY(1px); }
-
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
@@ -483,10 +475,8 @@
     }
     .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
     .edgeBtn:active{ transform: translateY(1px); }
-
     #edgeLeft{ left:10px; }
     #edgeRight{ right:10px; }
-
     .app.leftCollapsed ~ #edgeLeft{ display:flex; }
     .app.rightCollapsed ~ #edgeRight{ display:flex; }
 
@@ -531,7 +521,6 @@
       flex:0 0 auto;
     }
     .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
-
     .collapseBody{
       padding:0 10px 10px 10px;
       transform-origin: top;
@@ -548,14 +537,14 @@
     }
     .collapsedUp .chev{ transform: rotate(-90deg); }
 
-    /* ========= Create Actions (symmetrisch) ========= */
     .createActions{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
     }
-    /* ✅ Mülleimer: nur anzeigen wenn ausgewählt UND hover auf Action-Reihe */
+
+    /* Mülleimer nur hover + selected + admin */
     #btnDeleteOfficer{
       opacity:0;
       pointer-events:none;
@@ -567,7 +556,7 @@
       transform: translateY(0);
     }
 
-    /* ========= MODAL (schön) ========= */
+    /* ========= MODAL ========= */
     .modalOverlay{
       position:fixed;
       inset:0;
@@ -651,7 +640,7 @@
     .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
     .modalCloseX:active{ transform: translateY(1px); }
 
-    /* ✅ Role helper class: hide create panel for officer */
+    /* Role hide */
     .hideCreateCard #createCard{ display:none !important; }
   </style>
 </head>
@@ -696,7 +685,6 @@
         </div>
 
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <!-- ✅ Jetzt: Leitstelle Online/Offline (Presence), nicht "Realtime health" -->
           <span class="pill" title="Leitstelle Online/Offline">
             <span class="dot off" id="connDot"></span>
             <span id="connText">Leitstelle</span>
@@ -867,8 +855,14 @@
 
     const LEITSTELLE_EMAIL = "leitstelle@gta.local";
     const OFFICER_EMAIL = "officer@gta.local";
-    // Admin ist "alles andere" (oder wenn du willst: explizit "admin@gta.local")
     const ADMIN_EMAIL = "admin@gta.local";
+
+    /***********************
+     * GLOBAL ERROR GUARD (damit nix "still" kaputt geht)
+     ***********************/
+    window.addEventListener("error", (e)=>{
+      try{ toast("JS-Fehler: " + (e?.message || "unknown")); }catch{}
+    });
 
     /***********************
      * ROLE / PERMISSIONS
@@ -892,38 +886,33 @@
         perms.canSelectPoolForEdit = false;
       }else if(e === LEITSTELLE_EMAIL){
         perms.role = "leitstelle";
-        perms.canCreateOfficer = false;   // ✅ darf KEINE neuen erstellen
-        perms.canDeleteOfficer = false;   // ✅ darf NICHT löschen
-        perms.canSelectPoolForEdit = true; // ✅ darf auswählen/ändern (nur nicht neu/löschen)
-      }else{
-        // ✅ Admin (z.B. admin@gta.local) oder "alles andere"
+        perms.canCreateOfficer = false;
+        perms.canDeleteOfficer = false;
+        perms.canSelectPoolForEdit = true;
+      }else if(e){
         perms.role = "admin";
         perms.canCreateOfficer = true;
         perms.canDeleteOfficer = true;
         perms.canSelectPoolForEdit = true;
+      }else{
+        perms.role = "guest";
+        perms.canCreateOfficer = false;
+        perms.canDeleteOfficer = false;
+        perms.canSelectPoolForEdit = false;
       }
+
       applyRoleUi();
     }
 
     function applyRoleUi(){
-      // Officer sieht Create-Kachel gar nicht
       app.classList.toggle("hideCreateCard", perms.role === "officer");
-
-      // Leitstelle: Create-Button aus, Delete-Button aus (sichtbar nur hover+selected UND admin)
-      btnCreateOfficer.disabled = !perms.canCreateOfficer && selectedOfficerId == null; // nur relevant, wenn keine Auswahl
-      btnDeleteOfficer.disabled = true;
-      btnDeleteOfficer.classList.remove("show");
-
-      // Inputs: für Officer eh hidden. Für Leitstelle/Admin: sichtbar.
-      // Leitstelle darf bearbeiten (wenn selectedOfficerId != null), aber nicht neu erstellen:
-      // - Button wird dynamisch in updateCreateControls() gesetzt
       updateCreateControls();
 
-      // Pool auswählen: wird im renderCreatedPool berücksichtigt
+      // ✅ + Streife bleibt für ALLE sichtbar & klickbar (wie du es beschrieben hast)
+      btnAddPatrol.disabled = false;
     }
 
     function updateCreateControls(){
-      // Officer: komplett hidden via CSS, aber sicherheitshalber:
       if(perms.role === "officer"){
         btnCreateOfficer.disabled = true;
         btnRemember.disabled = true;
@@ -934,23 +923,18 @@
 
       const hasSel = (selectedOfficerId != null);
 
-      // "Beamter speichern":
-      // - Admin: immer
-      // - Leitstelle: nur wenn Bearbeitung (selected)
-      // - Leitstelle: NICHT wenn "neu"
-      btnCreateOfficer.disabled = perms.role === "leitstelle" ? !hasSel : false;
+      // Leitstelle: nur bearbeiten (wenn selected)
+      btnCreateOfficer.disabled = (perms.role === "leitstelle") ? !hasSel : false;
 
-      // Mülleimer:
-      // - nur Admin
+      // Delete: nur Admin + selected
       if(perms.canDeleteOfficer && hasSel){
         btnDeleteOfficer.disabled = false;
-        btnDeleteOfficer.classList.add("show"); // Sichtbarkeit bleibt hover-gated per CSS
+        btnDeleteOfficer.classList.add("show"); // sichtbar nur bei hover per CSS
       }else{
         btnDeleteOfficer.disabled = true;
         btnDeleteOfficer.classList.remove("show");
       }
 
-      // "Eingaben löschen" bleibt immer ok
       btnRemember.disabled = false;
     }
 
@@ -1025,15 +1009,24 @@
       }
     }
 
+    /* ✅ FIX: Logout immer zuverlässig (auch bei Officer) */
     async function doLogout(){
-      try{ await stopLeitstellePresence(); }catch{}
-      try{ await sb.auth.signOut(); }catch(e){ console.error(e); }
-      showLogin("");
-      toast("Ausgeloggt");
+      try{
+        // zuerst signOut (damit UI safe ist)
+        const { error } = await sb.auth.signOut();
+        if(error) console.error("signOut error:", error);
+      }catch(e){
+        console.error("signOut throw:", e);
+      }finally{
+        try{ await stopLeitstellePresence(); }catch(e){ console.error("stop presence error:", e); }
+        setRoleFromEmail("");
+        showLogin("");
+        toast("Ausgeloggt");
+      }
     }
 
     /***********************
-     * FUNKCODES
+     * FUNKCODES / PATROL STATUS
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
@@ -1044,10 +1037,6 @@
       ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
       ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
     ];
-
-    /***********************
-     * STATUS pro Streife
-     ***********************/
     const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
 
     function escapeHtml(s){
@@ -1102,7 +1091,6 @@
     const createToggle = document.getElementById("createToggle");
     const createMiniHint = document.getElementById("createMiniHint");
 
-    /* Modal DOM */
     const confirmOverlay = document.getElementById("confirmOverlay");
     const confirmText = document.getElementById("confirmText");
     const confirmClose = document.getElementById("confirmClose");
@@ -1192,7 +1180,6 @@
     }
 
     function computeLeitstelleOnlineFromPresence(state){
-      // state: { [key]: [ { ...payload } ] }
       try{
         for(const key of Object.keys(state || {})){
           const arr = state[key] || [];
@@ -1223,37 +1210,30 @@
         presenceChannel
           .on("presence", { event: "sync" }, () => {
             const state = presenceChannel.presenceState();
-            const online = computeLeitstelleOnlineFromPresence(state);
-            setLeitstelleIndicator(online);
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
           })
           .on("presence", { event: "join" }, () => {
             const state = presenceChannel.presenceState();
-            const online = computeLeitstelleOnlineFromPresence(state);
-            setLeitstelleIndicator(online);
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
           })
           .on("presence", { event: "leave" }, () => {
             const state = presenceChannel.presenceState();
-            const online = computeLeitstelleOnlineFromPresence(state);
-            setLeitstelleIndicator(online);
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
           });
 
-        await presenceChannel.subscribe(async (status) => {
-          // Wenn Leitstelle eingeloggt ist: Presence tracken
+        presenceChannel.subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
             const email = (session?.user?.email || "").toLowerCase();
             if(email === LEITSTELLE_EMAIL){
               try{
-                await presenceChannel.track({
-                  email,
-                  ts: new Date().toISOString()
-                });
-              }catch{}
+                await presenceChannel.track({ email, ts: new Date().toISOString() });
+              }catch(e){
+                console.error("presence track error:", e);
+              }
             }
-            // direkt sync auswerten
             try{
               const state = presenceChannel.presenceState();
-              const online = computeLeitstelleOnlineFromPresence(state);
-              setLeitstelleIndicator(online);
+              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(state));
             }catch{
               setLeitstelleIndicator(false);
             }
@@ -1268,16 +1248,19 @@
     async function stopLeitstellePresence(){
       try{
         if(!presenceChannel) return;
-        // nur relevant wenn Leitstelle
         const { data } = await sb.auth.getSession();
         const email = (data?.session?.user?.email || "").toLowerCase();
         if(email === LEITSTELLE_EMAIL){
           try{ await presenceChannel.untrack(); }catch{}
         }
-      }catch{}
+      }catch(e){
+        console.error("presence untrack error:", e);
+      }
       try{
         if(presenceChannel){ sb.removeChannel(presenceChannel); }
-      }catch{}
+      }catch(e){
+        console.error("remove presence channel error:", e);
+      }
       presenceChannel = null;
       setLeitstelleIndicator(false);
     }
@@ -1318,7 +1301,7 @@
     }
 
     function selectOfficerForEdit(officerId){
-      if(!perms.canSelectPoolForEdit) return; // officer darf nicht
+      if(!perms.canSelectPoolForEdit) return;
       const o = officers.find(x => x.id === officerId);
       if(!o) return;
       selectedOfficerId = officerId;
@@ -1388,7 +1371,7 @@
         const clickableClass = canClickSelect ? "clickable" : "";
 
         return `
-          <div class="officerLine ${clickableClass} ${selected}" data-officer-id="${o.id}" title="${canClickSelect ? "Klicken zum Bearbeiten" : ""}">
+          <div class="officerLine ${clickableClass} ${selected}" data-officer-id="${o.id}">
             <div style="display:flex; gap:10px; align-items:stretch; min-width:0; flex:1;">
               <div class="dragHandle" title="Ziehen">≡</div>
 
@@ -1419,7 +1402,6 @@
       if(canClickSelect){
         createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
           line.addEventListener("click", (e)=>{
-            if(e.target.closest("button")) return;
             if(e.target.closest(".dragHandle")) return;
 
             const id = Number(line.getAttribute("data-officer-id"));
@@ -1568,8 +1550,7 @@
           onEnd: async (evt) => {
             const item = evt.item;
             const officerId = Number(item.getAttribute("data-officer-id"));
-            const toZone = evt.to;
-            const raw = toZone.getAttribute("data-patrol-id");
+            const raw = evt.to.getAttribute("data-patrol-id");
             const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
 
             const o = officers.find(x => x.id === officerId);
@@ -1649,7 +1630,6 @@
     }
 
     async function createOfficer(){
-      // ✅ Officer darf es nie
       if(perms.role === "officer"){
         toast("Keine Berechtigung");
         return;
@@ -1661,7 +1641,6 @@
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
       try{
-        // ✅ Bearbeiten
         if(selectedOfficerId != null){
           const cur = officers.find(x => x.id === selectedOfficerId);
           if(!cur){
@@ -1682,7 +1661,6 @@
           return;
         }
 
-        // ✅ Neu anlegen: nur Admin
         if(!perms.canCreateOfficer){
           toast("Leitstelle darf keine neuen Beamten erstellen");
           return;
@@ -1727,9 +1705,7 @@
 
       upsertLocal(officers, res.data);
       renderAll();
-
-      if(toPatrolId == null) toast("In Pool");
-      else toast("Auf Streife");
+      toast(toPatrolId == null ? "In Pool" : "Auf Streife");
     }
 
     async function deleteOfficer(id){
@@ -1754,19 +1730,29 @@
       toast("Officer gelöscht");
     }
 
+    /* ✅ FIX: + Streife zeigt Fehler sauber (RLS/Permission etc.) */
     async function addPatrol(){
-      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
-      if(res.error){ console.error("addPatrol error:", res.error); toast("Fehler +Streife: " + (res.error.message || "unknown")); return; }
+      try{
+        const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
+        if(res.error){
+          console.error("addPatrol error:", res.error);
+          toast("Fehler +Streife: " + (res.error.message || "unknown"));
+          return;
+        }
 
-      upsertLocal(patrols, res.data);
-      patrols.sort((a,b)=>a.id-b.id);
+        upsertLocal(patrols, res.data);
+        patrols.sort((a,b)=>a.id-b.id);
 
-      const order = loadPatrolOrder();
-      if(!order.includes(res.data.id)) order.push(res.data.id);
-      savePatrolOrder(order);
+        const order = loadPatrolOrder();
+        if(!order.includes(res.data.id)) order.push(res.data.id);
+        savePatrolOrder(order);
 
-      renderAll();
-      toast("Streife erstellt");
+        renderAll();
+        toast("Streife erstellt");
+      }catch(e){
+        console.error("addPatrol throw:", e);
+        toast("Fehler +Streife: " + (e?.message || "unknown"));
+      }
     }
 
     async function renamePatrol(id, name){
@@ -1792,7 +1778,6 @@
 
     async function updatePatrolStatus(id, status){
       const safe = PATROL_STATUSES.includes(status) ? status : "Auf Streife";
-
       const p = patrols.find(x => x.id === id);
       if(!p) return;
 
@@ -1863,9 +1848,7 @@
       pendingDeleteId = officer?.id ?? null;
       const name = officer?.name || "Officer";
       const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
-      confirmText.innerHTML = `
-        Du bist dabei, <b>${escapeHtml(name)}</b> (<span class="muted" style="opacity:.9;">${escapeHtml(dn)}</span>) zu löschen.
-      `;
+      confirmText.innerHTML = `Du bist dabei, <b>${escapeHtml(name)}</b> (<span class="muted" style="opacity:.9;">${escapeHtml(dn)}</span>) zu löschen.`;
       confirmOverlay.style.display = "flex";
       confirmOverlay.setAttribute("aria-hidden", "false");
       setTimeout(()=> confirmDelete.focus(), 50);
@@ -1978,12 +1961,12 @@
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden){
         scheduleResubscribe();
-        setupPresence(); // ✅ presence resync
+        setupPresence();
       }
     });
     window.addEventListener("online", () => {
       scheduleResubscribe();
-      setupPresence(); // ✅ presence resync
+      setupPresence();
     });
 
     /***********************
@@ -2007,7 +1990,6 @@
       clearOfficerSelection();
     });
 
-    // ✅ Mülleimer: nur Admin + Modal
     btnDeleteOfficer.addEventListener("click", ()=>{
       if(selectedOfficerId == null) return;
       const o = officers.find(x => x.id === selectedOfficerId);
@@ -2028,8 +2010,8 @@
       applyCreateCollapsed();
       renderFuncodes();
 
-      // Default: Leitstelle offline bis presence sync kommt
       setLeitstelleIndicator(false);
+      setRoleFromEmail("");
 
       try{
         const { data } = await sb.auth.getSession();
@@ -2041,13 +2023,10 @@
           setRoleFromEmail(email);
           toast("Eingeloggt");
         }else{
-          // guest
-          setRoleFromEmail("");
           showLogin("");
         }
       }catch(e){
         console.error(e);
-        setRoleFromEmail("");
         showLogin("Auth-Fehler.");
       }
 
@@ -2060,7 +2039,6 @@
           setRoleFromEmail("");
           showLogin("");
         }
-        // ✅ Presence immer neu setzen (Leitstelle trackt nur wenn leitstelle-email)
         await setupPresence();
       });
 
