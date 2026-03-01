@@ -113,11 +113,11 @@
       min-width:0;
     }
 
-    /* ✅ FIX: Platz für Dock-Button reservieren (verhindert Überlappung) */
+    /* ✅ Platz für Dock-Button reservieren (verhindert Überlappung) */
     #panelLeft .panelHeader{ padding-right:56px; }
     #panelRight .panelHeader{ padding-left:56px; }
 
-    /* ✅ FIX: Center-Header nach innen schieben (verhindert Overlap mit Edge-Buttons) */
+    /* ✅ Center-Header nach innen schieben (verhindert Overlap mit Edge-Buttons) */
     #panelCenter .panelHeader{
       padding-left: 60px;
       padding-right: 60px;
@@ -379,7 +379,7 @@
       gap:8px;
       align-items:center;
       flex-wrap:wrap;
-      justify-content:flex-end; /* ✅ nach rechts ausrichten */
+      justify-content:flex-end;
     }
 
     .toast{
@@ -461,7 +461,7 @@
     .dockBtn:hover{ background: rgba(255,255,255,0.12); }
     .dockBtn:active{ transform: translateY(1px); }
 
-    /* ✅ FIX: Buttons nach innen, keine Überlappung */
+    /* ✅ Buttons nach innen, keine Überlappung */
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
@@ -592,18 +592,16 @@
       <div class="dockBtn" id="btnToggleLeft" title="Links ein/aus">❮</div>
 
       <div class="panelHeader">
+        <!-- ✅ LEITSTELLE + Subtitle entfernt (nur Badge bleibt) -->
         <div class="brand">
           <div class="badge">LSPD</div>
-          <div class="titleWrap">
-            <div class="title">LEITSTELLE</div>
-            <div class="subtitle">Dienst & Streifenverwaltung</div>
-          </div>
         </div>
 
-        <!-- ✅ Online-Punkt ohne Text + Logout rechts daneben -->
+        <!-- ✅ Punkt + Text "Leitstelle" + Logout -->
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <span class="pill" title="Realtime Verbindung">
             <span class="dot off" id="connDot"></span>
+            <span id="connText">Leitstelle</span>
           </span>
           <button class="btn btnGhost btnLogoutRed" id="btnLogout" title="Logout">Logout</button>
         </div>
@@ -630,7 +628,8 @@
             <div style="height:12px"></div>
             <div class="row">
               <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
-              <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
+              <!-- ✅ umfunktioniert -->
+              <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
             </div>
 
             <div style="height:10px"></div>
@@ -671,7 +670,7 @@
           </div>
         </div>
 
-        <!-- ✅ Neu laden entfernt, +Streife länger, Zähler nach rechts ausgerichtet -->
+        <!-- ✅ +Streife länger, Zähler rechts -->
         <div class="topActions">
           <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
             <span class="dot on"></span><span id="onDutyCount">0</span>
@@ -698,7 +697,6 @@
             <div class="subtitle">Notizen, Funcodes, Funkkanäle</div>
           </div>
         </div>
-        <!-- ✅ Notiz speichern Button entfernt -->
       </div>
 
       <div class="content">
@@ -749,11 +747,6 @@
 
     /***********************
      * ✅ LOGIN (Supabase Auth)
-     * - Users erstellst DU in Supabase Auth (Email/Password)
-     * - Login: Name + Passwort
-     * - Email wird automatisch: <nameLower>@gta.local
-     * - Groß/kleinschreibung egal (wir lowercasen)
-     * - Enter bestätigt
      ***********************/
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
@@ -788,7 +781,6 @@
 
     function friendlyAuthError(error){
       const msg = (error?.message || "").toLowerCase();
-      // Supabase (GoTrue) typical: "Invalid login credentials"
       if(msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")){
         return "Falscher Name oder Passwort.";
       }
@@ -889,7 +881,7 @@
     const edgeRight = document.getElementById("edgeRight");
 
     const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText"); // (kann fehlen)
+    const connText = document.getElementById("connText"); // bleibt "Leitstelle"
 
     const toastEl = document.getElementById("toast");
 
@@ -906,12 +898,10 @@
 
     const patrolGrid = document.getElementById("patrolGrid");
     const btnAddPatrol = document.getElementById("btnAddPatrol");
-    const btnReload = document.getElementById("btnReload"); // (kann fehlen)
 
     const onDutyCountEl = document.getElementById("onDutyCount");
 
     const txtNotes = document.getElementById("txtNotes");
-    const btnSaveNote = document.getElementById("btnSaveNote"); // (kann fehlen)
     const noteStatus = document.getElementById("noteStatus");
 
     const funcodeList = document.getElementById("funcodeList");
@@ -1016,9 +1006,8 @@
     function applyConnUi(isOnline){
       connDot.classList.toggle("on", isOnline);
       connDot.classList.toggle("off", !isOnline);
-      if(connText){
-        connText.textContent = isOnline ? "online" : "offline";
-      }
+      // Text bleibt fest "Leitstelle"
+      if(connText) connText.textContent = "Leitstelle";
     }
     function startConnWatch(){
       if(connWatchTimer) clearInterval(connWatchTimer);
@@ -1220,7 +1209,7 @@
                     <strong>${escapeHtml(o.name)}</strong>
                     <span class="pill">${escapeHtml(dn)}</span>
                   </div>
-                  <div class="muted" style="margin-top:4px;">Status: ${escapeHtml(statusLabel(status))}</div>
+                  <!-- ✅ Status-Text unter dem Namen entfernt -->
                 </div>
               </div>
 
@@ -1706,28 +1695,23 @@
 
     btnAddPatrol.addEventListener("click", addPatrol);
 
-    if(btnReload){
-      btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
-    }
-
-    if(btnSaveNote){
-      btnSaveNote.addEventListener("click", async ()=>{ await saveNote(); toast("Notiz gespeichert"); });
-    }
-
     txtNotes.addEventListener("input", ()=>{
       noteStatus.textContent = "tippt…";
       if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
       noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
     });
 
+    // ✅ Eingaben löschen (statt merken)
     btnRemember.addEventListener("click", ()=>{
-      const payload = { name: inpName.value.trim(), dienstnummer: inpDienstnr.value.trim() };
-      localStorage.setItem("lspd_me", JSON.stringify(payload));
-      meHint.textContent = "gespeichert";
+      inpName.value = "";
+      inpDienstnr.value = "";
+      try{ localStorage.removeItem("lspd_me"); }catch{}
+      meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
     });
 
     function loadRemembered(){
+      // optional: falls noch alte Daten vorhanden sind (kannst du behalten)
       try{
         const raw = localStorage.getItem("lspd_me");
         if(!raw) return;
@@ -1737,7 +1721,7 @@
       }catch{}
     }
 
-    // ✅ Login events (Enter bestätigt – ohne Hinweistext im UI)
+    // ✅ Login events (Enter bestätigt)
     inpLoginName.addEventListener("keydown", (e)=>{
       if(e.key === "Enter"){ e.preventDefault(); doLogin(); }
     });
