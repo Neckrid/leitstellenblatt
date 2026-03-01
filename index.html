@@ -1218,9 +1218,9 @@
     let noteAutosaveTimer = null;
 
     // ✅ Live-Rename Debounce / Schutz gegen Überschreiben beim Tippen
-    const patrolRenameTimers = new Map();     // id -> timeout
-    const patrolRenameLastSent = new Map();   // id -> last sent value
-    let editingPatrolNameId = null;           // aktuell fokussiertes Namensfeld
+    const patrolRenameTimers = new Map();
+    const patrolRenameLastSent = new Map();
+    let editingPatrolNameId = null;
 
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
@@ -1369,7 +1369,7 @@
       toast("Streifen-Reihenfolge gespeichert");
     }
 
-    // ✅ Debounced Live-Rename (schreibt in DB, ohne Spam)
+    // ✅ Debounced Live-Rename (KEIN render beim Tippen)
     function queuePatrolRename(id, rawName){
       const name = (rawName || "").trim() || "Streife";
       if(patrolRenameLastSent.get(id) === name) return;
@@ -1381,8 +1381,14 @@
       const t = setTimeout(async ()=>{
         patrolRenameTimers.delete(id);
         patrolRenameLastSent.set(id, name);
+
+        // local state updaten, ohne render
+        const p = patrols.find(x => x.id === id);
+        if(p) p.name = name;
+
         try{
-          await renamePatrol(id, name);
+          const res = await sb.from("patrols").update({ name }).eq("id", id);
+          if(res.error) throw res.error;
         }catch(e){
           console.error("queuePatrolRename error:", e);
           toast("Fehler Name");
@@ -1467,14 +1473,14 @@
         });
       });
 
-      // ✅ Streifennamen: live speichern (debounced) + Schutz beim Tippen
+      // ✅ Streifennamen: live speichern (debounced) + Fokus behalten
       patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
         const id = Number(inp.getAttribute("data-id"));
 
         inp.addEventListener("focus", ()=>{ editingPatrolNameId = id; });
         inp.addEventListener("blur", ()=>{
           editingPatrolNameId = null;
-          queuePatrolRename(id, inp.value); // final speichern
+          queuePatrolRename(id, inp.value);
         });
 
         inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
@@ -1687,26 +1693,25 @@
       toast("Streife erstellt");
     }
 
+    // ✅ renamePatrol bleibt als Utility (rendert NICHT beim Tippen)
     async function renamePatrol(id, name){
+      const safeName = (name || "").trim() || "Streife";
       const p = patrols.find(x => x.id === id);
       if(!p) return;
 
-      const safeName = (name || "").trim() || "Streife";
-      const before = { ...p };
-
-      patrols = patrols.map(x => x.id === id ? { ...x, name: safeName } : x);
-      renderPatrolGrid(); // weniger aggressiv als renderAll()
+      p.name = safeName;
 
       const res = await sb.from("patrols").update({ name: safeName }).eq("id", id).select("*").single();
       if(res.error){
         console.error("renamePatrol error:", res.error);
         toast("Fehler Name: " + (res.error.message || "unknown"));
-        patrols = patrols.map(x => x.id === id ? before : x);
-        renderPatrolGrid();
         return;
       }
       upsertLocal(patrols, res.data);
-      renderPatrolGrid();
+
+      if(editingPatrolNameId !== id){
+        renderPatrolGrid();
+      }
     }
 
     async function updatePatrolStatus(id, status){
@@ -1853,7 +1858,6 @@
       const nameChanged = before && (before.name !== incoming.name);
       const statusChanged = before && (before.funcode !== incoming.funcode);
 
-      // Name nur updaten, wenn nicht gerade getippt wird
       const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
       if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
         nameInp.value = incoming.name || "Streife";
@@ -1916,10 +1920,10 @@
             return;
           }
 
-          // UPDATE: möglichst DOM patch statt full render
           const incoming = payload.new;
           const id = incoming?.id;
-          const before = patrols.find(p => p.id === id) ? { ...patrols.find(p => p.id === id) } : null;
+          const existing = patrols.find(p => p.id === id);
+          const before = existing ? { ...existing } : null;
 
           upsertLocal(patrols, incoming);
 
