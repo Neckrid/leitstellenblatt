@@ -205,6 +205,13 @@
     }
     .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
 
+    /* ✅ breiter "+ Streife" */
+    .btnWide{
+      padding-left:18px;
+      padding-right:18px;
+      min-width: 160px;
+    }
+
     .pill{
       display:inline-flex;
       align-items:center;
@@ -367,7 +374,13 @@
     .codeRow b{ font-size:12px; white-space:nowrap; }
     .codeRow span{ font-size:12px; opacity:0.82; }
 
-    .topActions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .topActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end; /* ✅ nach rechts ausrichten */
+    }
 
     .toast{
       position:fixed;
@@ -587,9 +600,12 @@
           </div>
         </div>
 
+        <!-- ✅ Online-Punkt ohne Text + Logout rechts daneben -->
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="pill" title="Realtime Verbindung">
+            <span class="dot off" id="connDot"></span>
+          </span>
           <button class="btn btnGhost btnLogoutRed" id="btnLogout" title="Logout">Logout</button>
-          <span class="pill"><span class="dot off" id="connDot"></span><span id="connText">offline</span></span>
         </div>
       </div>
 
@@ -648,21 +664,20 @@
     <!-- CENTER -->
     <section class="panel" id="panelCenter">
       <div class="panelHeader">
+        <!-- ✅ links oben nur Titel -->
         <div class="brand">
-          <div class="badge">10</div>
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
-            <div class="subtitle">Drag & Drop • Status pro Streife • Live Sync</div>
           </div>
         </div>
 
+        <!-- ✅ Neu laden entfernt, +Streife länger, Zähler nach rechts ausgerichtet -->
         <div class="topActions">
           <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
             <span class="dot on"></span><span id="onDutyCount">0</span>
           </span>
 
-          <button class="btn" id="btnAddPatrol">+ Streife</button>
-          <button class="btn btnGhost" id="btnReload">Neu laden</button>
+          <button class="btn btnWide" id="btnAddPatrol">+ Streife</button>
         </div>
       </div>
 
@@ -679,11 +694,11 @@
         <div class="brand">
           <div class="badge">⟡</div>
           <div class="titleWrap">
-            <div class="title">LEITSTELLEN-TOOLS</div>
+            <div class="title">INFO</div>
             <div class="subtitle">Notizen, Funcodes, Funkkanäle</div>
           </div>
         </div>
-        <button class="btn btnGhost" id="btnSaveNote">Notiz speichern</button>
+        <!-- ✅ Notiz speichern Button entfernt -->
       </div>
 
       <div class="content">
@@ -874,7 +889,8 @@
     const edgeRight = document.getElementById("edgeRight");
 
     const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText");
+    const connText = document.getElementById("connText"); // (kann fehlen)
+
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
@@ -890,12 +906,12 @@
 
     const patrolGrid = document.getElementById("patrolGrid");
     const btnAddPatrol = document.getElementById("btnAddPatrol");
-    const btnReload = document.getElementById("btnReload");
+    const btnReload = document.getElementById("btnReload"); // (kann fehlen)
 
     const onDutyCountEl = document.getElementById("onDutyCount");
 
     const txtNotes = document.getElementById("txtNotes");
-    const btnSaveNote = document.getElementById("btnSaveNote");
+    const btnSaveNote = document.getElementById("btnSaveNote"); // (kann fehlen)
     const noteStatus = document.getElementById("noteStatus");
 
     const funcodeList = document.getElementById("funcodeList");
@@ -1000,7 +1016,9 @@
     function applyConnUi(isOnline){
       connDot.classList.toggle("on", isOnline);
       connDot.classList.toggle("off", !isOnline);
-      connText.textContent = isOnline ? "online" : "offline";
+      if(connText){
+        connText.textContent = isOnline ? "online" : "offline";
+      }
     }
     function startConnWatch(){
       if(connWatchTimer) clearInterval(connWatchTimer);
@@ -1687,9 +1705,14 @@
     inpSearch.addEventListener("input", renderCreatedPool);
 
     btnAddPatrol.addEventListener("click", addPatrol);
-    btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
 
-    btnSaveNote.addEventListener("click", async ()=>{ await saveNote(); toast("Notiz gespeichert"); });
+    if(btnReload){
+      btnReload.addEventListener("click", async ()=>{ toast("Neu laden…"); await loadAll().catch(()=>{}); });
+    }
+
+    if(btnSaveNote){
+      btnSaveNote.addEventListener("click", async ()=>{ await saveNote(); toast("Notiz gespeichert"); });
+    }
 
     txtNotes.addEventListener("input", ()=>{
       noteStatus.textContent = "tippt…";
