@@ -827,6 +827,22 @@
     const ADMIN_EMAIL = "admin@gta.local";
 
     /***********************
+     * ✅ Realtime Auth Sync (RLS Fix)
+     ***********************/
+    async function syncRealtimeAuth(){
+      try{
+        const { data } = await sb.auth.getSession();
+        const token = data?.session?.access_token || null;
+        if(token){
+          // sorgt dafür, dass postgres_changes / RLS korrekt laufen
+          sb.realtime.setAuth(token);
+        }
+      }catch(e){
+        console.warn("syncRealtimeAuth failed:", e);
+      }
+    }
+
+    /***********************
      * ROLE / PERMISSIONS
      ***********************/
     const perms = {
@@ -849,7 +865,6 @@
         perms.canDeleteOfficer = false;
         perms.canSelectPoolForEdit = false;
       }else if(e === LEITSTELLE_EMAIL){
-        // ✅ Leitstelle: darf erstellen + bearbeiten, darf NICHT löschen
         perms.role = "leitstelle";
         perms.canCreateOfficer = true;
         perms.canEditOfficer = true;
@@ -862,8 +877,6 @@
         perms.canDeleteOfficer = true;
         perms.canSelectPoolForEdit = true;
       }else if(e){
-        // falls du später weitere Accounts hast -> standardmäßig wie Admin? NEIN: sicherer = Leitstelle-Rechte?
-        // Ich lasse es bewusst restriktiv:
         perms.role = "leitstelle";
         perms.canCreateOfficer = true;
         perms.canEditOfficer = true;
@@ -938,7 +951,6 @@
       setTimeout(() => toastEl.classList.remove("show"), 1800);
     }
 
-    // Quick debug for silent JS errors (hilft extrem beim “geht erst nach reload”)
     window.addEventListener("error", (e)=>{
       console.error("JS ERROR:", e.error || e.message);
       toast("JS Fehler (Konsole prüfen)");
@@ -1028,11 +1040,9 @@
         return;
       }
 
-      // speichern: erlaubt wenn (edit selected && canEdit) oder (create new && canCreate)
       const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
       btnCreateOfficer.disabled = !canSave;
 
-      // delete: nur admin + selected
       if(perms.canDeleteOfficer && hasSel){
         btnDeleteOfficer.disabled = false;
         btnDeleteOfficer.classList.add("show");
@@ -1559,7 +1569,6 @@
 
       const hasSel = (selectedOfficerId != null);
 
-      // edit
       if(hasSel){
         if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
         const cur = officers.find(x => x.id === selectedOfficerId);
@@ -1576,7 +1585,6 @@
         return;
       }
 
-      // create new
       if(!perms.canCreateOfficer){ toast("Keine Berechtigung zum Erstellen"); return; }
       await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
       toast("Beamter gespeichert");
@@ -1772,11 +1780,14 @@
     });
 
     /***********************
-     * REALTIME
+     * REALTIME (✅ robust + RLS + Catch-up Sync)
      ***********************/
     let rtChannels = [];
     let rtResubTimer = null;
     let rtBackoffMs = 800;
+
+    // ✅ nach Reconnect einmal loadAll(), damit keine Events “verpasst” werden
+    let rtNeedsResync = false;
 
     function teardownRealtime(){
       try{ rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} }); }catch{}
@@ -1785,6 +1796,9 @@
     function resetBackoff(){ rtBackoffMs = 800; }
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
+
+      rtNeedsResync = true;
+
       const wait = Math.min(rtBackoffMs, 8000);
       rtResubTimer = setTimeout(() => {
         teardownRealtime();
@@ -1808,9 +1822,18 @@
           }
           renderAll();
         })
-        .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
+        .subscribe(async (status) => {
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            await syncRealtimeAuth();
+            if(rtNeedsResync){
+              rtNeedsResync = false;
+              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+            }
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       const chPatrols = sb.channel("rt-patrols")
@@ -1828,9 +1851,18 @@
           }
           renderAll();
         })
-        .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
+        .subscribe(async (status) => {
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            await syncRealtimeAuth();
+            if(rtNeedsResync){
+              rtNeedsResync = false;
+              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+            }
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       const chNotes = sb.channel("rt-notes")
@@ -1841,16 +1873,25 @@
             noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
           }
         })
-        .subscribe((status) => {
-          if(status === "SUBSCRIBED"){ resetBackoff(); }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
+        .subscribe(async (status) => {
+          if(status === "SUBSCRIBED"){
+            resetBackoff();
+            await syncRealtimeAuth();
+            if(rtNeedsResync){
+              rtNeedsResync = false;
+              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+            }
+          }
+          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+            scheduleResubscribe();
+          }
         });
 
       rtChannels.push(chOfficers, chPatrols, chNotes);
     }
 
     /***********************
-     * ✅ POST-LOGIN INIT (Fix für "geht erst nach reload")
+     * ✅ POST-LOGIN INIT (robust)
      ***********************/
     async function postLoginInit(){
       const { data } = await sb.auth.getSession();
@@ -1860,11 +1901,14 @@
       const email = (session.user?.email || "").toLowerCase();
       setRoleFromEmail(email);
 
-      // wichtig: Presence + Realtime + Daten neu initialisieren
+      // ✅ wichtig: Realtime Token setzen (RLS)
+      await syncRealtimeAuth();
+
+      // Presence + Realtime
       await setupPresence();
       setupRealtime();
 
-      // Daten neu laden, damit alle Aktionen direkt funktionieren
+      // Initialdaten
       await loadAll();
     }
 
@@ -1891,7 +1935,11 @@
 
         hideLogin();
         toast("Eingeloggt");
-        await postLoginInit(); // ✅ Fix
+
+        // ✅ sicherstellen, dass Realtime Auth sofort stimmt
+        await syncRealtimeAuth();
+
+        await postLoginInit();
       }catch(e){
         console.error(e);
         showLogin(friendlyAuthError(e));
@@ -1923,7 +1971,7 @@
     }
 
     /***********************
-     * ✅ Event Delegation für Buttons (noch robuster)
+     * ✅ Event Delegation (robust)
      ***********************/
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
@@ -1981,7 +2029,8 @@
 
         if(session){
           hideLogin();
-          await postLoginInit(); // ✅ wenn Session schon da ist
+          await syncRealtimeAuth();
+          await postLoginInit();
           toast("Eingeloggt");
         }else{
           showLogin("");
@@ -1992,9 +2041,8 @@
       }
 
       sb.auth.onAuthStateChange(async (evt, session) => {
-        // Manche Browser/Setups feuern das Event nicht zuverlässig in deinem Flow,
-        // deswegen ist postLoginInit() zusätzlich direkt in doLogin() drin.
         if(session){
+          await syncRealtimeAuth();
           hideLogin();
           await postLoginInit();
         }else{
@@ -2006,7 +2054,6 @@
         }
       });
 
-      // Falls offline/online/visibility: Presence/Realtime stabil halten
       document.addEventListener("visibilitychange", () => {
         if(!document.hidden){
           scheduleResubscribe();
