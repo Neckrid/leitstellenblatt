@@ -113,11 +113,11 @@
       min-width:0;
     }
 
-    /* ✅ Platz für Dock-Button reservieren (verhindert Überlappung) */
+    /* Platz für Dock-Button reservieren */
     #panelLeft .panelHeader{ padding-right:56px; }
     #panelRight .panelHeader{ padding-left:56px; }
 
-    /* ✅ Center-Header nach innen schieben (verhindert Overlap mit Edge-Buttons) */
+    /* Center-Header nach innen schieben */
     #panelCenter .panelHeader{
       padding-left: 60px;
       padding-right: 60px;
@@ -154,11 +154,10 @@
 
     .row{ display:flex; gap:10px; }
     .field{
-  background: rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.10);
-  border-radius:14px;
-  padding:14px;
-}
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      padding:10px;
     }
     label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
     input, select, textarea{
@@ -199,18 +198,16 @@
     }
     .btnGhost{ background: transparent; }
 
-    /* ✅ Logout: gleiches Style, aber rot */
     .btnLogoutRed{
       background: linear-gradient(135deg, rgba(255,70,70,0.18), rgba(255,70,180,0.14));
       border-color: rgba(255,70,70,0.28);
     }
     .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
 
-    /* ✅ breiter "+ Streife" */
     .btnWide{
       padding-left:18px;
       padding-right:18px;
-      min-width: 160px;
+      min-width:160px;
     }
 
     .pill{
@@ -239,7 +236,6 @@
 
     .muted{ opacity:0.75; font-size:12px; }
 
-    /* ✅ 3 Streifen nebeneinander + responsive fallback */
     .grid{
       display:grid;
       grid-template-columns: repeat(3, minmax(260px, 1fr));
@@ -261,7 +257,6 @@
       min-width:0;
     }
 
-    /* Header wrap fix */
     .cardHeader{
       padding:12px 12px;
       border-bottom:1px solid rgba(255,255,255,0.08);
@@ -320,11 +315,11 @@
     .cardBody{ padding:12px; }
 
     .dropZone{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  min-height: 52px;
-}
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height: 52px;
+    }
 
     .officerLine{
       display:flex;
@@ -343,6 +338,7 @@
       background: rgba(0,255,195,0.07);
     }
 
+    /* ✅ FIX: Drag-Handle volle Höhe */
     .dragHandle{
       cursor:grab;
       user-select:none;
@@ -352,6 +348,11 @@
       background: rgba(255,255,255,0.06);
       font-weight:900;
       opacity:0.9;
+
+      align-self: stretch;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .dragHandle:active{ cursor:grabbing; }
 
@@ -401,7 +402,6 @@
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
 
-    /* Delete Buttons Hover */
     .officerLine .btnDanger{
       opacity:0;
       pointer-events:none;
@@ -413,7 +413,6 @@
       transform: translateY(0);
     }
 
-    /* ✅ Zurück-in-Pool Button nur bei Hover anzeigen */
     .officerLine .btnBack{
       opacity:0;
       pointer-events:none;
@@ -436,7 +435,6 @@
       transform: translateY(0);
     }
 
-    /* Sortable states */
     .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
     .sortable-chosen{ cursor:grabbing; }
 
@@ -462,11 +460,9 @@
     .dockBtn:hover{ background: rgba(255,255,255,0.12); }
     .dockBtn:active{ transform: translateY(1px); }
 
-    /* ✅ Buttons nach innen, keine Überlappung */
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
-    /* When collapsed, show edge buttons fixed on screen so user can reopen */
     .edgeBtn{
       position:fixed;
       top:22px;
@@ -555,7 +551,7 @@
 </head>
 
 <body>
-  <!-- ✅ LOGIN (Supabase Auth: User werden von dir vorab erstellt) -->
+  <!-- LOGIN -->
   <div class="loginOverlay" id="loginOverlay" style="display:none;">
     <div class="loginCard">
       <div class="loginHeader">
@@ -571,14 +567,10 @@
       <div class="loginBody">
         <label>Name</label>
         <input id="inpLoginName" placeholder="Name" autocomplete="username" />
-
         <div style="height:10px"></div>
-
         <label>Passwort</label>
         <input id="inpLoginPw" type="password" placeholder="Passwort" autocomplete="current-password" />
-
         <div class="loginErr" id="loginErr">—</div>
-
         <div style="height:12px"></div>
         <div class="row">
           <button class="btn btnPrimary" id="btnLogin">Login</button>
@@ -593,12 +585,10 @@
       <div class="dockBtn" id="btnToggleLeft" title="Links ein/aus">❮</div>
 
       <div class="panelHeader">
-        <!-- ✅ LEITSTELLE + Subtitle entfernt (nur Badge bleibt) -->
         <div class="brand">
           <div class="badge">LSPD</div>
         </div>
 
-        <!-- ✅ Punkt + Text "Leitstelle" + Logout -->
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <span class="pill" title="Realtime Verbindung">
             <span class="dot off" id="connDot"></span>
@@ -609,7 +599,6 @@
       </div>
 
       <div class="content">
-        <!-- ✅ Collapsible Beamter erstellen -->
         <div class="field collapseCard" id="createCard">
           <div class="collapseHead" id="createToggle" title="Ein-/Ausklappen">
             <div class="collapseTitle">
@@ -629,7 +618,6 @@
             <div style="height:12px"></div>
             <div class="row">
               <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
-              <!-- ✅ umfunktioniert -->
               <button class="btn btnGhost" id="btnRemember">Eingaben löschen</button>
             </div>
 
@@ -664,19 +652,16 @@
     <!-- CENTER -->
     <section class="panel" id="panelCenter">
       <div class="panelHeader">
-        <!-- ✅ links oben nur Titel -->
         <div class="brand">
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
           </div>
         </div>
 
-        <!-- ✅ +Streife länger, Zähler rechts -->
         <div class="topActions">
           <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
             <span class="dot on"></span><span id="onDutyCount">0</span>
           </span>
-
           <button class="btn btnWide" id="btnAddPatrol">+ Streife</button>
         </div>
       </div>
@@ -729,7 +714,6 @@
     </section>
   </div>
 
-  <!-- Edge buttons appear when panels are collapsed -->
   <div class="edgeBtn" id="edgeLeft" title="Links öffnen">❯</div>
   <div class="edgeBtn" id="edgeRight" title="Rechts öffnen">❮</div>
 
@@ -747,7 +731,7 @@
     });
 
     /***********************
-     * ✅ LOGIN (Supabase Auth)
+     * LOGIN
      ***********************/
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
@@ -808,7 +792,7 @@
         btnLogin.disabled = true;
         btnLogin.textContent = "Login…";
 
-        const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
 
         hideLogin();
@@ -823,17 +807,13 @@
     }
 
     async function doLogout(){
-      try{
-        await sb.auth.signOut();
-      }catch(e){
-        console.error(e);
-      }
+      try{ await sb.auth.signOut(); }catch(e){ console.error(e); }
       showLogin("");
       toast("Ausgeloggt");
     }
 
     /***********************
-     * FUNKCODES (rechts nur Info)
+     * FUNKCODES
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
@@ -868,9 +848,7 @@
         return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
       }).join("");
     }
-    function statusLabel(v){
-      return v || "Auf Streife";
-    }
+    function statusLabel(v){ return v || "Auf Streife"; }
 
     /***********************
      * DOM
@@ -882,8 +860,7 @@
     const edgeRight = document.getElementById("edgeRight");
 
     const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText"); // bleibt "Leitstelle"
-
+    const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
@@ -907,13 +884,12 @@
 
     const funcodeList = document.getElementById("funcodeList");
 
-    /* Collapsible create panel */
     const createCard = document.getElementById("createCard");
     const createToggle = document.getElementById("createToggle");
     const createMiniHint = document.getElementById("createMiniHint");
 
     /***********************
-     * COLLAPSE STATE (persist)
+     * COLLAPSE STATE
      ***********************/
     const LS_UI = "lspd_ui_panels";
     function loadUi(){
@@ -938,7 +914,6 @@
     edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); });
     edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); });
 
-    /* Collapsible "Beamter erstellen" state */
     const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
     function loadCreateCollapsed(){
       try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; }
@@ -966,7 +941,6 @@
 
     let sortables = [];
     let patrolSortable = null;
-
     let selectedOfficerId = null;
 
     let rtChannels = [];
@@ -996,26 +970,22 @@
     }
 
     /***********************
-     * ✅ ONLINE-INDIKATOR (stabil, kein Flackern)
+     * ONLINE-INDIKATOR
      ***********************/
     let lastRealtimeOkAt = 0;
     let connWatchTimer = null;
 
-    function markRealtimeOk(){
-      lastRealtimeOkAt = Date.now();
-    }
+    function markRealtimeOk(){ lastRealtimeOkAt = Date.now(); }
     function applyConnUi(isOnline){
       connDot.classList.toggle("on", isOnline);
       connDot.classList.toggle("off", !isOnline);
-      // Text bleibt fest "Leitstelle"
-      if(connText) connText.textContent = "Leitstelle";
+      connText.textContent = "Leitstelle";
     }
     function startConnWatch(){
       if(connWatchTimer) clearInterval(connWatchTimer);
       connWatchTimer = setInterval(() => {
         const age = Date.now() - lastRealtimeOkAt;
-        const online = age < 7000;
-        applyConnUi(online);
+        applyConnUi(age < 7000);
       }, 600);
     }
 
@@ -1043,14 +1013,12 @@
       if(i >= 0) arr[i] = row;
       else arr.push(row);
     }
-
     function dnNum(v){
       const s = (v ?? "").toString().trim();
       if(!s) return Number.POSITIVE_INFINITY;
       const n = parseInt(s.replace(/[^\d]/g, ""), 10);
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
-
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
@@ -1076,18 +1044,12 @@
       renderCreatedPool();
     }
 
-    /***********************
-     * RENDER ALL
-     ***********************/
     function renderAll(){
       renderCreatedPool();
       renderPatrolGrid();
       updateOnDutyCount();
     }
 
-    /***********************
-     * RENDER
-     ***********************/
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
         <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
@@ -1126,7 +1088,7 @@
 
         return `
           <div class="officerLine clickable ${selected}" data-officer-id="${o.id}" title="Klicken zum Bearbeiten">
-            <div style="display:flex; gap:10px; align-items:flex-start; min-width:0; flex:1;">
+            <div style="display:flex; gap:10px; align-items:stretch; min-width:0; flex:1;">
               <div class="dragHandle" title="Ziehen">≡</div>
 
               <div style="min-width:0; flex:1;">
@@ -1210,7 +1172,6 @@
                     <strong>${escapeHtml(o.name)}</strong>
                     <span class="pill">${escapeHtml(dn)}</span>
                   </div>
-                  <!-- ✅ Status-Text unter dem Namen entfernt -->
                 </div>
               </div>
 
@@ -1599,9 +1560,7 @@
       }, wait);
       rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
     }
-    function resetBackoff(){
-      rtBackoffMs = 800;
-    }
+    function resetBackoff(){ rtBackoffMs = 800; }
 
     function setupRealtime(){
       try{ sb.realtime.connect(); }catch{}
@@ -1693,7 +1652,6 @@
      ***********************/
     btnCreateOfficer.addEventListener("click", createOfficer);
     inpSearch.addEventListener("input", renderCreatedPool);
-
     btnAddPatrol.addEventListener("click", addPatrol);
 
     txtNotes.addEventListener("input", ()=>{
@@ -1702,7 +1660,6 @@
       noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
     });
 
-    // ✅ Eingaben löschen (statt merken)
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
@@ -1712,7 +1669,6 @@
     });
 
     function loadRemembered(){
-      // optional: falls noch alte Daten vorhanden sind (kannst du behalten)
       try{
         const raw = localStorage.getItem("lspd_me");
         if(!raw) return;
@@ -1722,13 +1678,8 @@
       }catch{}
     }
 
-    // ✅ Login events (Enter bestätigt)
-    inpLoginName.addEventListener("keydown", (e)=>{
-      if(e.key === "Enter"){ e.preventDefault(); doLogin(); }
-    });
-    inpLoginPw.addEventListener("keydown", (e)=>{
-      if(e.key === "Enter"){ e.preventDefault(); doLogin(); }
-    });
+    inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+    inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
     btnLogout.addEventListener("click", doLogout);
 
@@ -1746,7 +1697,6 @@
 
       loadRemembered();
 
-      // Auth: Session prüfen -> wenn vorhanden direkt rein, sonst Login overlay
       try{
         const { data } = await sb.auth.getSession();
         if(data?.session){
@@ -1760,21 +1710,16 @@
         showLogin("Auth-Fehler.");
       }
 
-      // Auth State Changes (z.B. Token refresh / logout in anderem Tab)
       sb.auth.onAuthStateChange((evt, session) => {
-        if(session){
-          hideLogin();
-        }else{
-          showLogin("");
-        }
+        if(session){ hideLogin(); }
+        else{ showLogin(""); }
       });
 
-      loadAll()
-        .catch((e)=>{
-          console.error(e);
-          toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
-          applyConnUi(false);
-        });
+      loadAll().catch((e)=>{
+        console.error(e);
+        toast("Supabase/RLS prüfen: " + (e?.message || "unknown"));
+        applyConnUi(false);
+      });
 
       setupRealtime();
     })();
