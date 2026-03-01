@@ -15,6 +15,7 @@
       margin:0;
       font-family: Arial, Helvetica, sans-serif;
       color:#fff;
+
       overflow:hidden;
       background:
         radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
@@ -1031,6 +1032,37 @@
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
+    /* ✅ FIX: Fokus + Cursor beim Re-Render behalten (Streifenname Input) */
+    function capturePatrolNameFocus(){
+      const el = document.activeElement;
+      if(el && el.matches && el.matches("input[data-act='renamePatrol']")){
+        const id = Number(el.getAttribute("data-id"));
+        return {
+          id,
+          value: el.value,
+          start: el.selectionStart ?? null,
+          end: el.selectionEnd ?? null
+        };
+      }
+      return null;
+    }
+    function restorePatrolNameFocus(snapshot){
+      if(!snapshot || !Number.isFinite(snapshot.id)) return;
+      requestAnimationFrame(() => {
+        const inp = patrolGrid.querySelector(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
+        if(!inp) return;
+
+        inp.value = snapshot.value; // typed text behalten
+        inp.focus({ preventScroll:true });
+
+        try{
+          if(snapshot.start != null && snapshot.end != null){
+            inp.setSelectionRange(snapshot.start, snapshot.end);
+          }
+        }catch{}
+      });
+    }
+
     /***********************
      * UI: Role
      ***********************/
@@ -1399,6 +1431,8 @@
     }
 
     function renderPatrolGrid(){
+      const focusSnap = capturePatrolNameFocus(); // ✅ FIX: Fokus/Cursor merken
+
       for(const s of sortables){ try{s.destroy();}catch{} }
       sortables = [];
       if(patrolSortable){ try{patrolSortable.destroy();}catch{} patrolSortable = null; }
@@ -1483,7 +1517,10 @@
           queuePatrolRename(id, inp.value);
         });
 
-        inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
+        inp.addEventListener("input", ()=>{
+          // Fokus bleibt jetzt auch bei Re-Render (restorePatrolNameFocus)
+          queuePatrolRename(id, inp.value);
+        });
         inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
 
@@ -1497,6 +1534,8 @@
 
       initPatrolOrderDrag();
       initDragAndDrop();
+
+      restorePatrolNameFocus(focusSnap); // ✅ FIX: Fokus/Cursor zurücksetzen
     }
 
     const SORTABLE_SCROLL_OPTS = { scroll:true, scrollSensitivity:90, scrollSpeed:18, bubbleScroll:true };
