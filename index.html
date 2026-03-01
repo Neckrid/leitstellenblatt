@@ -1068,8 +1068,15 @@
       isDragging = false;
       if(pendingRender){
         pendingRender = false;
-        renderAll(); // (renderAll ist drag-aware)
+        renderAll();
       }
+    }
+
+    /* ✅ FIX: Tabwechsel/Focus -> Drag-Status hängt manchmal, daher hart resetten */
+    function cancelDragAndReinit(){
+      isDragging = false;
+      pendingRender = false;
+      try{ renderAll(); }catch(e){ console.error(e); }
     }
 
     /***********************
@@ -1392,7 +1399,6 @@
         .map(el => Number(el.getAttribute("data-patrol-card")))
         .filter(n => Number.isFinite(n));
 
-      // optimistic
       ids.forEach((id, idx)=>{
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
@@ -1410,7 +1416,6 @@
       toast("Streifen-Reihenfolge gespeichert");
     }
 
-    // ✅ Debounced Live-Rename (KEIN render beim Tippen)
     function queuePatrolRename(id, rawName){
       const name = (rawName || "").trim() || "Streife";
       if(patrolRenameLastSent.get(id) === name) return;
@@ -1423,7 +1428,6 @@
         patrolRenameTimers.delete(id);
         patrolRenameLastSent.set(id, name);
 
-        // local state updaten, ohne render
         const p = patrols.find(x => x.id === id);
         if(p) p.name = name;
 
@@ -1440,7 +1444,6 @@
     }
 
     function renderPatrolGrid(){
-      // ✅ Drag-Schutz: während Drag keine DOM-Neuaufbau-Aktion
       if(isDragging){ pendingRender = true; return; }
 
       const focusSnap = capturePatrolNameFocus();
@@ -1519,7 +1522,6 @@
         });
       });
 
-      // ✅ Streifennamen: live speichern (debounced) + Fokus behalten
       patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
         const id = Number(inp.getAttribute("data-id"));
 
@@ -1611,7 +1613,6 @@
     }
 
     function renderAll(){
-      // ✅ drag-aware render (Realtime soll Drops nicht killen)
       if(isDragging){ pendingRender = true; return; }
       renderCreatedPool();
       renderPatrolGrid();
@@ -1755,26 +1756,6 @@
       sortPatrolsInMemory();
       renderAll();
       toast("Streife erstellt");
-    }
-
-    async function renamePatrol(id, name){
-      const safeName = (name || "").trim() || "Streife";
-      const p = patrols.find(x => x.id === id);
-      if(!p) return;
-
-      p.name = safeName;
-
-      const res = await sb.from("patrols").update({ name: safeName }).eq("id", id).select("*").single();
-      if(res.error){
-        console.error("renamePatrol error:", res.error);
-        toast("Fehler Name: " + (res.error.message || "unknown"));
-        return;
-      }
-      upsertLocal(patrols, res.data);
-
-      if(editingPatrolNameId !== id){
-        renderPatrolGrid();
-      }
     }
 
     async function updatePatrolStatus(id, status){
@@ -1992,13 +1973,13 @@
 
           const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
           if(sortChanged){
-            renderPatrolGrid(); // drag-aware
+            renderPatrolGrid();
             return;
           }
 
           const patched = patchPatrolCard(incoming, before);
           if(!patched){
-            renderPatrolGrid(); // drag-aware
+            renderPatrolGrid();
           }
         })
         .subscribe(async (status) => {
@@ -2153,6 +2134,18 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
+    /* ✅ FIX: Tabwechsel -> Drag unlock */
+    window.addEventListener("blur", () => {
+      isDragging = false;
+      pendingRender = false;
+    });
+    window.addEventListener("focus", () => {
+      cancelDragAndReinit();
+    });
+    document.addEventListener("pointerup", () => {
+      if(isDragging) cancelDragAndReinit();
+    }, true);
+
     /***********************
      * INIT
      ***********************/
@@ -2195,11 +2188,16 @@
       });
 
       document.addEventListener("visibilitychange", () => {
-        if(!document.hidden){
-          scheduleResubscribe();
-          setupPresence();
+        if(document.hidden){
+          isDragging = false;
+          pendingRender = false;
+          return;
         }
+        cancelDragAndReinit();
+        scheduleResubscribe();
+        setupPresence();
       });
+
       window.addEventListener("online", () => {
         scheduleResubscribe();
         setupPresence();
