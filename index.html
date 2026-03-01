@@ -60,7 +60,6 @@
     .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
     .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .loginBody{ padding:16px; }
-    .loginHint{ font-size:12px; opacity:0.78; margin-top:10px; }
     .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
     /* ========= APP GRID (collapsible left/right) ========= */
@@ -198,6 +197,13 @@
       border-color: rgba(255,70,180,0.25);
     }
     .btnGhost{ background: transparent; }
+
+    /* ✅ Logout: gleiches Style, aber rot */
+    .btnLogoutRed{
+      background: linear-gradient(135deg, rgba(255,70,70,0.18), rgba(255,70,180,0.14));
+      border-color: rgba(255,70,70,0.28);
+    }
+    .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
 
     .pill{
       display:inline-flex;
@@ -543,33 +549,25 @@
           <div class="badge">LSPD</div>
           <div class="loginTitleWrap">
             <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Name + Passwort • E-Mail = name@gta.local (case-insensitive)</div>
+            <div class="loginSub">Bitte anmelden</div>
           </div>
         </div>
-        <span class="pill" title="Supabase Auth (nur Login, keine Registrierung)">
-          <span class="dot on"></span><span>auth</span>
-        </span>
       </div>
 
       <div class="loginBody">
         <label>Name</label>
-        <input id="inpLoginName" placeholder="z.B. Felix" autocomplete="username" />
+        <input id="inpLoginName" placeholder="Name" autocomplete="username" />
 
         <div style="height:10px"></div>
 
         <label>Passwort</label>
         <input id="inpLoginPw" type="password" placeholder="Passwort" autocomplete="current-password" />
 
-        <div class="loginHint" id="loginPreview">E-Mail: —</div>
         <div class="loginErr" id="loginErr">—</div>
 
         <div style="height:12px"></div>
         <div class="row">
           <button class="btn btnPrimary" id="btnLogin">Login</button>
-        </div>
-
-        <div class="loginHint" style="margin-top:10px;">
-          Tipp: <b>Enter</b> bestätigt den Login.
         </div>
       </div>
     </div>
@@ -590,10 +588,7 @@
         </div>
 
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span class="pill" id="userPill" title="Angemeldeter Nutzer">
-            <span class="dot on"></span><span id="userText">—</span>
-          </span>
-          <button class="btn btnGhost" id="btnLogout" title="Logout">Logout</button>
+          <button class="btn btnGhost btnLogoutRed" id="btnLogout" title="Logout">Logout</button>
           <span class="pill"><span class="dot off" id="connDot"></span><span id="connText">offline</span></span>
         </div>
       </div>
@@ -749,13 +744,9 @@
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
     const btnLogin = document.getElementById("btnLogin");
-    const loginPreview = document.getElementById("loginPreview");
     const loginErr = document.getElementById("loginErr");
 
-    const userText = document.getElementById("userText");
     const btnLogout = document.getElementById("btnLogout");
-
-    let currentUser = null; // { name, email, uid }
 
     function normalizeSpaces(s){
       return (s ?? "").toString().replace(/\s+/g, " ").trim();
@@ -780,23 +771,19 @@
       app.style.display = "grid";
     }
 
-    function setUserFromSession(session){
-      const u = session?.user;
-      if(!u){
-        currentUser = null;
-        userText.textContent = "—";
-        return;
+    function friendlyAuthError(error){
+      const msg = (error?.message || "").toLowerCase();
+      // Supabase (GoTrue) typical: "Invalid login credentials"
+      if(msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")){
+        return "Falscher Name oder Passwort.";
       }
-      const email = u.email || "";
-      const namePart = email.includes("@") ? email.split("@")[0] : email;
-      const prettyName = namePart ? (namePart.charAt(0).toUpperCase() + namePart.slice(1)) : "User";
-      currentUser = { name: prettyName, email, uid: u.id };
-      userText.textContent = prettyName;
-    }
-
-    function updateLoginPreview(){
-      const name = normalizeSpaces(inpLoginName.value);
-      loginPreview.textContent = name ? `E-Mail: ${emailFromName(name)}` : "E-Mail: —";
+      if(msg.includes("email not confirmed")){
+        return "Account ist noch nicht bestätigt.";
+      }
+      if(msg.includes("too many requests") || msg.includes("rate limit")){
+        return "Zu viele Versuche. Bitte kurz warten.";
+      }
+      return "Login fehlgeschlagen.";
     }
 
     async function doLogin(){
@@ -816,13 +803,11 @@
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
 
-        setUserFromSession(data.session);
         hideLogin();
-        toast(`Eingeloggt als ${currentUser?.name || "User"}`);
+        toast("Eingeloggt");
       }catch(e){
         console.error(e);
-        const msg = (e?.message || "Login fehlgeschlagen");
-        showLogin(msg);
+        showLogin(friendlyAuthError(e));
       }finally{
         btnLogin.disabled = false;
         btnLogin.textContent = "Login";
@@ -835,7 +820,6 @@
       }catch(e){
         console.error(e);
       }
-      currentUser = null;
       showLogin("");
       toast("Ausgeloggt");
     }
@@ -1730,8 +1714,7 @@
       }catch{}
     }
 
-    // ✅ Login events (Enter bestätigt)
-    inpLoginName.addEventListener("input", updateLoginPreview);
+    // ✅ Login events (Enter bestätigt – ohne Hinweistext im UI)
     inpLoginName.addEventListener("keydown", (e)=>{
       if(e.key === "Enter"){ e.preventDefault(); doLogin(); }
     });
@@ -1754,29 +1737,26 @@
       startConnWatch();
 
       loadRemembered();
-      updateLoginPreview();
 
       // Auth: Session prüfen -> wenn vorhanden direkt rein, sonst Login overlay
       try{
         const { data } = await sb.auth.getSession();
         if(data?.session){
-          setUserFromSession(data.session);
           hideLogin();
+          toast("Eingeloggt");
         }else{
           showLogin("");
         }
       }catch(e){
         console.error(e);
-        showLogin("Auth-Fehler (Supabase).");
+        showLogin("Auth-Fehler.");
       }
 
       // Auth State Changes (z.B. Token refresh / logout in anderem Tab)
       sb.auth.onAuthStateChange((evt, session) => {
         if(session){
-          setUserFromSession(session);
           hideLogin();
         }else{
-          currentUser = null;
           showLogin("");
         }
       });
