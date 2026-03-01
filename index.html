@@ -71,9 +71,14 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
+      min-width:0;
     }
 
-    .brand{ display:flex; gap:10px; align-items:center; }
+    /* ✅ FIX: Platz für Dock-Button reservieren (verhindert Überlappung) */
+    #panelLeft .panelHeader{ padding-right:56px; }
+    #panelRight .panelHeader{ padding-left:56px; }
+
+    .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
     .badge{
       height:38px;
       width:auto;
@@ -90,10 +95,11 @@
       letter-spacing:0.5px;
       white-space:nowrap;
       font-size:12px;
+      flex:0 0 auto;
     }
-    .titleWrap{ line-height:1.05; }
-    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; }
-    .subtitle{ font-size:12px; opacity:0.75; }
+    .titleWrap{ line-height:1.05; min-width:0; }
+    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .content{
       padding:14px;
@@ -158,12 +164,14 @@
       font-size:12px;
       opacity:0.92;
       white-space:nowrap;
+      flex:0 0 auto;
     }
 
     .dot{
       width:10px; height:10px; border-radius:50%;
       background: rgba(255,255,255,0.3);
       box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+      flex:0 0 auto;
     }
     .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
     .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
@@ -171,10 +179,17 @@
 
     .muted{ opacity:0.75; font-size:12px; }
 
+    /* ✅ 3 Streifen nebeneinander + responsive fallback */
     .grid{
       display:grid;
-      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      grid-template-columns: repeat(3, minmax(260px, 1fr));
       gap:14px;
+    }
+    @media (max-width: 1500px){
+      .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+    }
+    @media (max-width: 1100px){
+      .grid{ grid-template-columns: 1fr; }
     }
 
     .card{
@@ -348,7 +363,7 @@
     /* ========= Dock / Toggle Buttons ========= */
     .dockBtn{
       position:absolute;
-      top:14px;
+      top:12px;
       width:34px;
       height:34px;
       border-radius:12px;
@@ -367,9 +382,9 @@
     .dockBtn:hover{ background: rgba(255,255,255,0.12); }
     .dockBtn:active{ transform: translateY(1px); }
 
-    /* left button sits on inner edge; when collapsed, we show it as a floating edge button */
-    #btnToggleLeft{ right:-10px; }
-    #btnToggleRight{ left:-10px; }
+    /* ✅ FIX: Buttons nach innen, keine Überlappung */
+    #btnToggleLeft{ right:12px; }
+    #btnToggleRight{ left:12px; }
 
     /* When collapsed, show edge buttons fixed on screen so user can reopen */
     .edgeBtn{
@@ -402,8 +417,7 @@
     @media (max-width: 1200px){
       body{ overflow:auto; }
       .app{ height:auto; grid-template-columns: 1fr; }
-      .grid{ grid-template-columns: 1fr; }
-      /* on small screens, edge toggles are enough */
+      /* Buttons im Panel verstecken, edge buttons reichen */
       #btnToggleLeft, #btnToggleRight{ display:none; }
       .edgeBtn{ top:10px; }
     }
@@ -1054,7 +1068,6 @@
       txtNotes.value = nRes.data?.content ?? "";
 
       normalizePatrolOrder();
-
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
     }
