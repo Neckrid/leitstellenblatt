@@ -78,6 +78,12 @@
     #panelLeft .panelHeader{ padding-right:56px; }
     #panelRight .panelHeader{ padding-left:56px; }
 
+    /* ✅ FIX: Center-Header nach innen schieben (verhindert Overlap mit Edge-Buttons) */
+    #panelCenter .panelHeader{
+      padding-left: 60px;   /* links (Badge+Text) nach rechts */
+      padding-right: 60px;  /* rechts (Actions) nach links */
+    }
+
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
     .badge{
       height:38px;
@@ -420,7 +426,59 @@
       /* Buttons im Panel verstecken, edge buttons reichen */
       #btnToggleLeft, #btnToggleRight{ display:none; }
       .edgeBtn{ top:10px; }
+      /* Center header padding nicht so groß nötig */
+      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
     }
+
+    /* ========= Collapsible "Beamter erstellen" ========= */
+    .collapseCard{ padding:0; overflow:hidden; }
+    .collapseHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 10px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .collapseHead .collapseTitle{
+      font-size:12px;
+      opacity:0.85;
+      font-weight:800;
+      letter-spacing:0.4px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chev{
+      width:32px; height:32px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      transition: transform .18s ease, background .2s ease;
+      flex:0 0 auto;
+    }
+    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
+
+    .collapseBody{
+      padding:0 10px 10px 10px;
+      transform-origin: top;
+      transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
+      max-height: 420px;
+      opacity:1;
+      transform: translateY(0);
+    }
+    .collapsedUp .collapseBody{
+      max-height:0px;
+      opacity:0;
+      transform: translateY(-6px);
+      padding-bottom:0;
+    }
+    .collapsedUp .chev{ transform: rotate(-90deg); }
   </style>
 </head>
 
@@ -442,23 +500,33 @@
       </div>
 
       <div class="content">
-        <div class="field">
-          <label>Beamter erstellen</label>
-          <input id="inpName" placeholder="Name (z.B. John Doe)"/>
-
-          <div style="height:10px"></div>
-          <label>Dienstnummer</label>
-          <input id="inpDienstnr" placeholder="z.B. 4711"/>
-
-          <div style="height:12px"></div>
-          <div class="row">
-            <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
-            <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
+        <!-- ✅ Collapsible Beamter erstellen -->
+        <div class="field collapseCard" id="createCard">
+          <div class="collapseHead" id="createToggle" title="Ein-/Ausklappen">
+            <div class="collapseTitle">
+              <span>Beamter erstellen</span>
+              <span class="muted" id="createMiniHint" style="display:none;">(eingeklappt)</span>
+            </div>
+            <div class="chev" id="createChev">⌃</div>
           </div>
 
-          <div style="height:10px"></div>
-          <div class="row" style="align-items:center;">
-            <span class="muted" id="meHint"></span>
+          <div class="collapseBody" id="createBody">
+            <input id="inpName" placeholder="Name (z.B. John Doe)"/>
+
+            <div style="height:10px"></div>
+            <label>Dienstnummer</label>
+            <input id="inpDienstnr" placeholder="z.B. 4711"/>
+
+            <div style="height:12px"></div>
+            <div class="row">
+              <button class="btn btnPrimary" id="btnCreateOfficer">Beamter speichern</button>
+              <button class="btn btnGhost" id="btnRemember">Eingaben merken</button>
+            </div>
+
+            <div style="height:10px"></div>
+            <div class="row" style="align-items:center;">
+              <span class="muted" id="meHint"></span>
+            </div>
           </div>
         </div>
 
@@ -646,6 +714,11 @@
 
     const funcodeList = document.getElementById("funcodeList");
 
+    /* Collapsible create panel */
+    const createCard = document.getElementById("createCard");
+    const createToggle = document.getElementById("createToggle");
+    const createMiniHint = document.getElementById("createMiniHint");
+
     /***********************
      * COLLAPSE STATE (persist)
      ***********************/
@@ -671,6 +744,26 @@
     btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); });
     edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); });
     edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); });
+
+    /* Collapsible "Beamter erstellen" state */
+    const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
+    function loadCreateCollapsed(){
+      try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; }
+    }
+    function saveCreateCollapsed(v){
+      try{ localStorage.setItem(LS_CREATE_COLLAPSE, v ? "1":"0"); }catch{}
+    }
+    let createCollapsed = loadCreateCollapsed();
+    function applyCreateCollapsed(){
+      createCard.classList.toggle("collapsedUp", createCollapsed);
+      createMiniHint.style.display = createCollapsed ? "inline" : "none";
+      // Chevron symbol stays the same; rotation handles direction
+    }
+    createToggle.addEventListener("click", ()=>{
+      createCollapsed = !createCollapsed;
+      saveCreateCollapsed(createCollapsed);
+      applyCreateCollapsed();
+    });
 
     /***********************
      * STATE
@@ -781,6 +874,12 @@
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
+      // Wenn eingeklappt: automatisch aufklappen, damit man editieren kann
+      if(createCollapsed){
+        createCollapsed = false;
+        saveCreateCollapsed(false);
+        applyCreateCollapsed();
+      }
     }
     function clearOfficerSelection(){
       selectedOfficerId = null;
@@ -1411,6 +1510,7 @@
      ***********************/
     (function init(){
       applyUi();
+      applyCreateCollapsed();
       renderFuncodes();
       setConnStable(false);
       loadRemembered();
