@@ -23,13 +23,17 @@
         linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
     }
 
+    /* ========= APP GRID (collapsible left/right) ========= */
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 420px 1fr 360px;
       gap:14px;
       padding:14px;
+      grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
+      transition: grid-template-columns .25s ease;
     }
+    .app.leftCollapsed{ --leftW: 0px; }
+    .app.rightCollapsed{ --rightW: 0px; }
 
     .panel{
       border:1px solid rgba(255,255,255,0.10);
@@ -41,6 +45,23 @@
       display:flex;
       flex-direction:column;
       min-height:0;
+      min-width:0;
+      position:relative;
+    }
+
+    /* Panels collapse animation */
+    .panel.collapseX{
+      transition: opacity .18s ease, transform .25s ease;
+    }
+    .app.leftCollapsed #panelLeft{
+      opacity:0;
+      transform: translateX(-10px);
+      pointer-events:none;
+    }
+    .app.rightCollapsed #panelRight{
+      opacity:0;
+      transform: translateX(10px);
+      pointer-events:none;
     }
 
     .panelHeader{
@@ -162,9 +183,10 @@
       border-radius:18px;
       overflow:hidden;
       box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+      min-width:0;
     }
 
-    /* ✅ FIX: Header darf umbrechen, damit Name/Status nicht ineinander laufen */
+    /* Header wrap fix */
     .cardHeader{
       padding:12px 12px;
       border-bottom:1px solid rgba(255,255,255,0.08);
@@ -172,7 +194,7 @@
       justify-content:space-between;
       align-items:center;
       gap:10px;
-      flex-wrap:wrap;            /* ✅ */
+      flex-wrap:wrap;
     }
 
     .patrolDrag{
@@ -188,7 +210,6 @@
     }
     .patrolDrag:active{ cursor:grabbing; }
 
-    /* ✅ FIX: Name darf flexibel sein */
     .patrolName{
       font-weight:900;
       letter-spacing:0.4px;
@@ -197,26 +218,25 @@
       align-items:center;
       gap:8px;
       min-width:180px;
-      flex: 1 1 180px;          /* ✅ */
+      flex: 1 1 180px;
     }
     .patrolName input{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.3px;
-      width:100%;               /* ✅ */
-      min-width:0;              /* ✅ super wichtig bei flex */
+      width:100%;
+      min-width:0;
     }
 
-    /* ✅ FIX: Status select responsive */
     .statusSelect{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.2px;
-      width:auto;               /* ✅ statt fix */
-      flex: 0 1 220px;          /* ✅ */
-      min-width:160px;          /* ✅ */
+      width:auto;
+      flex: 0 1 220px;
+      min-width:160px;
     }
     @media (max-width: 900px){
       .statusSelect{ flex: 1 1 100%; }
@@ -325,18 +345,77 @@
     .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
     .sortable-chosen{ cursor:grabbing; }
 
+    /* ========= Dock / Toggle Buttons ========= */
+    .dockBtn{
+      position:absolute;
+      top:14px;
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:900;
+      transition: transform .08s ease, background .2s ease, opacity .2s ease;
+      z-index:5;
+    }
+    .dockBtn:hover{ background: rgba(255,255,255,0.12); }
+    .dockBtn:active{ transform: translateY(1px); }
+
+    /* left button sits on inner edge; when collapsed, we show it as a floating edge button */
+    #btnToggleLeft{ right:-10px; }
+    #btnToggleRight{ left:-10px; }
+
+    /* When collapsed, show edge buttons fixed on screen so user can reopen */
+    .edgeBtn{
+      position:fixed;
+      top:22px;
+      width:36px;
+      height:42px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:900;
+      z-index:50;
+      transition: background .2s ease, transform .08s ease;
+    }
+    .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
+    .edgeBtn:active{ transform: translateY(1px); }
+
+    #edgeLeft{ left:10px; }
+    #edgeRight{ right:10px; }
+
+    .app.leftCollapsed ~ #edgeLeft{ display:flex; }
+    .app.rightCollapsed ~ #edgeRight{ display:flex; }
+
     @media (max-width: 1200px){
       body{ overflow:auto; }
       .app{ height:auto; grid-template-columns: 1fr; }
       .grid{ grid-template-columns: 1fr; }
+      /* on small screens, edge toggles are enough */
+      #btnToggleLeft, #btnToggleRight{ display:none; }
+      .edgeBtn{ top:10px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <!-- LEFT -->
-    <section class="panel">
+    <section class="panel collapseX" id="panelLeft">
+      <div class="dockBtn" id="btnToggleLeft" title="Links ein/aus">❮</div>
+
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">LSPD</div>
@@ -391,7 +470,7 @@
     </section>
 
     <!-- CENTER -->
-    <section class="panel">
+    <section class="panel" id="panelCenter">
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">10</div>
@@ -417,7 +496,9 @@
     </section>
 
     <!-- RIGHT -->
-    <section class="panel">
+    <section class="panel collapseX" id="panelRight">
+      <div class="dockBtn" id="btnToggleRight" title="Rechts ein/aus">❯</div>
+
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">⟡</div>
@@ -457,6 +538,10 @@
       </div>
     </section>
   </div>
+
+  <!-- Edge buttons appear when panels are collapsed -->
+  <div class="edgeBtn" id="edgeLeft" title="Links öffnen">❯</div>
+  <div class="edgeBtn" id="edgeRight" title="Rechts öffnen">❮</div>
 
   <div class="toast" id="toast"></div>
 
@@ -501,7 +586,6 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
-
     function statusOptionsHtml(selected){
       return PATROL_STATUSES.map(v=>{
         const sel = (selected === v) ? "selected" : "";
@@ -515,6 +599,12 @@
     /***********************
      * DOM
      ***********************/
+    const app = document.getElementById("app");
+    const btnToggleLeft = document.getElementById("btnToggleLeft");
+    const btnToggleRight = document.getElementById("btnToggleRight");
+    const edgeLeft = document.getElementById("edgeLeft");
+    const edgeRight = document.getElementById("edgeRight");
+
     const connDot = document.getElementById("connDot");
     const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
@@ -541,6 +631,32 @@
     const noteStatus = document.getElementById("noteStatus");
 
     const funcodeList = document.getElementById("funcodeList");
+
+    /***********************
+     * COLLAPSE STATE (persist)
+     ***********************/
+    const LS_UI = "lspd_ui_panels";
+    function loadUi(){
+      try{
+        const raw = localStorage.getItem(LS_UI);
+        const v = raw ? JSON.parse(raw) : {};
+        return { left: !!v.left, right: !!v.right };
+      }catch{ return { left:false, right:false }; }
+    }
+    function saveUi(state){
+      try{ localStorage.setItem(LS_UI, JSON.stringify(state)); }catch{}
+    }
+    const ui = loadUi();
+    function applyUi(){
+      app.classList.toggle("leftCollapsed", ui.left);
+      app.classList.toggle("rightCollapsed", ui.right);
+      btnToggleLeft.textContent = ui.left ? "❯" : "❮";
+      btnToggleRight.textContent = ui.right ? "❮" : "❯";
+    }
+    btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); });
+    btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); });
+    edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); });
+    edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); });
 
     /***********************
      * STATE
@@ -734,7 +850,6 @@
         `;
       }).join("");
 
-      // Toggle Auswahl
       createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
         line.addEventListener("click", (e)=>{
           if(e.target.closest("button")) return;
@@ -778,7 +893,6 @@
         const list = officers.filter(o => o.patrol_id === p.id).slice()
           .sort((a,b)=> (a.name||"").localeCompare(b.name||""));
 
-        // Status wird im DB-Feld patrols.funcode gespeichert (kein DB-Change nötig)
         const status = p.funcode || "Auf Streife";
 
         const lines = list.length ? list.map(o => {
@@ -863,9 +977,6 @@
       initDragAndDrop();
     }
 
-    /***********************
-     * AUTO-SCROLL OPTIONS (für Drag)
-     ***********************/
     const SORTABLE_SCROLL_OPTS = {
       scroll: true,
       scrollSensitivity: 90,
@@ -1286,6 +1397,7 @@
      * INIT
      ***********************/
     (function init(){
+      applyUi();
       renderFuncodes();
       setConnStable(false);
       loadRemembered();
