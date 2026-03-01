@@ -163,6 +163,8 @@
       overflow:hidden;
       box-shadow: 0 18px 40px rgba(0,0,0,0.25);
     }
+
+    /* ✅ FIX: Header darf umbrechen, damit Name/Status nicht ineinander laufen */
     .cardHeader{
       padding:12px 12px;
       border-bottom:1px solid rgba(255,255,255,0.08);
@@ -170,6 +172,7 @@
       justify-content:space-between;
       align-items:center;
       gap:10px;
+      flex-wrap:wrap;            /* ✅ */
     }
 
     .patrolDrag{
@@ -185,6 +188,7 @@
     }
     .patrolDrag:active{ cursor:grabbing; }
 
+    /* ✅ FIX: Name darf flexibel sein */
     .patrolName{
       font-weight:900;
       letter-spacing:0.4px;
@@ -192,23 +196,30 @@
       display:flex;
       align-items:center;
       gap:8px;
-      min-width:0;
-      flex:1;
+      min-width:180px;
+      flex: 1 1 180px;          /* ✅ */
     }
     .patrolName input{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.3px;
-      min-width: 140px;
+      width:100%;               /* ✅ */
+      min-width:0;              /* ✅ super wichtig bei flex */
     }
 
+    /* ✅ FIX: Status select responsive */
     .statusSelect{
       padding:8px 10px;
       border-radius:12px;
       font-weight:800;
       letter-spacing:0.2px;
-      width: 220px;
+      width:auto;               /* ✅ statt fix */
+      flex: 0 1 220px;          /* ✅ */
+      min-width:160px;          /* ✅ */
+    }
+    @media (max-width: 900px){
+      .statusSelect{ flex: 1 1 100%; }
     }
 
     .cardBody{ padding:12px; }
@@ -427,7 +438,6 @@
 
         <div style="height:12px"></div>
 
-        <!-- ✅ Funkcodes bleiben rechts zur Info -->
         <div class="field rightBox">
           <h3>Funcodes</h3>
           <div class="codeList" id="funcodeList"></div>
@@ -462,7 +472,7 @@
     });
 
     /***********************
-     * INFO FUNKCODES (rechts nur Anzeige)
+     * FUNKCODES (rechts nur Info)
      ***********************/
     const FUNCODES = [
       ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
@@ -475,7 +485,7 @@
     ];
 
     /***********************
-     * ✅ STATUS pro Streife (NEU)
+     * STATUS pro Streife
      ***********************/
     const PATROL_STATUSES = [
       "Auf Streife",
@@ -491,6 +501,7 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
+
     function statusOptionsHtml(selected){
       return PATROL_STATUSES.map(v=>{
         const sel = (selected === v) ? "selected" : "";
@@ -767,7 +778,7 @@
         const list = officers.filter(o => o.patrol_id === p.id).slice()
           .sort((a,b)=> (a.name||"").localeCompare(b.name||""));
 
-        // ✅ nutzt weiter p.funcode in DB, aber als "Status"
+        // Status wird im DB-Feld patrols.funcode gespeichert (kein DB-Change nötig)
         const status = p.funcode || "Auf Streife";
 
         const lines = list.length ? list.map(o => {
@@ -802,7 +813,6 @@
                 <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
               </div>
 
-              <!-- ✅ Funkcode -> Status -->
               <select class="statusSelect" data-act="patrolStatus" data-id="${p.id}" title="Status wählen">
                 ${statusOptionsHtml(status)}
               </select>
@@ -841,7 +851,6 @@
         });
       });
 
-      // ✅ Status wählen
       patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
         sel.addEventListener("change", async ()=>{
           const id = Number(sel.getAttribute("data-id"));
@@ -1064,7 +1073,6 @@
     }
 
     async function addPatrol(){
-      // ✅ Default-Status in funcode speichern (DB bleibt gleich)
       const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife" }).select("*").single();
       if(res.error){ console.error("addPatrol error:", res.error); toast("Fehler +Streife: " + (res.error.message || "unknown")); return; }
 
@@ -1100,9 +1108,7 @@
       toast("Streifenname gespeichert");
     }
 
-    // ✅ Status speichern (nutzt patrols.funcode Feld)
     async function updatePatrolStatus(id, status){
-      // nur erlaubte Werte (falls DB noch "CODE 1" o.ä. enthält, lassen wir Anzeige trotzdem zu)
       const safe = PATROL_STATUSES.includes(status) ? status : "Auf Streife";
 
       const p = patrols.find(x => x.id === id);
