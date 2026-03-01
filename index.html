@@ -23,6 +23,46 @@
         linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
     }
 
+    /* ========= LOGIN OVERLAY ========= */
+    .loginOverlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:999;
+      background:
+        radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
+        radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
+        radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
+        rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+    }
+    .loginCard{
+      width:min(520px, 100%);
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 18, 28, 0.70);
+      backdrop-filter: blur(12px);
+      border-radius:22px;
+      box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+      overflow:hidden;
+    }
+    .loginHeader{
+      padding:16px 16px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .loginTitleWrap{ line-height:1.1; min-width:0; }
+    .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
+    .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .loginBody{ padding:16px; }
+    .loginHint{ font-size:12px; opacity:0.78; margin-top:10px; }
+    .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
+
     /* ========= APP GRID (collapsible left/right) ========= */
     .app{
       height:100%;
@@ -337,6 +377,7 @@
       pointer-events:none;
       transition: opacity .2s ease, transform .2s ease;
       font-size:13px;
+      z-index:998;
     }
     .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
 
@@ -496,7 +537,43 @@
 </head>
 
 <body>
-  <div class="app" id="app">
+  <!-- ✅ LOGIN (ohne Registrierung) -->
+  <div class="loginOverlay" id="loginOverlay" style="display:none;">
+    <div class="loginCard">
+      <div class="loginHeader">
+        <div class="brand">
+          <div class="badge">LSPD</div>
+          <div class="loginTitleWrap">
+            <div class="loginTitle">LOGIN</div>
+            <div class="loginSub">Name eingeben • E-Mail wird automatisch @gta.local</div>
+          </div>
+        </div>
+        <span class="pill" title="Nur lokaler Login (kein Registrieren)">
+          <span class="dot on"></span><span>local</span>
+        </span>
+      </div>
+
+      <div class="loginBody">
+        <label>Dein Name</label>
+        <input id="inpLoginName" placeholder="z.B. Felix" autocomplete="off"/>
+
+        <div class="loginHint" id="loginPreview">E-Mail: —</div>
+        <div class="loginErr" id="loginErr">—</div>
+
+        <div style="height:12px"></div>
+        <div class="row">
+          <button class="btn btnPrimary" id="btnLogin">Login</button>
+          <button class="btn btnGhost" id="btnLogout" style="display:none;">Logout</button>
+        </div>
+
+        <div class="loginHint" style="margin-top:10px;">
+          Tipp: <b>Enter</b> bestätigt den Login.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
     <section class="panel collapseX" id="panelLeft">
       <div class="dockBtn" id="btnToggleLeft" title="Links ein/aus">❮</div>
@@ -509,7 +586,12 @@
             <div class="subtitle">Dienst & Streifenverwaltung</div>
           </div>
         </div>
-        <span class="pill"><span class="dot off" id="connDot"></span><span id="connText">offline</span></span>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="pill" id="userPill" title="Angemeldeter Nutzer">
+            <span class="dot on"></span><span id="userText">—</span>
+          </span>
+          <span class="pill"><span class="dot off" id="connDot"></span><span id="connText">offline</span></span>
+        </div>
       </div>
 
       <div class="content">
@@ -650,6 +732,106 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
+
+    /***********************
+     * ✅ LOGIN (ohne Registrierung)
+     * - Nur Name
+     * - Email wird: <name>@gta.local
+     * - Groß/klein egal => normalizeKey() (lowercase)
+     * - Enter bestätigt
+     ***********************/
+    const LS_LOGIN = "lspd_login_v1";
+
+    const loginOverlay = document.getElementById("loginOverlay");
+    const inpLoginName = document.getElementById("inpLoginName");
+    const btnLogin = document.getElementById("btnLogin");
+    const btnLogout = document.getElementById("btnLogout");
+    const loginPreview = document.getElementById("loginPreview");
+    const loginErr = document.getElementById("loginErr");
+
+    const userText = document.getElementById("userText");
+
+    let currentUser = null; // { name, key, email }
+
+    function normalizeSpaces(s){
+      return (s ?? "").toString().replace(/\s+/g, " ").trim();
+    }
+    function normalizeKey(name){
+      return normalizeSpaces(name).toLowerCase();
+    }
+    function userEmailFromKey(key){
+      // vor @ immer individueller name (normalisiert, klein) => key
+      return `${key}@gta.local`;
+    }
+
+    function showLogin(errMsg = ""){
+      loginOverlay.style.display = "flex";
+      app.style.display = "none";
+      btnLogout.style.display = "none";
+      loginErr.style.display = errMsg ? "block" : "none";
+      loginErr.textContent = errMsg || "";
+      setTimeout(()=> inpLoginName.focus(), 50);
+    }
+
+    function setLoggedIn(user){
+      currentUser = user;
+      try{ localStorage.setItem(LS_LOGIN, JSON.stringify(user)); }catch{}
+
+      // UI
+      userText.textContent = `${user.name}`;
+      loginOverlay.style.display = "none";
+      app.style.display = "grid";
+      btnLogout.style.display = "none";
+      toast(`Eingeloggt als ${user.name}`);
+    }
+
+    function logout(){
+      currentUser = null;
+      try{ localStorage.removeItem(LS_LOGIN); }catch{}
+      showLogin("");
+      toast("Ausgeloggt");
+    }
+
+    function updateLoginPreview(){
+      const raw = inpLoginName.value;
+      const name = normalizeSpaces(raw);
+      const key = normalizeKey(name);
+      if(!name){
+        loginPreview.textContent = "E-Mail: —";
+        return;
+      }
+      loginPreview.textContent = `E-Mail: ${userEmailFromKey(key)}`;
+    }
+
+    function handleLogin(){
+      const name = normalizeSpaces(inpLoginName.value);
+      const key = normalizeKey(name);
+
+      if(!name){
+        showLogin("Bitte einen Namen eingeben.");
+        return;
+      }
+      // optional: einfache Zeichenprüfung
+      if(key.length < 2){
+        showLogin("Name ist zu kurz.");
+        return;
+      }
+      const email = userEmailFromKey(key);
+
+      setLoggedIn({ name, key, email });
+    }
+
+    function loadSavedLogin(){
+      try{
+        const raw = localStorage.getItem(LS_LOGIN);
+        if(!raw) return null;
+        const v = JSON.parse(raw);
+        if(!v?.name) return null;
+        const name = normalizeSpaces(v.name);
+        const key = normalizeKey(name);
+        return { name, key, email: userEmailFromKey(key) };
+      }catch{ return null; }
+    }
 
     /***********************
      * FUNKCODES (rechts nur Info)
@@ -817,9 +999,6 @@
 
     /***********************
      * ✅ ONLINE-INDIKATOR (stabil, kein Flackern)
-     * Idee: "online", wenn in den letzten X Sekunden
-     * (a) mindestens ein Channel SUBSCRIBED war oder
-     * (b) irgendein Realtime-Payload ankam.
      ***********************/
     let lastRealtimeOkAt = 0;
     let connWatchTimer = null;
@@ -827,19 +1006,16 @@
     function markRealtimeOk(){
       lastRealtimeOkAt = Date.now();
     }
-
     function applyConnUi(isOnline){
       connDot.classList.toggle("on", isOnline);
       connDot.classList.toggle("off", !isOnline);
       connText.textContent = isOnline ? "online" : "offline";
     }
-
     function startConnWatch(){
       if(connWatchTimer) clearInterval(connWatchTimer);
-      // alle 600ms checken -> super smooth, aber ohne flackern
       connWatchTimer = setInterval(() => {
         const age = Date.now() - lastRealtimeOkAt;
-        const online = age < 7000; // 7s Fenster
+        const online = age < 7000;
         applyConnUi(online);
       }, 600);
     }
@@ -890,7 +1066,6 @@
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
       renderCreatedPool();
-      // Wenn eingeklappt: automatisch aufklappen, damit man editieren kann
       if(createCollapsed){
         createCollapsed = false;
         saveCreateCollapsed(false);
@@ -1415,7 +1590,6 @@
       rtChannels = [];
     }
 
-    // ✅ Resubscribe mit Backoff (verhindert "Ping-Pong" / Flackern)
     let rtBackoffMs = 800;
     function scheduleResubscribe(){
       if(rtResubTimer) clearTimeout(rtResubTimer);
@@ -1436,7 +1610,7 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          markRealtimeOk(); // ✅ Payload angekommen -> online
+          markRealtimeOk();
           if(payload.eventType === "DELETE"){
             const id = payload.old?.id;
             officers = officers.filter(o => o.id !== id);
@@ -1449,7 +1623,7 @@
         .subscribe((status) => {
           if(status === "SUBSCRIBED"){
             resetBackoff();
-            markRealtimeOk(); // ✅ subscribed -> online
+            markRealtimeOk();
           }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
             scheduleResubscribe();
@@ -1504,10 +1678,8 @@
       rtChannels.push(chOfficers, chPatrols, chNotes);
     }
 
-    // Beim Zurückkommen in den Tab: nur "sanft" neu verbinden (ohne direkt offline/online zu flippen)
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden){
-        // mark ok (UI bleibt online) und resubscribe nur, wenn wirklich nötig
         markRealtimeOk();
         scheduleResubscribe();
       }
@@ -1551,15 +1723,35 @@
       }catch{}
     }
 
+    // ✅ Login events (Enter bestätigt)
+    inpLoginName.addEventListener("input", updateLoginPreview);
+    inpLoginName.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter"){
+        e.preventDefault();
+        handleLogin();
+      }
+    });
+    btnLogin.addEventListener("click", handleLogin);
+    btnLogout.addEventListener("click", logout);
+
     /***********************
      * INIT
      ***********************/
     (function init(){
+      // Login zuerst
+      const saved = loadSavedLogin();
+      if(saved){
+        setLoggedIn(saved);
+      }else{
+        showLogin("");
+      }
+      updateLoginPreview();
+
+      // Rest initialisieren (läuft auch, wenn overlay offen ist – UI bleibt aber versteckt)
       applyUi();
       applyCreateCollapsed();
       renderFuncodes();
 
-      // ✅ Start: offline, dann online sobald subscribed/payload
       applyConnUi(false);
       lastRealtimeOkAt = 0;
       startConnWatch();
