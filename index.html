@@ -1115,39 +1115,53 @@
     adminOverlay.addEventListener("click", (e)=>{ if(e.target === adminOverlay) closeAdminModal(); });
     document.addEventListener("keydown", (e)=>{ if(adminOverlay.style.display === "flex" && e.key === "Escape") closeAdminModal(); });
 
-    async function adminCreateUser(){
-      if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
+   async function adminCreateUser(){
+  if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
 
-      const name = (admName.value ?? "").trim();
-      const password = (admPw.value ?? "").toString();
-      const role = (admRole.value ?? "officer").toString();
+  const name = (admName.value ?? "").trim();
+  const password = (admPw.value ?? "").toString();
+  const role = (admRole.value ?? "officer").toString();
 
-      if(!name){ admStatus.textContent = "Bitte Name eingeben."; return; }
-      if(!password || password.length < 6){ admStatus.textContent = "Passwort mind. 6 Zeichen."; return; }
+  if(!name){ admStatus.textContent = "Bitte Name eingeben."; return; }
+  if(!password || password.length < 6){ admStatus.textContent = "Passwort mind. 6 Zeichen."; return; }
 
-      try{
-        admStatus.textContent = "erstelle…";
-        adminCreate.disabled = true;
+  try{
+    admStatus.textContent = "erstelle…";
+    adminCreate.disabled = true;
 
-        const { data } = await sb.auth.getSession();
-        const token = data?.session?.access_token;
-        if(!token){ admStatus.textContent = "Nicht eingeloggt."; return; }
+    const { data } = await sb.auth.getSession();
+    const token = data?.session?.access_token;
+    if(!token){ admStatus.textContent = "Nicht eingeloggt."; return; }
 
-        const url = `${SUPABASE_URL}/functions/v1/admin-users`;
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name, password, role })
-        });
+    const url = `${SUPABASE_URL}/functions/v1/admin-users`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name, password, role })
+    });
 
-        const out = await res.json().catch(()=> ({}));
-        if(!res.ok){
-          admStatus.textContent = `Fehler: ${out?.error || "unknown"}`;
-          return;
-        }
+    const rawText = await res.text(); // <-- wichtig: erst Text lesen
+    let out = {};
+    try{ out = rawText ? JSON.parse(rawText) : {}; }catch{}
+
+    if(!res.ok){
+      const msg = out?.error || rawText || `HTTP ${res.status}`;
+      admStatus.textContent = `Fehler (${res.status}): ${msg}`.slice(0, 220);
+      return;
+    }
+
+    admStatus.textContent = `✅ Erstellt: ${out?.user?.email || "ok"} (${out?.user?.role || role})`;
+    toast("User erstellt");
+  }catch(e){
+    console.error("adminCreateUser error:", e);
+    admStatus.textContent = "Fehler beim Erstellen: " + (e?.message || "unknown");
+  }finally{
+    adminCreate.disabled = false;
+  }
+}
 
         admStatus.textContent = `✅ Erstellt: ${out.user.email} (${out.user.role})`;
         toast("User erstellt");
