@@ -615,7 +615,7 @@
 </head>
 
 <body>
-  <!-- LOGIN (WICHTIG: default sichtbar, damit du nicht nur Hintergrund siehst wenn JS crasht) -->
+  <!-- LOGIN (default sichtbar, damit du nicht nur Hintergrund siehst wenn JS crasht) -->
   <div class="loginOverlay" id="loginOverlay">
     <div class="loginCard">
       <div class="loginHeader">
@@ -955,7 +955,6 @@
       const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
       console.error("JS ERROR:", e.error || e.message, e);
       toast("JS: " + msg.slice(0, 140));
-      // falls was crasht: Login sichtbar lassen
       try{ showLogin("JS Fehler – Konsole prüfen."); }catch{}
     });
     window.addEventListener("unhandledrejection", (e)=>{
@@ -1897,26 +1896,26 @@
 
     function patchPatrolCard(incoming, before){
       const id = incoming?.id;
-      const card = patrolGrid.querySelector(\`.card[data-patrol-card="\${id}"]\`);
+      const card = patrolGrid.querySelector(`.card[data-patrol-card="${id}"]`);
       if(!card) return false;
 
       const nameChanged = before && (before.name !== incoming.name);
       const statusChanged = before && (before.funcode !== incoming.funcode);
 
-      const nameInp = card.querySelector(\`input[data-act="renamePatrol"][data-id="\${id}"]\`);
+      const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
       if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
         nameInp.value = incoming.name || "Streife";
       }
 
       if(statusChanged){
-        const sel = card.querySelector(\`select[data-act="patrolStatus"][data-id="\${id}"]\`);
+        const sel = card.querySelector(`select[data-act="patrolStatus"][data-id="${id}"]`);
         if(sel && document.activeElement !== sel){
           sel.value = incoming.funcode || "Auf Streife";
         }
         const pill = card.querySelector(".cardBody .pill");
         if(pill){
           const s = incoming.funcode || "Auf Streife";
-          pill.innerHTML = \`<b style="opacity:.9;">Status:</b> \${escapeHtml(statusLabel(s))}\`;
+          pill.innerHTML = `<b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(s))}`;
         }
       }
       return true;
@@ -2000,7 +1999,7 @@
           const next = payload.new?.content ?? "";
           if (document.activeElement !== txtNotes) {
             txtNotes.value = next;
-            noteStatus.textContent = \`aktualisiert • \${new Date().toLocaleTimeString()}\`;
+            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
           }
         })
         .subscribe(async (status) => {
@@ -2178,7 +2177,7 @@
       setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
-      // falls irgendwas vorher kaputt geht: Login sicher anzeigen
+      // default Login sichtbar
       showLogin("");
 
       try{
