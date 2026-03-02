@@ -902,15 +902,6 @@
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
     const btnLogin = document.getElementById("btnLogin");
-    // ✅ HARD-FIX: Logout immer zuverlässig (Delegation umgehen)
-const btnLogout = document.getElementById("btnLogout");
-if(btnLogout){
-  btnLogout.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();     // wichtig: nicht an document-capture "durchreichen"
-    doLogout();
-  }, { capture: true });
-}
     const loginErr = document.getElementById("loginErr");
 
     const btnToggleLeft = document.getElementById("btnToggleLeft");
