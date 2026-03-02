@@ -615,8 +615,8 @@
 </head>
 
 <body>
-  <!-- LOGIN -->
-  <div class="loginOverlay" id="loginOverlay" style="display:none;">
+  <!-- LOGIN (WICHTIG: default sichtbar, damit du nicht nur Hintergrund siehst wenn JS crasht) -->
+  <div class="loginOverlay" id="loginOverlay">
     <div class="loginCard">
       <div class="loginHeader">
         <div class="brand">
@@ -752,18 +752,6 @@
       </div>
 
       <div class="content">
-
-        <!-- ✅ Admin Management Box (nur Admin sichtbar) -->
-        <div class="field" id="adminBox" style="display:none;">
-          <div class="row" style="align-items:center; justify-content:space-between;">
-            <label style="margin:0;">Management</label>
-            <button class="btn btnPrimary" id="btnAdminOpen" type="button">User erstellen</button>
-          </div>
-          <div class="muted" style="margin-top:8px;">Nur für Admin • Erstellt Auth-Accounts + Rolle</div>
-        </div>
-
-        <div style="height:12px"></div>
-
         <div class="field">
           <label>Notizen (Auto-Save)</label>
           <textarea id="txtNotes" placeholder="Einsatznotizen, BOLO, Kennzeichen, Besonderheiten…"></textarea>
@@ -819,43 +807,6 @@
       <div class="modalFooter">
         <button class="btn btnGhost" id="confirmCancel" type="button">Abbrechen</button>
         <button class="btn btnDanger" id="confirmDelete" type="button">Löschen</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ Admin User Create Modal -->
-  <div class="modalOverlay" id="adminOverlay" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
-      <div class="modalHeader">
-        <div class="modalTitle" id="adminTitle">
-          <span class="dot on"></span>
-          <span>Management – User erstellen</span>
-        </div>
-        <div class="modalCloseX" id="adminClose" title="Schließen">✕</div>
-      </div>
-
-      <div class="modalBody">
-        <label>Name</label>
-        <input id="admName" placeholder="z.B. John Doe" />
-        <div style="height:10px"></div>
-
-        <label>Passwort</label>
-        <input id="admPw" type="password" placeholder="mind. 6 Zeichen" />
-        <div style="height:10px"></div>
-
-        <label>Rolle</label>
-        <select id="admRole">
-          <option value="officer">officer</option>
-          <option value="leitstelle">leitstelle</option>
-          <option value="admin">admin</option>
-        </select>
-
-        <div class="muted" id="admStatus" style="margin-top:10px;">—</div>
-      </div>
-
-      <div class="modalFooter">
-        <button class="btn btnGhost" id="adminCancel" type="button">Schließen</button>
-        <button class="btn btnPrimary" id="adminCreate" type="button">Erstellen</button>
       </div>
     </div>
   </div>
@@ -926,7 +877,6 @@
         perms.canDeleteOfficer = true;
         perms.canSelectPoolForEdit = true;
       }else if(e){
-        // Default: Leitstelle (wie bei dir gewünscht)
         perms.role = "leitstelle";
         perms.canCreateOfficer = true;
         perms.canEditOfficer = true;
@@ -992,18 +942,6 @@
     const confirmCancel = document.getElementById("confirmCancel");
     const confirmDelete = document.getElementById("confirmDelete");
 
-    // ✅ Admin UI DOM
-    const adminBox = document.getElementById("adminBox");
-    const btnAdminOpen = document.getElementById("btnAdminOpen");
-    const adminOverlay = document.getElementById("adminOverlay");
-    const adminClose = document.getElementById("adminClose");
-    const adminCancel = document.getElementById("adminCancel");
-    const adminCreate = document.getElementById("adminCreate");
-    const admName = document.getElementById("admName");
-    const admPw = document.getElementById("admPw");
-    const admRole = document.getElementById("admRole");
-    const admStatus = document.getElementById("admStatus");
-
     /***********************
      * HELPERS
      ***********************/
@@ -1017,11 +955,14 @@
       const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
       console.error("JS ERROR:", e.error || e.message, e);
       toast("JS: " + msg.slice(0, 140));
+      // falls was crasht: Login sichtbar lassen
+      try{ showLogin("JS Fehler – Konsole prüfen."); }catch{}
     });
     window.addEventListener("unhandledrejection", (e)=>{
       const msg = (e?.reason?.message || String(e?.reason) || "Unbekannte Promise-Rejection");
       console.error("Unhandled Promise:", e.reason, e);
       toast("Promise: " + msg.slice(0, 140));
+      try{ showLogin("JS Fehler – Promise rejected."); }catch{}
     });
 
     function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
@@ -1091,85 +1032,6 @@
     function numOrInf(v){
       const n = Number(v);
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-    }
-
-    /***********************
-     * ✅ Admin Modal
-     ***********************/
-    function openAdminModal(){
-      if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
-      admStatus.textContent = "—";
-      admName.value = "";
-      admPw.value = "";
-      admRole.value = "officer";
-      adminOverlay.style.display = "flex";
-      adminOverlay.setAttribute("aria-hidden", "false");
-      setTimeout(()=> admName.focus(), 50);
-    }
-    function closeAdminModal(){
-      adminOverlay.style.display = "none";
-      adminOverlay.setAttribute("aria-hidden", "true");
-    }
-    adminClose.addEventListener("click", closeAdminModal);
-    adminCancel.addEventListener("click", closeAdminModal);
-    adminOverlay.addEventListener("click", (e)=>{ if(e.target === adminOverlay) closeAdminModal(); });
-    document.addEventListener("keydown", (e)=>{ if(adminOverlay.style.display === "flex" && e.key === "Escape") closeAdminModal(); });
-
-   async function adminCreateUser(){
-  if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
-
-  const name = (admName.value ?? "").trim();
-  const password = (admPw.value ?? "").toString();
-  const role = (admRole.value ?? "officer").toString();
-
-  if(!name){ admStatus.textContent = "Bitte Name eingeben."; return; }
-  if(!password || password.length < 6){ admStatus.textContent = "Passwort mind. 6 Zeichen."; return; }
-
-  try{
-    admStatus.textContent = "erstelle…";
-    adminCreate.disabled = true;
-
-    const { data } = await sb.auth.getSession();
-    const token = data?.session?.access_token;
-    if(!token){ admStatus.textContent = "Nicht eingeloggt."; return; }
-
-    const url = `${SUPABASE_URL}/functions/v1/admin-users`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name, password, role })
-    });
-
-    const rawText = await res.text(); // <-- wichtig: erst Text lesen
-    let out = {};
-    try{ out = rawText ? JSON.parse(rawText) : {}; }catch{}
-
-    if(!res.ok){
-      const msg = out?.error || rawText || `HTTP ${res.status}`;
-      admStatus.textContent = `Fehler (${res.status}): ${msg}`.slice(0, 220);
-      return;
-    }
-
-    admStatus.textContent = `✅ Erstellt: ${out?.user?.email || "ok"} (${out?.user?.role || role})`;
-    toast("User erstellt");
-  }catch(e){
-    console.error("adminCreateUser error:", e);
-    admStatus.textContent = "Fehler beim Erstellen: " + (e?.message || "unknown");
-  }finally{
-    adminCreate.disabled = false;
-  }
-
-        admStatus.textContent = `✅ Erstellt: ${out.user.email} (${out.user.role})`;
-        toast("User erstellt");
-      }catch(e){
-        console.error("adminCreateUser error:", e);
-        admStatus.textContent = "Fehler beim Erstellen.";
-      }finally{
-        adminCreate.disabled = false;
-      }
     }
 
     /***********************
@@ -1244,9 +1106,6 @@
 
     function applyRoleUi(){
       app.classList.toggle("hideCreateCard", perms.role === "officer");
-      if(adminBox){
-        adminBox.style.display = (perms.role === "admin") ? "block" : "none";
-      }
       updateCreateControls();
       renderCreatedPool();
     }
@@ -1519,7 +1378,7 @@
     function sortPatrolsInMemory(){
       patrols = patrols.slice().sort((a,b)=>{
         const sa = numOrInf(a.sort_index);
-        const sbx = numOrInf(a.sort_index);
+        const sbx = numOrInf(b.sort_index);
         if(sa !== sbx) return sa - sbx;
         return (a.id ?? 0) - (b.id ?? 0);
       });
@@ -1976,7 +1835,7 @@
     }
 
     /***********************
-     * MODAL (Delete)
+     * MODAL
      ***********************/
     let pendingDeleteId = null;
 
@@ -2038,26 +1897,26 @@
 
     function patchPatrolCard(incoming, before){
       const id = incoming?.id;
-      const card = patrolGrid.querySelector(`.card[data-patrol-card="${id}"]`);
+      const card = patrolGrid.querySelector(\`.card[data-patrol-card="\${id}"]\`);
       if(!card) return false;
 
       const nameChanged = before && (before.name !== incoming.name);
       const statusChanged = before && (before.funcode !== incoming.funcode);
 
-      const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
+      const nameInp = card.querySelector(\`input[data-act="renamePatrol"][data-id="\${id}"]\`);
       if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
         nameInp.value = incoming.name || "Streife";
       }
 
       if(statusChanged){
-        const sel = card.querySelector(`select[data-act="patrolStatus"][data-id="${id}"]`);
+        const sel = card.querySelector(\`select[data-act="patrolStatus"][data-id="\${id}"]\`);
         if(sel && document.activeElement !== sel){
           sel.value = incoming.funcode || "Auf Streife";
         }
         const pill = card.querySelector(".cardBody .pill");
         if(pill){
           const s = incoming.funcode || "Auf Streife";
-          pill.innerHTML = `<b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(s))}`;
+          pill.innerHTML = \`<b style="opacity:.9;">Status:</b> \${escapeHtml(statusLabel(s))}\`;
         }
       }
       return true;
@@ -2141,7 +2000,7 @@
           const next = payload.new?.content ?? "";
           if (document.activeElement !== txtNotes) {
             txtNotes.value = next;
-            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+            noteStatus.textContent = \`aktualisiert • \${new Date().toLocaleTimeString()}\`;
           }
         })
         .subscribe(async (status) => {
@@ -2215,7 +2074,6 @@
 
     async function doLogout(){
       try{
-        closeAdminModal();
         await stopPresence();
         teardownRealtime();
         destroyAllSortables();
@@ -2266,11 +2124,6 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
-    // ✅ Admin modal open
-    btnAdminOpen.addEventListener("click", openAdminModal);
-    adminCreate.addEventListener("click", adminCreateUser);
-
-    // Delegation
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
       if(logout){ e.preventDefault(); doLogout(); return; }
@@ -2324,6 +2177,9 @@
       renderFuncodes();
       setLeitstelleIndicator(false);
       setRoleFromEmail("");
+
+      // falls irgendwas vorher kaputt geht: Login sicher anzeigen
+      showLogin("");
 
       try{
         const { data } = await sb.auth.getSession();
