@@ -752,6 +752,18 @@
       </div>
 
       <div class="content">
+
+        <!-- ✅ Admin Management Box (nur Admin sichtbar) -->
+        <div class="field" id="adminBox" style="display:none;">
+          <div class="row" style="align-items:center; justify-content:space-between;">
+            <label style="margin:0;">Management</label>
+            <button class="btn btnPrimary" id="btnAdminOpen" type="button">User erstellen</button>
+          </div>
+          <div class="muted" style="margin-top:8px;">Nur für Admin • Erstellt Auth-Accounts + Rolle</div>
+        </div>
+
+        <div style="height:12px"></div>
+
         <div class="field">
           <label>Notizen (Auto-Save)</label>
           <textarea id="txtNotes" placeholder="Einsatznotizen, BOLO, Kennzeichen, Besonderheiten…"></textarea>
@@ -807,6 +819,43 @@
       <div class="modalFooter">
         <button class="btn btnGhost" id="confirmCancel" type="button">Abbrechen</button>
         <button class="btn btnDanger" id="confirmDelete" type="button">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Admin User Create Modal -->
+  <div class="modalOverlay" id="adminOverlay" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+      <div class="modalHeader">
+        <div class="modalTitle" id="adminTitle">
+          <span class="dot on"></span>
+          <span>Management – User erstellen</span>
+        </div>
+        <div class="modalCloseX" id="adminClose" title="Schließen">✕</div>
+      </div>
+
+      <div class="modalBody">
+        <label>Name</label>
+        <input id="admName" placeholder="z.B. John Doe" />
+        <div style="height:10px"></div>
+
+        <label>Passwort</label>
+        <input id="admPw" type="password" placeholder="mind. 6 Zeichen" />
+        <div style="height:10px"></div>
+
+        <label>Rolle</label>
+        <select id="admRole">
+          <option value="officer">officer</option>
+          <option value="leitstelle">leitstelle</option>
+          <option value="admin">admin</option>
+        </select>
+
+        <div class="muted" id="admStatus" style="margin-top:10px;">—</div>
+      </div>
+
+      <div class="modalFooter">
+        <button class="btn btnGhost" id="adminCancel" type="button">Schließen</button>
+        <button class="btn btnPrimary" id="adminCreate" type="button">Erstellen</button>
       </div>
     </div>
   </div>
@@ -943,6 +992,18 @@
     const confirmCancel = document.getElementById("confirmCancel");
     const confirmDelete = document.getElementById("confirmDelete");
 
+    // ✅ Admin UI DOM
+    const adminBox = document.getElementById("adminBox");
+    const btnAdminOpen = document.getElementById("btnAdminOpen");
+    const adminOverlay = document.getElementById("adminOverlay");
+    const adminClose = document.getElementById("adminClose");
+    const adminCancel = document.getElementById("adminCancel");
+    const adminCreate = document.getElementById("adminCreate");
+    const admName = document.getElementById("admName");
+    const admPw = document.getElementById("admPw");
+    const admRole = document.getElementById("admRole");
+    const admStatus = document.getElementById("admStatus");
+
     /***********************
      * HELPERS
      ***********************/
@@ -1033,6 +1094,72 @@
     }
 
     /***********************
+     * ✅ Admin Modal
+     ***********************/
+    function openAdminModal(){
+      if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
+      admStatus.textContent = "—";
+      admName.value = "";
+      admPw.value = "";
+      admRole.value = "officer";
+      adminOverlay.style.display = "flex";
+      adminOverlay.setAttribute("aria-hidden", "false");
+      setTimeout(()=> admName.focus(), 50);
+    }
+    function closeAdminModal(){
+      adminOverlay.style.display = "none";
+      adminOverlay.setAttribute("aria-hidden", "true");
+    }
+    adminClose.addEventListener("click", closeAdminModal);
+    adminCancel.addEventListener("click", closeAdminModal);
+    adminOverlay.addEventListener("click", (e)=>{ if(e.target === adminOverlay) closeAdminModal(); });
+    document.addEventListener("keydown", (e)=>{ if(adminOverlay.style.display === "flex" && e.key === "Escape") closeAdminModal(); });
+
+    async function adminCreateUser(){
+      if(perms.role !== "admin"){ toast("Keine Berechtigung"); return; }
+
+      const name = (admName.value ?? "").trim();
+      const password = (admPw.value ?? "").toString();
+      const role = (admRole.value ?? "officer").toString();
+
+      if(!name){ admStatus.textContent = "Bitte Name eingeben."; return; }
+      if(!password || password.length < 6){ admStatus.textContent = "Passwort mind. 6 Zeichen."; return; }
+
+      try{
+        admStatus.textContent = "erstelle…";
+        adminCreate.disabled = true;
+
+        const { data } = await sb.auth.getSession();
+        const token = data?.session?.access_token;
+        if(!token){ admStatus.textContent = "Nicht eingeloggt."; return; }
+
+        const url = `${SUPABASE_URL}/functions/v1/admin-users`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name, password, role })
+        });
+
+        const out = await res.json().catch(()=> ({}));
+        if(!res.ok){
+          admStatus.textContent = `Fehler: ${out?.error || "unknown"}`;
+          return;
+        }
+
+        admStatus.textContent = `✅ Erstellt: ${out.user.email} (${out.user.role})`;
+        toast("User erstellt");
+      }catch(e){
+        console.error("adminCreateUser error:", e);
+        admStatus.textContent = "Fehler beim Erstellen.";
+      }finally{
+        adminCreate.disabled = false;
+      }
+    }
+
+    /***********************
      * ✅ Fokus/Cursor beim Streifennamen behalten
      ***********************/
     function capturePatrolNameFocus(){
@@ -1059,51 +1186,17 @@
     }
 
     /***********************
-     * ✅ Drag Guard + ✅ Realtime Queue (MULTI-USER FIX)
+     * ✅ Drag Guard
      ***********************/
     let isDragging = false;
     let pendingRender = false;
 
-    // while dragging, buffer realtime mutations to prevent DOM/state desync
-    let rtQueue = [];
-
-    function applyQueuedRealtime(){
-      if(!rtQueue.length) return;
-      const q = rtQueue.slice();
-      rtQueue = [];
-      for(const fn of q){
-        try{ fn(); }catch(e){ console.error("applyQueuedRealtime fn error:", e); }
-      }
-    }
-
-    function handleRealtimeSafely(fn){
-      if(isDragging){
-        rtQueue.push(fn);
-        pendingRender = true;
-        return;
-      }
-      try{ fn(); }catch(e){ console.error("handleRealtimeSafely fn error:", e); }
-      renderAll();
-    }
-
     function endDragAndFlush(){
       isDragging = false;
-      applyQueuedRealtime();
       if(pendingRender){
         pendingRender = false;
         renderAll();
       }
-    }
-
-    /***********************
-     * ✅ Post-Move Catch-up (MULTI-USER FIX)
-     ***********************/
-    let postMoveResyncTimer = null;
-    function schedulePostMoveResync(){
-      if(postMoveResyncTimer) clearTimeout(postMoveResyncTimer);
-      postMoveResyncTimer = setTimeout(()=> {
-        loadAll().catch(e => console.warn("postMove loadAll failed:", e));
-      }, 350);
     }
 
     /***********************
@@ -1138,6 +1231,9 @@
 
     function applyRoleUi(){
       app.classList.toggle("hideCreateCard", perms.role === "officer");
+      if(adminBox){
+        adminBox.style.display = (perms.role === "admin") ? "block" : "none";
+      }
       updateCreateControls();
       renderCreatedPool();
     }
@@ -1410,7 +1506,7 @@
     function sortPatrolsInMemory(){
       patrols = patrols.slice().sort((a,b)=>{
         const sa = numOrInf(a.sort_index);
-        const sbx = numOrInf(b.sort_index);
+        const sbx = numOrInf(a.sort_index);
         if(sa !== sbx) return sa - sbx;
         return (a.id ?? 0) - (b.id ?? 0);
       });
@@ -1421,7 +1517,6 @@
         .map(el => Number(el.getAttribute("data-patrol-card")))
         .filter(n => Number.isFinite(n));
 
-      // optimistic state
       ids.forEach((id, idx)=>{
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
@@ -1435,7 +1530,6 @@
         return;
       }
       toast("Streifen-Reihenfolge gespeichert");
-      schedulePostMoveResync(); // ✅ catch-up for multi-user races
     }
 
     function destroyAllSortables(){
@@ -1445,7 +1539,6 @@
       sortables = [];
     }
 
-    // ✅ stabiler Rebuild (Tabwechsel etc.)
     let rebuildTimer = null;
     function scheduleRebuildSortables(){
       if(rebuildTimer) clearTimeout(rebuildTimer);
@@ -1573,7 +1666,6 @@
           queuePatrolRename(id, inp.value);
         });
 
-        // wichtig: KEIN render bei input!
         inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
         inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
@@ -1630,18 +1722,14 @@
             try{
               const item = evt.item;
               const officerId = Number(item.getAttribute("data-officer-id"));
-
-              const toRaw = evt.to.getAttribute("data-patrol-id");
-              const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
-
-              // ✅ MULTI-USER FIX: decide change by DOM zones, NOT by possibly stale officers[] state
-              const fromRaw = evt.from.getAttribute("data-patrol-id");
-              const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
-              const changedZone = (fromPatrolId !== toPatrolId);
-              if(!changedZone) return;
+              const raw = evt.to.getAttribute("data-patrol-id");
+              const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
 
               const o = officers.find(x => x.id === officerId);
               if(!o) return;
+
+              const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
+              if(same) return;
 
               const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
               await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
@@ -1783,9 +1871,6 @@
       upsertLocal(officers, res.data);
       renderAll();
       toast(toPatrolId == null ? "In Pool" : "Auf Streife");
-
-      // ✅ MULTI-USER CATCH-UP
-      schedulePostMoveResync();
     }
 
     async function addPatrol(){
@@ -1800,7 +1885,6 @@
       upsertLocal(patrols, res.data);
       renderAll();
       toast("Streife erstellt");
-      schedulePostMoveResync();
     }
 
     async function updatePatrolStatus(id, status){
@@ -1823,7 +1907,6 @@
       upsertLocal(patrols, res.data);
       renderPatrolGrid();
       toast("Status gespeichert");
-      schedulePostMoveResync();
     }
 
     async function deletePatrol(id){
@@ -1844,7 +1927,6 @@
         return;
       }
       toast("Streife gelöscht");
-      schedulePostMoveResync();
     }
 
     async function saveNote(){
@@ -1878,11 +1960,10 @@
         return;
       }
       toast("Officer gelöscht");
-      schedulePostMoveResync();
     }
 
     /***********************
-     * MODAL
+     * MODAL (Delete)
      ***********************/
     let pendingDeleteId = null;
 
@@ -1975,15 +2056,14 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          handleRealtimeSafely(() => {
-            if(payload.eventType === "DELETE"){
-              const id = payload.old?.id;
-              officers = officers.filter(o => o.id !== id);
-              if(selectedOfficerId === id) selectedOfficerId = null;
-            }else{
-              upsertLocal(officers, payload.new);
-            }
-          });
+          if(payload.eventType === "DELETE"){
+            const id = payload.old?.id;
+            officers = officers.filter(o => o.id !== id);
+            if(selectedOfficerId === id) selectedOfficerId = null;
+          }else{
+            upsertLocal(officers, payload.new);
+          }
+          renderAll();
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1999,38 +2079,37 @@
 
       const chPatrols = sb.channel("rt-patrols")
         .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
-          handleRealtimeSafely(() => {
-            if(payload.eventType === "DELETE"){
-              const id = payload.old?.id;
-              patrols = patrols.filter(p => p.id !== id);
-              officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-              return;
-            }
+          if(payload.eventType === "DELETE"){
+            const id = payload.old?.id;
+            patrols = patrols.filter(p => p.id !== id);
+            officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+            renderAll();
+            return;
+          }
 
-            if(payload.eventType === "INSERT"){
-              upsertLocal(patrols, payload.new);
-              return;
-            }
+          if(payload.eventType === "INSERT"){
+            upsertLocal(patrols, payload.new);
+            renderAll();
+            return;
+          }
 
-            const incoming = payload.new;
-            const id = incoming?.id;
-            const existing = patrols.find(p => p.id === id);
-            const before = existing ? { ...existing } : null;
+          const incoming = payload.new;
+          const id = incoming?.id;
+          const existing = patrols.find(p => p.id === id);
+          const before = existing ? { ...existing } : null;
 
-            upsertLocal(patrols, incoming);
+          upsertLocal(patrols, incoming);
 
-            const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-            if(sortChanged){
-              // will renderAll after fn (or queued) anyway
-              return;
-            }
+          const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
+          if(sortChanged){
+            renderPatrolGrid();
+            return;
+          }
 
-            // patch attempt; if not possible it will renderAll anyway
-            const patched = patchPatrolCard(incoming, before);
-            if(!patched){
-              // renderAll will handle
-            }
-          });
+          const patched = patchPatrolCard(incoming, before);
+          if(!patched){
+            renderPatrolGrid();
+          }
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -2046,13 +2125,11 @@
 
       const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
-          handleRealtimeSafely(() => {
-            const next = payload.new?.content ?? "";
-            if (document.activeElement !== txtNotes) {
-              txtNotes.value = next;
-              noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
-            }
-          });
+          const next = payload.new?.content ?? "";
+          if (document.activeElement !== txtNotes) {
+            txtNotes.value = next;
+            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+          }
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -2085,7 +2162,6 @@
       setupRealtime();
       await loadAll();
 
-      // Sortables sicher aktiv
       scheduleRebuildSortables();
     }
 
@@ -2126,6 +2202,7 @@
 
     async function doLogout(){
       try{
+        closeAdminModal();
         await stopPresence();
         teardownRealtime();
         destroyAllSortables();
@@ -2176,6 +2253,10 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
+    // ✅ Admin modal open
+    btnAdminOpen.addEventListener("click", openAdminModal);
+    adminCreate.addEventListener("click", adminCreateUser);
+
     // Delegation
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
@@ -2197,14 +2278,11 @@
         const session = data?.session;
         if(!session) return;
 
-        // Auth & realtime wieder "aufwecken"
         await syncRealtimeAuth();
         try{ sb.realtime.connect(); }catch{}
 
-        // Mini-resync (damit state + drop-logic wieder sauber sind)
         try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
 
-        // Sortables neu, aber safe
         scheduleRebuildSortables();
       }catch(e){
         console.error("onReturnFromTab error:", e);
@@ -2217,14 +2295,11 @@
       if(!document.hidden){
         onReturnFromTab();
       }else{
-        // Drag resetten
         isDragging = false;
         pendingRender = false;
-        rtQueue = [];
       }
     });
 
-    // bfcache (Zurück/Weiter)
     window.addEventListener("pageshow", () => { onReturnFromTab(); });
 
     /***********************
