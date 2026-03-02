@@ -124,6 +124,9 @@
       font-size:12px;
       flex:0 0 auto;
     }
+    .titleWrap{ line-height:1.05; min-width:0; }
+    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .content{ padding:14px; overflow:auto; min-height:0; }
 
@@ -332,6 +335,26 @@
     }
     .dragHandle:active{ cursor:grabbing; }
 
+    .rightBox h3{
+      margin:0 0 10px 0;
+      font-size:13px;
+      letter-spacing:0.6px;
+      opacity:0.9;
+    }
+    .codeList{ display:flex; flex-direction:column; gap:8px; }
+    .codeRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+    .codeRow b{ font-size:12px; white-space:nowrap; }
+    .codeRow span{ font-size:12px; opacity:0.82; }
+
     .topActions{
       display:flex;
       gap:8px;
@@ -472,6 +495,7 @@
       transition: transform .18s ease, background .2s ease;
       flex:0 0 auto;
     }
+    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
     .collapseBody{
       padding:0 10px 10px 10px;
       transform-origin: top;
@@ -495,6 +519,7 @@
       gap:10px;
     }
 
+    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
     #btnDeleteOfficer{
       opacity:0;
       pointer-events:none;
@@ -538,6 +563,28 @@
       justify-content:space-between;
       gap:12px;
     }
+    .modalTitle{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:0.5px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .modalBody{ padding:16px; }
+    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
+    .modalHint{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .modalHint .dot{ margin-top:3px; }
     .modalFooter{
       padding:14px 16px 16px;
       border-top:1px solid rgba(255,255,255,0.08);
@@ -546,7 +593,6 @@
       justify-content:flex-end;
       flex-wrap:wrap;
     }
-
     .modalCloseX{
       width:40px; height:40px;
       border-radius:14px;
@@ -560,6 +606,8 @@
       transition: background .2s ease, transform .08s ease;
       flex:0 0 auto;
     }
+    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+    .modalCloseX:active{ transform: translateY(1px); }
 
     /* Role hide */
     .hideCreateCard #createCard{ display:none !important; }
@@ -712,20 +760,20 @@
 
         <div style="height:12px"></div>
 
-        <div class="field">
-          <div style="margin:0 0 10px 0; font-size:13px; letter-spacing:0.6px; opacity:0.9; font-weight:800;">Funcodes</div>
-          <div id="funcodeList"></div>
+        <div class="field rightBox">
+          <h3>Funcodes</h3>
+          <div class="codeList" id="funcodeList"></div>
         </div>
 
         <div style="height:12px"></div>
 
-        <div class="field">
-          <div style="margin:0 0 10px 0; font-size:13px; letter-spacing:0.6px; opacity:0.9; font-weight:800;">Funkkanäle</div>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">LSPD</b><span style="font-size:12px; opacity:.82;">-1</span></div>
-            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">LSMD</b><span style="font-size:12px; opacity:.82;">-2</span></div>
-            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">DOJ</b><span style="font-size:12px; opacity:.82;">-3</span></div>
-            <div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);"><b style="font-size:12px;">Army</b><span style="font-size:12px; opacity:.82;">-6</span></div>
+        <div class="field rightBox">
+          <h3>Funkkanäle</h3>
+          <div class="codeList">
+            <div class="codeRow"><b>LSPD</b><span>-1</span></div>
+            <div class="codeRow"><b>LSMD</b><span>-2</span></div>
+            <div class="codeRow"><b>DOJ</b><span>-3</span></div>
+            <div class="codeRow"><b>Army</b><span>-6</span></div>
           </div>
         </div>
       </div>
@@ -741,17 +789,17 @@
   <div class="modalOverlay" id="confirmOverlay" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="modalHeader">
-        <div class="modalTitle" id="confirmTitle" style="display:flex; align-items:center; gap:10px;">
+        <div class="modalTitle" id="confirmTitle">
           <span class="dot red"></span>
-          <span style="font-size:13px; font-weight:900; letter-spacing:0.5px;">Beamten wirklich löschen?</span>
+          <span>Beamten wirklich löschen?</span>
         </div>
         <div class="modalCloseX" id="confirmClose" title="Schließen">✕</div>
       </div>
 
-      <div class="modalBody" style="padding:16px;">
-        <p id="confirmText" style="margin:0; opacity:0.88; line-height:1.45; font-size:13px;">—</p>
-        <div style="margin-top:10px; padding:10px 12px; border-radius:16px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.22); display:flex; gap:10px; align-items:flex-start;">
-          <span class="dot off" style="margin-top:3px;"></span>
+      <div class="modalBody">
+        <p id="confirmText">—</p>
+        <div class="modalHint">
+          <span class="dot off"></span>
           <div class="muted" style="opacity:.85;">Diese Aktion kann nicht rückgängig gemacht werden.</div>
         </div>
       </div>
@@ -786,6 +834,7 @@
         const { data } = await sb.auth.getSession();
         const token = data?.session?.access_token || null;
         if(!token) return;
+
         if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
         else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
       }catch(e){
@@ -828,6 +877,7 @@
         perms.canDeleteOfficer = true;
         perms.canSelectPoolForEdit = true;
       }else if(e){
+        // Default: Leitstelle (wie bei dir gewünscht)
         perms.role = "leitstelle";
         perms.canCreateOfficer = true;
         perms.canEditOfficer = true;
@@ -982,8 +1032,15 @@
       return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
     }
 
+    function withTimeout(promise, ms){
+      return Promise.race([
+        promise,
+        new Promise((_, reject)=> setTimeout(()=> reject(new Error("timeout")), ms))
+      ]);
+    }
+
     /***********************
-     * ✅ FIX: Streifenname-Fokus + Cursor behalten
+     * ✅ Fokus/Cursor beim Streifennamen behalten
      ***********************/
     function capturePatrolNameFocus(){
       const el = document.activeElement;
@@ -1009,13 +1066,36 @@
     }
 
     /***********************
-     * ✅ Drag Guard
+     * ✅ Drag Guard + ✅ Realtime Queue (MULTI-USER FIX)
      ***********************/
     let isDragging = false;
     let pendingRender = false;
 
+    // while dragging, buffer realtime mutations to prevent DOM/state desync
+    let rtQueue = [];
+
+    function applyQueuedRealtime(){
+      if(!rtQueue.length) return;
+      const q = rtQueue.slice();
+      rtQueue = [];
+      for(const fn of q){
+        try{ fn(); }catch(e){ console.error("applyQueuedRealtime fn error:", e); }
+      }
+    }
+
+    function handleRealtimeSafely(fn){
+      if(isDragging){
+        rtQueue.push(fn);
+        pendingRender = true;
+        return;
+      }
+      try{ fn(); }catch(e){ console.error("handleRealtimeSafely fn error:", e); }
+      renderAll();
+    }
+
     function endDragAndFlush(){
       isDragging = false;
+      applyQueuedRealtime();
       if(pendingRender){
         pendingRender = false;
         renderAll();
@@ -1023,81 +1103,15 @@
     }
 
     /***********************
-     * ✅ STATE (NUR EINMAL!)  <-- FIX
+     * ✅ Post-Move Catch-up (MULTI-USER FIX)
      ***********************/
-    let patrols = [];
-    let officers = [];
-    let noteAutosaveTimer = null;
-
-    let sortables = [];
-    let patrolSortable = null;
-
-    // Rename / typing guards
-    const patrolRenameTimers = new Map();
-    const patrolRenameLastSent = new Map();
-    let editingPatrolNameId = null;
-
-    /***********************
-     * ✅ HARD FIX: Sortable nach Tabwechsel neu bauen
-     ***********************/
-    function destroyAllSortables(){
-      try{
-        if(patrolSortable){ try{ patrolSortable.destroy(); }catch{} }
-      }catch{}
-      patrolSortable = null;
-
-      try{
-        (sortables || []).forEach(s => { try{ s.destroy(); }catch{} });
-      }catch{}
-      sortables = [];
+    let postMoveResyncTimer = null;
+    function schedulePostMoveResync(){
+      if(postMoveResyncTimer) clearTimeout(postMoveResyncTimer);
+      postMoveResyncTimer = setTimeout(()=> {
+        loadAll().catch(e => console.warn("postMove loadAll failed:", e));
+      }, 350);
     }
-
-    function rebuildSortablesHard(){
-      // Nur wenn UI sichtbar ist
-      if(app.style.display === "none") return;
-
-      // Drag-Flags resetten
-      isDragging = false;
-      pendingRender = false;
-
-      // Sortable komplett neu initialisieren
-      destroyAllSortables();
-
-      try{ initPatrolOrderDrag(); }catch(e){ console.error("initPatrolOrderDrag failed:", e); }
-      try{ initDragAndDrop(); }catch(e){ console.error("initDragAndDrop failed:", e); }
-    }
-
-    function scheduleRebuildSortablesHard(){
-      setTimeout(() => { rebuildSortablesHard(); }, 80);
-    }
-
-    /***********************
-     * ✅ CHROME TAB SLEEP FIX (WICHTIG)
-     ***********************/
-    window.addEventListener("blur", () => {
-      // Chrome "parkt" Tabs -> Sortable kann hängen bleiben
-      destroyAllSortables();
-      isDragging = false;
-      pendingRender = false;
-    });
-
-    window.addEventListener("focus", () => {
-      // Chrome braucht manchmal 2x nachdem Layout zurück ist
-      scheduleRebuildSortablesHard();
-      setTimeout(scheduleRebuildSortablesHard, 250);
-    });
-
-    window.addEventListener("pageshow", () => {
-      // bfcache restore / zurück in tab
-      scheduleRebuildSortablesHard();
-      setTimeout(scheduleRebuildSortablesHard, 250);
-    });
-
-    ["pointerup","mouseup","touchend","pointercancel"].forEach(ev=>{
-      window.addEventListener(ev, () => {
-        if(isDragging) endDragAndFlush();
-      }, true);
-    });
 
     /***********************
      * UI: Role
@@ -1154,10 +1168,10 @@
       btnToggleLeft.textContent = ui.left ? "❯" : "❮";
       btnToggleRight.textContent = ui.right ? "❮" : "❯";
     }
-    btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); });
-    btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); });
-    edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); });
-    edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); });
+    btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+    btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+    edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+    edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
 
     const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
     function loadCreateCollapsed(){ try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; } }
@@ -1238,14 +1252,30 @@
 
     async function stopPresence(){
       try{
-        if(!presenceChannel) return;
+        if(!presenceChannel){
+          setLeitstelleIndicator(false);
+          return;
+        }
+
         const { data } = await sb.auth.getSession();
         const email = (data?.session?.user?.email || "").toLowerCase();
+
+        // untrack kann nach Tab-Sleep hängen -> timeout (ignorieren)
         if(email === LEITSTELLE_EMAIL){
-          try{ await presenceChannel.untrack(); }catch{}
+          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
         }
-      }catch(e){ console.error("presence untrack error:", e); }
-      try{ if(presenceChannel) sb.removeChannel(presenceChannel); }catch(e){ console.error("remove presence error:", e); }
+      }catch(e){
+        console.error("presence untrack error:", e);
+      }
+
+      try{
+        if(presenceChannel){
+          try{ sb.removeChannel(presenceChannel); }catch{}
+        }
+      }catch(e){
+        console.error("remove presence error:", e);
+      }
+
       presenceChannel = null;
       setLeitstelleIndicator(false);
     }
@@ -1274,16 +1304,21 @@
 
     function renderFuncodes(){
       funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);">
-          <b style="font-size:12px; white-space:nowrap;">${escapeHtml(c)}</b>
-          <span style="font-size:12px; opacity:.82;">${escapeHtml(d)}</span>
-        </div>
+        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
       `).join("");
     }
 
     /***********************
      * STATE + RENDER
      ***********************/
+    let patrols = [];
+    let officers = [];
+    let noteAutosaveTimer = null;
+
+    const patrolRenameTimers = new Map();
+    const patrolRenameLastSent = new Map();
+    let editingPatrolNameId = null;
+
     function updateOnDutyCount(){
       const cnt = officers.filter(o => o.status === "10-1").length;
       onDutyCountEl.textContent = cnt;
@@ -1294,6 +1329,34 @@
       const name = (officer.name ?? "").toString().toLowerCase();
       const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
       return name.includes(q) || dn.includes(q);
+    }
+
+    function clearOfficerSelection(){
+      selectedOfficerId = null;
+      updateCreateControls();
+      renderCreatedPool();
+    }
+
+    function selectOfficerForEdit(officerId){
+      if(!perms.canSelectPoolForEdit) return;
+      const o = officers.find(x => x.id === officerId);
+      if(!o) return;
+
+      selectedOfficerId = officerId;
+      inpName.value = o.name ?? "";
+      inpDienstnr.value = (o.dienstnummer ?? "").toString();
+
+      meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
+      setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
+
+      if(createCollapsed){
+        createCollapsed = false;
+        saveCreateCollapsed(false);
+        applyCreateCollapsed();
+      }
+
+      updateCreateControls();
+      renderCreatedPool();
     }
 
     function renderCreatedPool(){
@@ -1354,34 +1417,18 @@
 
             const id = Number(line.getAttribute("data-officer-id"));
             if(selectedOfficerId === id){
-              selectedOfficerId = null;
-              renderCreatedPool();
-              updateCreateControls();
+              clearOfficerSelection();
               toast("Auswahl aufgehoben");
               return;
             }
-
-            const o = officers.find(x => x.id === id);
-            if(!o) return;
-
-            selectedOfficerId = id;
-            inpName.value = o.name ?? "";
-            inpDienstnr.value = (o.dienstnummer ?? "").toString();
-            meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
-            setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
-
-            if(createCollapsed){
-              createCollapsed = false;
-              saveCreateCollapsed(false);
-              applyCreateCollapsed();
-            }
-
-            renderCreatedPool();
-            updateCreateControls();
+            selectOfficerForEdit(id);
           });
         });
       }
     }
+
+    let sortables = [];
+    let patrolSortable = null;
 
     function sortPatrolsInMemory(){
       patrols = patrols.slice().sort((a,b)=>{
@@ -1397,6 +1444,7 @@
         .map(el => Number(el.getAttribute("data-patrol-card")))
         .filter(n => Number.isFinite(n));
 
+      // optimistic state
       ids.forEach((id, idx)=>{
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
@@ -1410,6 +1458,30 @@
         return;
       }
       toast("Streifen-Reihenfolge gespeichert");
+      schedulePostMoveResync(); // ✅ catch-up for multi-user races
+    }
+
+    function destroyAllSortables(){
+      try{ if(patrolSortable){ try{ patrolSortable.destroy(); }catch{} } }catch{}
+      patrolSortable = null;
+      try{ (sortables || []).forEach(s => { try{ s.destroy(); }catch{} }); }catch{}
+      sortables = [];
+    }
+
+    // ✅ stabiler Rebuild (Tabwechsel etc.)
+    let rebuildTimer = null;
+    function scheduleRebuildSortables(){
+      if(rebuildTimer) clearTimeout(rebuildTimer);
+      rebuildTimer = setTimeout(() => {
+        try{
+          if(app.style.display === "none") return;
+          destroyAllSortables();
+          initPatrolOrderDrag();
+          initDragAndDrop();
+        }catch(e){
+          console.error("rebuild sortables error:", e);
+        }
+      }, 120);
     }
 
     function queuePatrolRename(id, rawName){
@@ -1443,8 +1515,8 @@
       if(isDragging){ pendingRender = true; return; }
 
       const focusSnap = capturePatrolNameFocus();
-      destroyAllSortables();
 
+      destroyAllSortables();
       sortPatrolsInMemory();
       const sortedPatrols = patrols.slice();
 
@@ -1468,6 +1540,7 @@
                   </div>
                 </div>
               </div>
+
               <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                 <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}" type="button">Zurück in Pool</button>
               </div>
@@ -1523,6 +1596,7 @@
           queuePatrolRename(id, inp.value);
         });
 
+        // wichtig: KEIN render bei input!
         inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
         inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
@@ -1530,7 +1604,8 @@
       patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
         sel.addEventListener("change", async ()=>{
           const id = Number(sel.getAttribute("data-id"));
-          await updatePatrolStatus(id, sel.value);
+          const status = sel.value;
+          await updatePatrolStatus(id, status);
         });
       });
 
@@ -1578,14 +1653,18 @@
             try{
               const item = evt.item;
               const officerId = Number(item.getAttribute("data-officer-id"));
-              const raw = evt.to.getAttribute("data-patrol-id");
-              const toPatrolId = (raw === "" || raw == null) ? null : Number(raw);
+
+              const toRaw = evt.to.getAttribute("data-patrol-id");
+              const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
+
+              // ✅ MULTI-USER FIX: decide change by DOM zones, NOT by possibly stale officers[] state
+              const fromRaw = evt.from.getAttribute("data-patrol-id");
+              const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
+              const changedZone = (fromPatrolId !== toPatrolId);
+              if(!changedZone) return;
 
               const o = officers.find(x => x.id === officerId);
               if(!o) return;
-
-              const same = (o.patrol_id == null && toPatrolId == null) || (o.patrol_id === toPatrolId);
-              if(same) return;
 
               const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
               await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
@@ -1626,9 +1705,6 @@
 
       renderAll();
       noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
-
-      // ✅ Nach jedem Load: Sortables sicher aktiv
-      scheduleRebuildSortablesHard();
     }
 
     function findOfficerIdentity(name, dienstnummer){
@@ -1680,7 +1756,7 @@
       if(hasSel){
         if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
         const cur = officers.find(x => x.id === selectedOfficerId);
-        if(!cur){ selectedOfficerId=null; renderAll(); toast("Auswahl verloren"); return; }
+        if(!cur){ clearOfficerSelection(); toast("Auswahl verloren"); return; }
 
         await upsertOfficer({
           name, dienstnummer,
@@ -1689,8 +1765,7 @@
           forceId: selectedOfficerId
         });
         toast("Beamter gespeichert");
-        selectedOfficerId=null;
-        renderAll();
+        clearOfficerSelection();
         return;
       }
 
@@ -1731,14 +1806,14 @@
       upsertLocal(officers, res.data);
       renderAll();
       toast(toPatrolId == null ? "In Pool" : "Auf Streife");
+
+      // ✅ MULTI-USER CATCH-UP
+      schedulePostMoveResync();
     }
 
     async function addPatrol(){
       const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
-      const res = await sb.from("patrols")
-        .insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 })
-        .select("*").single();
-
+      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
       if(res.error){
         console.error("addPatrol error:", res.error);
         toast("Fehler +Streife: " + (res.error.message || "unknown"));
@@ -1748,6 +1823,7 @@
       upsertLocal(patrols, res.data);
       renderAll();
       toast("Streife erstellt");
+      schedulePostMoveResync();
     }
 
     async function updatePatrolStatus(id, status){
@@ -1770,6 +1846,7 @@
       upsertLocal(patrols, res.data);
       renderPatrolGrid();
       toast("Status gespeichert");
+      schedulePostMoveResync();
     }
 
     async function deletePatrol(id){
@@ -1790,6 +1867,7 @@
         return;
       }
       toast("Streife gelöscht");
+      schedulePostMoveResync();
     }
 
     async function saveNote(){
@@ -1823,6 +1901,7 @@
         return;
       }
       toast("Officer gelöscht");
+      schedulePostMoveResync();
     }
 
     /***********************
@@ -1859,8 +1938,7 @@
       await deleteOfficer(id);
       inpName.value = "";
       inpDienstnr.value = "";
-      selectedOfficerId = null;
-      renderAll();
+      clearOfficerSelection();
     });
 
     /***********************
@@ -1920,14 +1998,15 @@
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          if(payload.eventType === "DELETE"){
-            const id = payload.old?.id;
-            officers = officers.filter(o => o.id !== id);
-            if(selectedOfficerId === id) selectedOfficerId = null;
-          }else{
-            upsertLocal(officers, payload.new);
-          }
-          renderAll();
+          handleRealtimeSafely(() => {
+            if(payload.eventType === "DELETE"){
+              const id = payload.old?.id;
+              officers = officers.filter(o => o.id !== id);
+              if(selectedOfficerId === id) selectedOfficerId = null;
+            }else{
+              upsertLocal(officers, payload.new);
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1943,37 +2022,36 @@
 
       const chPatrols = sb.channel("rt-patrols")
         .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
-          if(payload.eventType === "DELETE"){
-            const id = payload.old?.id;
-            patrols = patrols.filter(p => p.id !== id);
-            officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-            renderAll();
-            return;
-          }
+          handleRealtimeSafely(() => {
+            if(payload.eventType === "DELETE"){
+              const id = payload.old?.id;
+              patrols = patrols.filter(p => p.id !== id);
+              officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+              return;
+            }
 
-          if(payload.eventType === "INSERT"){
-            upsertLocal(patrols, payload.new);
-            renderAll();
-            return;
-          }
+            if(payload.eventType === "INSERT"){
+              upsertLocal(patrols, payload.new);
+              return;
+            }
 
-          const incoming = payload.new;
-          const id = incoming?.id;
-          const existing = patrols.find(p => p.id === id);
-          const before = existing ? { ...existing } : null;
+            const incoming = payload.new;
+            const id = incoming?.id;
+            const existing = patrols.find(p => p.id === id);
+            const before = existing ? { ...existing } : null;
 
-          upsertLocal(patrols, incoming);
+            upsertLocal(patrols, incoming);
 
-          const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-          if(sortChanged){
-            renderPatrolGrid();
-            return;
-          }
+            const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
+            if(sortChanged){
+              return; // renderAll after fn anyway
+            }
 
-          const patched = patchPatrolCard(incoming, before);
-          if(!patched){
-            renderPatrolGrid();
-          }
+            const patched = patchPatrolCard(incoming, before);
+            if(!patched){
+              // renderAll will handle
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -1989,11 +2067,13 @@
 
       const chNotes = sb.channel("rt-notes")
         .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
-          const next = payload.new?.content ?? "";
-          if (document.activeElement !== txtNotes) {
-            txtNotes.value = next;
-            noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
-          }
+          handleRealtimeSafely(() => {
+            const next = payload.new?.content ?? "";
+            if (document.activeElement !== txtNotes) {
+              txtNotes.value = next;
+              noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+            }
+          });
         })
         .subscribe(async (status) => {
           if(status === "SUBSCRIBED"){
@@ -2026,8 +2106,7 @@
       setupRealtime();
       await loadAll();
 
-      scheduleRebuildSortablesHard();
-      setTimeout(scheduleRebuildSortablesHard, 250);
+      scheduleRebuildSortables();
     }
 
     /***********************
@@ -2051,11 +2130,8 @@
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
 
-        hideLogin();
+        // NICHT manuell initialisieren – onAuthStateChange übernimmt das
         toast("Eingeloggt");
-
-        await syncRealtimeAuth();
-        await postLoginInit();
       }catch(e){
         console.error(e);
         showLogin(friendlyAuthError(e));
@@ -2065,25 +2141,25 @@
       }
     }
 
+    // ✅ Logout robust: niemals an Presence/Realtime hängen
     async function doLogout(){
-      try{
-        await stopPresence();
-        teardownRealtime();
-        destroyAllSortables();
-        selectedOfficerId = null;
-        setRoleFromEmail("");
-      }catch(e){
-        console.error("pre logout cleanup error:", e);
-      }
+      // UI sofort “ausloggen”
+      showLogin("");
+      toast("Ausgeloggt");
 
+      // best-effort cleanup (nicht blockierend)
+      try { stopPresence().catch(()=>{}); } catch {}
+      try { teardownRealtime(); } catch {}
+      try { destroyAllSortables(); } catch {}
+      try { clearOfficerSelection(); } catch {}
+      try { setRoleFromEmail(""); } catch {}
+
+      // wichtig: signOut
       try{
         const { error } = await sb.auth.signOut();
         if(error) console.error("signOut error:", error);
       }catch(e){
         console.error("signOut throw:", e);
-      }finally{
-        showLogin("");
-        toast("Ausgeloggt");
       }
     }
 
@@ -2097,8 +2173,7 @@
       inpDienstnr.value = "";
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
-      selectedOfficerId = null;
-      renderAll();
+      clearOfficerSelection();
     });
 
     btnDeleteOfficer.addEventListener("click", ()=>{
@@ -2118,6 +2193,7 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
+    // Delegation
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
       if(logout){ e.preventDefault(); doLogout(); return; }
@@ -2130,46 +2206,70 @@
     }, true);
 
     /***********************
-     * ✅ TAB / VISIBILITY / ONLINE FIX
+     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP (mit Sperre)
      ***********************/
+    let returnFromTabRunning = false;
+
+    async function onReturnFromTab(){
+      if(returnFromTabRunning) return;
+      returnFromTabRunning = true;
+
+      try{
+        const { data } = await sb.auth.getSession();
+        const session = data?.session;
+        if(!session) return;
+
+        await syncRealtimeAuth();
+        try{ sb.realtime.connect(); }catch{}
+
+        // Mini-resync (state wieder sauber)
+        try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
+
+        scheduleRebuildSortables();
+      }catch(e){
+        console.error("onReturnFromTab error:", e);
+      }finally{
+        returnFromTabRunning = false;
+      }
+    }
+
+    window.addEventListener("focus", () => { onReturnFromTab(); });
+
     document.addEventListener("visibilitychange", () => {
       if(!document.hidden){
-        scheduleResubscribe();
-        setupPresence();
-        scheduleRebuildSortablesHard();
-        setTimeout(scheduleRebuildSortablesHard, 250);
+        onReturnFromTab();
       }else{
         isDragging = false;
         pendingRender = false;
+        rtQueue = [];
       }
     });
 
-    window.addEventListener("online", () => {
-      scheduleResubscribe();
-      setupPresence();
-      scheduleRebuildSortablesHard();
-      setTimeout(scheduleRebuildSortablesHard, 250);
-    });
+    window.addEventListener("pageshow", () => { onReturnFromTab(); });
+
+    /***********************
+     * ✅ Single-init Guard (verhindert doppelte postLoginInit)
+     ***********************/
+    let lastInitUserId = null;
+    let loginInitRunning = false;
 
     /***********************
      * INIT
      ***********************/
-    renderFuncodes();
-    setLeitstelleIndicator(false);
-    setRoleFromEmail("");
-    applyUi();
-    applyCreateCollapsed();
-
     (async function init(){
+      applyUi();
+      applyCreateCollapsed();
+      renderFuncodes();
+      setLeitstelleIndicator(false);
+      setRoleFromEmail("");
+
       try{
         const { data } = await sb.auth.getSession();
         const session = data?.session;
 
         if(session){
+          // NICHT postLoginInit hier (onAuthStateChange macht das)
           hideLogin();
-          await syncRealtimeAuth();
-          await postLoginInit();
-          toast("Eingeloggt");
         }else{
           showLogin("");
         }
@@ -2180,18 +2280,37 @@
 
       sb.auth.onAuthStateChange(async (evt, session) => {
         if(session){
-          await syncRealtimeAuth();
-          hideLogin();
-          await postLoginInit();
+          const uid = session.user?.id || null;
+          if(loginInitRunning) return;
+          if(uid && uid === lastInitUserId) return;
+
+          loginInitRunning = true;
+          lastInitUserId = uid;
+
+          try{
+            await syncRealtimeAuth();
+            hideLogin();
+            await postLoginInit();
+          }catch(e){
+            console.error("postLoginInit error:", e);
+            // fallback: login anzeigen, falls init komplett scheitert
+            showLogin("Init-Fehler.");
+          }finally{
+            loginInitRunning = false;
+          }
         }else{
+          lastInitUserId = null;
+
           await stopPresence();
           teardownRealtime();
           destroyAllSortables();
-          selectedOfficerId = null;
+          clearOfficerSelection();
           setRoleFromEmail("");
           showLogin("");
         }
       });
+
+      window.addEventListener("online", () => { onReturnFromTab(); });
     })();
   </script>
 </body>
