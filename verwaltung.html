@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>LSPD Leitstelle – Verwaltung</title>
 
-  <!-- Supabase + Sortable (wie Leitstellenblatt) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
@@ -25,13 +24,9 @@
     }
 
     :root{
-      --glass: rgba(255,255,255,0.06);
-      --glass2: rgba(255,255,255,0.09);
       --stroke: rgba(255,255,255,0.10);
-      --stroke2: rgba(0,255,195,0.18);
       --shadow: 0 20px 60px rgba(0,0,0,0.55);
       --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-      --accent: rgba(0,255,195,0.85);
       --danger: rgba(255,60,90,0.85);
       --warn: rgba(255,200,0,0.9);
       --ok: rgba(0,255,140,0.85);
@@ -87,6 +82,7 @@
       font-size:13px;
       line-height:1;
       user-select:none;
+      white-space:nowrap;
     }
     .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
     .btn:active{ transform: translateY(1px); }
@@ -120,6 +116,10 @@
       grid-template-columns: 330px 1fr;
       gap: 14px;
       padding: 14px;
+      transition: grid-template-columns .22s ease;
+    }
+    body.poolClosed .wrap{
+      grid-template-columns: 0px 1fr;
     }
 
     .panel{
@@ -131,6 +131,19 @@
       overflow:hidden;
       min-height:0;
     }
+
+    /* Pool panel slide */
+    .poolPanel{
+      transform: translateX(0);
+      transition: transform .22s ease, opacity .22s ease;
+      min-width:0;
+    }
+    body.poolClosed .poolPanel{
+      transform: translateX(calc(-330px - 14px));
+      opacity: 0;
+      pointer-events:none;
+    }
+
     .panelHeader{
       padding: 12px 12px 10px 12px;
       border-bottom: 1px solid var(--stroke);
@@ -224,7 +237,7 @@
     .chip.badge{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
     .chip.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
 
-    /* Main departments grid */
+    /* Departments */
     .deptGrid{
       height:100%;
       display:flex;
@@ -269,11 +282,7 @@
       align-items:center;
       flex-wrap:wrap;
     }
-    .deptActions{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
+    .deptActions{ display:flex; gap:8px; align-items:center; }
     .iconBtn{
       width:34px; height:34px;
       border-radius: 12px;
@@ -312,17 +321,13 @@
       margin-bottom: 10px;
     }
 
-    /* Create department (admin only) */
+    /* Create dept */
     .createBox{
       padding: 12px;
       border-top: 1px solid var(--stroke);
       background: rgba(0,0,0,0.18);
     }
-    .row{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
+    .row{ display:flex; gap:8px; align-items:center; }
     input, select{
       width:100%;
       border: 1px solid rgba(255,255,255,0.12);
@@ -336,7 +341,7 @@
     input::placeholder{ color: rgba(255,255,255,0.45); }
     option{ color:#000; }
 
-    /* Login overlay (falls keine Session) */
+    /* Login overlay */
     .overlay{
       position:fixed;
       inset:0;
@@ -357,21 +362,9 @@
       box-shadow: var(--shadow);
       padding: 16px;
     }
-    .loginTitle{
-      font-weight:900;
-      letter-spacing:0.3px;
-      margin-bottom:10px;
-    }
-    .loginSub{
-      color: rgba(255,255,255,0.60);
-      font-size:12px;
-      margin-bottom: 12px;
-    }
-    .msg{
-      margin-top:10px;
-      font-size:12px;
-      color: rgba(255,255,255,0.75);
-    }
+    .loginTitle{ font-weight:900; letter-spacing:0.3px; margin-bottom:10px; }
+    .loginSub{ color: rgba(255,255,255,0.60); font-size:12px; margin-bottom: 12px; }
+    .msg{ margin-top:10px; font-size:12px; color: rgba(255,255,255,0.75); }
     .msg.err{ color: rgba(255,120,140,0.95); }
     .small{
       font-size: 11px;
@@ -380,18 +373,10 @@
       line-height: 1.35;
     }
 
-    /* Sortable states */
-    .ghost{
-      opacity: .35;
-      filter: saturate(0.85);
-    }
-    .chosen{
-      box-shadow: 0 0 0 1px rgba(0,255,195,0.18) inset, 0 18px 40px rgba(0,0,0,0.45);
-      transform: rotate(0.2deg);
-    }
-    .dragging{
-      cursor: grabbing !important;
-    }
+    /* Sortable */
+    .ghost{ opacity: .35; filter: saturate(0.85); }
+    .chosen{ box-shadow: 0 0 0 1px rgba(0,255,195,0.18) inset, 0 18px 40px rgba(0,0,0,0.45); transform: rotate(0.2deg); }
+    .dragging{ cursor: grabbing !important; }
   </style>
 </head>
 
@@ -406,10 +391,13 @@
     </div>
 
     <div class="rightTop">
+      <button class="btn ghost" id="btnTogglePool" title="Officer Pool ein-/ausblenden">Pool</button>
+
       <div class="badge" id="roleBadge">
         <span class="dot warn" id="roleDot"></span>
         <span id="roleText">Nicht angemeldet</span>
       </div>
+
       <button class="btn ghost primary" id="btnToLeitstelle">Zur Leitstelle</button>
       <button class="btn danger" id="btnLogout" style="display:none;">Logout</button>
     </div>
@@ -417,14 +405,12 @@
 
   <div class="wrap">
     <!-- LEFT: Pool (keine Abteilung) -->
-    <div class="panel">
+    <div class="panel poolPanel">
       <div class="panelHeader">
         <div class="panelTitle">Officer Pool (keine Abteilung)</div>
         <div class="pill" id="poolCount">0</div>
       </div>
-      <div class="panelBody" id="poolList">
-        <!-- officers render here -->
-      </div>
+      <div class="panelBody" id="poolList"></div>
     </div>
 
     <!-- RIGHT: Departments -->
@@ -435,25 +421,22 @@
       </div>
 
       <div class="panelBody" style="padding:0; height: calc(100% - 46px);">
-        <div class="deptGrid" id="deptGrid">
-          <!-- departments render here -->
-        </div>
+        <div class="deptGrid" id="deptGrid"></div>
 
-        <!-- Create department (admin only) -->
         <div class="createBox" id="createBox" style="display:none;">
           <div class="row">
             <input id="deptNameInput" placeholder="Neue Abteilung (Name)"/>
-            <button class="btn primary" id="btnCreateDept" style="white-space:nowrap;">+ Abteilung</button>
+            <button class="btn primary" id="btnCreateDept">+ Abteilung</button>
           </div>
           <div class="small">
-            Admins können Abteilungen erstellen/löschen und Officer per Drag & Drop zuweisen.
+            Nur Admins: Abteilungen erstellen/löschen und Officer per Drag & Drop zuweisen.
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Login Overlay (nur falls keine Session) -->
+  <!-- Login -->
   <div class="overlay" id="loginOverlay" style="display:none;">
     <div class="loginCard">
       <div class="loginTitle">Login</div>
@@ -480,44 +463,18 @@
 
   <script>
     /***********************************************************************
-     * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
+     * Supabase Keys (wie Leitstellenblatt)
      ***********************************************************************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /***********************************************************************
-     * Erwartete Tabellen (minimal):
-     *
-     * departments:
-     *  - id uuid (pk, default gen_random_uuid())
-     *  - name text (not null)
-     *  - leader_officer_id uuid (nullable)
-     *  - sort int (default 0)
-     *  - created_at timestamptz (default now())
-     *
-     * officers (bestehende Tabelle aus Leitstellenblatt – hier genutzt):
-     *  - id uuid (pk)
-     *  - name text
-     *  - badge_number text (oder dienstnummer)
-     *  - rank_short text (z.B. "Sgt") optional
-     *  - rank_name text (z.B. "Sergeant") optional
-     *  - department_id uuid (nullable)  <-- für Zuordnung
-     *
-     * Optional für Rollen (empfohlen):
-     * profiles:
-     *  - id uuid (pk = auth.users.id)
-     *  - role text ('admin' | 'leitstelle' | 'officer')
-     *
-     * Fallback ohne profiles: admin wird erkannt, wenn email == "admin@gta.local".
-     ***********************************************************************/
-
     // UI refs
-    const roleBadge = document.getElementById("roleBadge");
     const roleDot = document.getElementById("roleDot");
     const roleText = document.getElementById("roleText");
     const btnLogout = document.getElementById("btnLogout");
     const btnToLeitstelle = document.getElementById("btnToLeitstelle");
+    const btnTogglePool = document.getElementById("btnTogglePool");
 
     const poolList = document.getElementById("poolList");
     const poolCount = document.getElementById("poolCount");
@@ -537,16 +494,45 @@
 
     // State
     let sessionUser = null;
-    let userRole = "none"; // 'admin' | 'leitstelle' | 'officer' | 'none'
+    let userRole = "none"; // admin | leitstelle | officer | none
     let departments = [];
     let officers = [];
-
     let rtChannel = null;
 
-    // Helpers
+    // ID handling (wichtig: bei dir ist officers.id offenbar BIGINT, nicht UUID)
+    let deptIdIsNumeric = null;   // wird nach loadData erkannt
+    let officerIdIsNumeric = null;
+
     const escapeHtml = (s="") => String(s)
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+    const idToStr = (v) => (v === null || v === undefined) ? "" : String(v);
+
+    function detectIdTypes(){
+      if(deptIdIsNumeric === null && departments.length){
+        const v = departments[0].id;
+        deptIdIsNumeric = (typeof v === "number") || (/^\d+$/.test(String(v)));
+      }
+      if(officerIdIsNumeric === null && officers.length){
+        const v = officers[0].id;
+        officerIdIsNumeric = (typeof v === "number") || (/^\d+$/.test(String(v)));
+      }
+    }
+
+    function castDeptId(v){
+      if(v === null || v === undefined || v === "") return null;
+      if(deptIdIsNumeric) return Number(v);
+      return String(v);
+    }
+
+    function castOfficerId(v){
+      if(v === null || v === undefined || v === "") return null;
+      if(officerIdIsNumeric) return Number(v);
+      return String(v);
+    }
+
+    function isAdmin(){ return userRole === "admin"; }
 
     function setRoleUI(){
       btnLogout.style.display = sessionUser ? "inline-flex" : "none";
@@ -558,19 +544,19 @@
         return;
       }
 
-      const label = (userRole === "admin") ? "Admin" :
-                    (userRole === "leitstelle") ? "Leitstelle" :
-                    (userRole === "officer") ? "Officer" : "User";
+      // ✅ Wie gewünscht: KEINE " • admin@gta.local" Anzeige
+      const label =
+        (userRole === "admin") ? "Admin" :
+        (userRole === "leitstelle") ? "Leitstelle" :
+        (userRole === "officer") ? "Officer" : "User";
 
-      roleText.textContent = `${label} • ${sessionUser.email}`;
+      roleText.textContent = label;
       roleDot.className = (userRole === "admin") ? "dot ok" : "dot";
       createBox.style.display = (userRole === "admin") ? "block" : "none";
     }
 
-    function isAdmin(){ return userRole === "admin"; }
-
     async function detectRole(user){
-      // 1) try profiles.role
+      // 1) profiles.role
       try{
         const { data, error } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
         if(!error && data && data.role) return String(data.role).toLowerCase();
@@ -580,7 +566,6 @@
       const email = (user.email || "").toLowerCase();
       if(email === "admin@gta.local") return "admin";
       if(email === "leitstelle@gta.local") return "leitstelle";
-      // alles andere: officer
       return "officer";
     }
 
@@ -590,7 +575,7 @@
       const rankShort = escapeHtml(o.rank_short || "");
       const rankName = escapeHtml(o.rank_name || "");
       return `
-        <div class="officer" data-officer-id="${o.id}">
+        <div class="officer" data-officer-id="${escapeHtml(idToStr(o.id))}">
           <div class="oLeft">
             <div class="handle" title="Ziehen" ${isAdmin() ? "" : "style='opacity:.35;cursor:not-allowed;'"}>
               <div class="bars"><i></i></div>
@@ -609,32 +594,38 @@
     }
 
     function deptHTML(d){
+      const deptIdStr = idToStr(d.id);
       const name = escapeHtml(d.name || "Abteilung");
-      const leaderId = d.leader_officer_id || null;
-      const members = officers.filter(o => o.department_id === d.id);
-      const leader = leaderId ? officers.find(o => o.id === leaderId) : null;
 
-      // leader select options: only members + none
+      const leaderIdStr = idToStr(d.leader_officer_id);
+      const members = officers.filter(o => idToStr(o.department_id) === deptIdStr);
+      const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
+
       const leaderOptions = [
         `<option value="">— keine Leitung —</option>`,
-        ...members.map(o => `<option value="${o.id}" ${o.id === leaderId ? "selected" : ""}>${escapeHtml(o.name || "")}</option>`)
+        ...members.map(o => {
+          const oid = idToStr(o.id);
+          return `<option value="${escapeHtml(oid)}" ${oid === leaderIdStr ? "selected" : ""}>${escapeHtml(o.name || "")}</option>`;
+        })
       ].join("");
 
       return `
-        <div class="dept" data-dept-id="${d.id}">
+        <div class="dept" data-dept-id="${escapeHtml(deptIdStr)}">
           <div class="deptHead">
             <div style="min-width:0;">
               <div class="deptName" title="${name}">${name}</div>
               <div class="deptSub">
                 <span class="pill" style="padding:4px 8px;border-radius:999px;">Mitglieder: ${members.length}</span>
-                ${leader ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>` : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`}
+                ${
+                  leader
+                    ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
+                    : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
+                }
               </div>
             </div>
 
             <div class="deptActions">
-              ${isAdmin() ? `
-                <button class="iconBtn danger" title="Abteilung löschen" data-action="delete-dept">✕</button>
-              ` : ``}
+              ${isAdmin() ? `<button class="iconBtn danger" title="Abteilung löschen" data-action="delete-dept">✕</button>` : ``}
             </div>
           </div>
 
@@ -649,8 +640,8 @@
 
             <div class="dropHint">Drag & Drop: Officer hier reinziehen (nur Admin).</div>
 
-            <div class="deptList" data-list="dept" data-dept-id="${d.id}">
-              ${members.map(o => officerCardHTML(o, leaderId && o.id === leaderId)).join("")}
+            <div class="deptList" data-dept-id="${escapeHtml(deptIdStr)}">
+              ${members.map(o => officerCardHTML(o, leaderIdStr && idToStr(o.id) === leaderIdStr)).join("")}
             </div>
           </div>
         </div>
@@ -658,12 +649,13 @@
     }
 
     function renderAll(){
-      // Pool officers = department_id null
+      detectIdTypes();
+
+      // Pool = department_id null/leer
       const pool = officers.filter(o => !o.department_id);
       poolList.innerHTML = pool.map(o => officerCardHTML(o, false)).join("") || `<div class="dropHint">Keine Officer ohne Abteilung.</div>`;
       poolCount.textContent = String(pool.length);
 
-      // Departments sorted
       const sorted = [...departments].sort((a,b) => (a.sort||0) - (b.sort||0) || (a.name||"").localeCompare(b.name||""));
       deptGrid.innerHTML = sorted.map(d => deptHTML(d)).join("");
       deptCount.textContent = String(sorted.length);
@@ -672,32 +664,44 @@
       initSortable();
     }
 
+    function niceError(err){
+      if(!err) return "Unbekannter Fehler";
+      const msg = err.message || String(err);
+      // typische RLS / permission hints
+      if(msg.toLowerCase().includes("row level security")) return "RLS blockiert (Policy fehlt).";
+      if(msg.toLowerCase().includes("permission denied")) return "Keine Rechte (RLS/Policy).";
+      return msg;
+    }
+
     function wireDeptActions(){
       // delete dept
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
         btn.addEventListener("click", async (e) => {
           if(!isAdmin()) return;
+
           const deptEl = e.currentTarget.closest(".dept");
-          const deptId = deptEl?.dataset?.deptId;
-          const dept = departments.find(x => x.id === deptId);
-          if(!deptId || !dept) return;
+          const deptIdStr = deptEl?.dataset?.deptId;
+          const dept = departments.find(x => idToStr(x.id) === idToStr(deptIdStr));
+          if(!deptIdStr || !dept) return;
 
           const ok = confirm(`Abteilung wirklich löschen?\n\n${dept.name}\n\n(Officer werden in den Pool verschoben)`);
           if(!ok) return;
 
-          // move officers out of dept first
-          const members = officers.filter(o => o.department_id === deptId);
+          const deptId = castDeptId(deptIdStr);
+
+          // 1) Mitglieder in Pool
+          const members = officers.filter(o => idToStr(o.department_id) === idToStr(deptIdStr));
           if(members.length){
-            const updates = members.map(o => sb.from("officers").update({ department_id: null }).eq("id", o.id));
+            const updates = members.map(o => sb.from("officers").update({ department_id: null }).eq("id", castOfficerId(o.id)));
             await Promise.allSettled(updates);
           }
 
-          // clear leader if set
+          // 2) Leitung nullen
           await sb.from("departments").update({ leader_officer_id: null }).eq("id", deptId);
 
-          // delete dept
+          // 3) Abteilung löschen
           const { error } = await sb.from("departments").delete().eq("id", deptId);
-          if(error) alert("Löschen fehlgeschlagen: " + error.message);
+          if(error) alert("Löschen fehlgeschlagen: " + niceError(error));
         });
       });
 
@@ -706,18 +710,23 @@
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
           const deptEl = e.currentTarget.closest(".dept");
-          const deptId = deptEl?.dataset?.deptId;
-          if(!deptId) return;
-          const leaderId = e.currentTarget.value || null;
+          const deptIdStr = deptEl?.dataset?.deptId;
+          if(!deptIdStr) return;
+
+          const deptId = castDeptId(deptIdStr);
+          const leaderIdStr = e.currentTarget.value || "";
+          const leaderId = leaderIdStr ? castOfficerId(leaderIdStr) : null;
 
           const { error } = await sb.from("departments").update({ leader_officer_id: leaderId }).eq("id", deptId);
-          if(error) alert("Leitung setzen fehlgeschlagen: " + error.message);
+          if(error) alert("Leitung setzen fehlgeschlagen: " + niceError(error));
         });
       });
     }
 
+    // Sortable
     let poolSortable = null;
     let deptSortables = [];
+
     function destroySortable(){
       try{ poolSortable?.destroy(); }catch(_){}
       deptSortables.forEach(s => { try{s.destroy();}catch(_){ } });
@@ -729,6 +738,7 @@
       destroySortable();
 
       const canDrag = isAdmin();
+
       const common = {
         group: "officers",
         animation: 140,
@@ -736,43 +746,40 @@
         chosenClass: "chosen",
         dragClass: "dragging",
         handle: ".handle",
-        sort: false, // wir sortieren innerhalb nicht zwingend
+        sort: false,
         disabled: !canDrag,
         onEnd: async (evt) => {
           if(!canDrag) return;
 
-          const officerId = evt.item?.dataset?.officerId;
-          if(!officerId) return;
+          const officerIdStr = evt.item?.dataset?.officerId;
+          if(!officerIdStr) return;
 
           const toList = evt.to;
-          const toIsPool = toList?.id === "poolList";
-          const toDeptId = toIsPool ? null : (toList?.dataset?.deptId || null);
 
-          // update officer.department_id
+          const toIsPool = toList?.id === "poolList";
+          const toDeptIdStr = toIsPool ? null : (toList?.dataset?.deptId || null);
+
+          const officerId = castOfficerId(officerIdStr);
+          const toDeptId = toDeptIdStr ? castDeptId(toDeptIdStr) : null;
+
           const { error } = await sb.from("officers").update({ department_id: toDeptId }).eq("id", officerId);
           if(error){
-            alert("Zuweisung fehlgeschlagen: " + error.message);
+            alert("Zuweisung fehlgeschlagen: " + niceError(error));
           }else{
-            // wenn officer aus Leitung rausgezogen wurde: ggf. leader reset
-            if(evt.from?.dataset?.deptId){
-              const fromDeptId = evt.from.dataset.deptId;
-              const dept = departments.find(d => d.id === fromDeptId);
-              if(dept && dept.leader_officer_id === officerId){
-                await sb.from("departments").update({ leader_officer_id: null }).eq("id", fromDeptId);
+            // Wenn der Officer vorher Leitung war und rausgezogen wurde -> Leitung reset
+            const fromDeptIdStr = evt.from?.dataset?.deptId || null;
+            if(fromDeptIdStr){
+              const dept = departments.find(d => idToStr(d.id) === idToStr(fromDeptIdStr));
+              if(dept && idToStr(dept.leader_officer_id) === idToStr(officerIdStr)){
+                await sb.from("departments").update({ leader_officer_id: null }).eq("id", castDeptId(fromDeptIdStr));
               }
             }
           }
         }
       };
 
-      // Pool list: wir nutzen poolList als Container -> aber dort liegt HTML direkt.
-      // Damit Sortable sauber arbeitet, stellen wir sicher, dass drop targets auch in Pool funktionieren:
-      poolSortable = new Sortable(poolList, {
-        ...common,
-        id: "pool",
-      });
+      poolSortable = new Sortable(poolList, { ...common });
 
-      // Department lists
       deptGrid.querySelectorAll(".deptList").forEach(listEl => {
         const s = new Sortable(listEl, common);
         deptSortables.push(s);
@@ -780,23 +787,23 @@
     }
 
     async function loadData(){
-      // Departments
       {
         const { data, error } = await sb.from("departments").select("*");
         if(error){
           console.error(error);
-          alert("Departments laden fehlgeschlagen: " + error.message);
+          alert("Departments laden fehlgeschlagen: " + niceError(error));
+          departments = [];
         }else{
           departments = data || [];
         }
       }
 
-      // Officers
       {
         const { data, error } = await sb.from("officers").select("*");
         if(error){
           console.error(error);
-          alert("Officers laden fehlgeschlagen: " + error.message);
+          alert("Officers laden fehlgeschlagen: " + niceError(error));
+          officers = [];
         }else{
           officers = data || [];
         }
@@ -812,26 +819,25 @@
       }
 
       rtChannel = sb.channel("verwaltung-rt");
-
       rtChannel
         .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => loadData())
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => loadData())
-        .subscribe((status) => {
-          // optional: console.log("RT status", status);
-        });
+        .subscribe();
     }
 
-    // Admin create dept
+    // Create dept
     btnCreateDept.addEventListener("click", async () => {
       if(!isAdmin()) return;
+
       const name = (deptNameInput.value || "").trim();
       if(!name) return;
 
-      // sort: max+1
       const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
       const { error } = await sb.from("departments").insert({ name, sort: maxSort + 1 });
+
       if(error){
-        alert("Erstellen fehlgeschlagen: " + error.message);
+        // Das ist meist RLS/Policy, wenn es “gar nicht geht”
+        alert("Erstellen fehlgeschlagen: " + niceError(error));
       }else{
         deptNameInput.value = "";
       }
@@ -840,9 +846,14 @@
       if(e.key === "Enter") btnCreateDept.click();
     });
 
+    // Pool toggle
+    btnTogglePool.addEventListener("click", () => {
+      document.body.classList.toggle("poolClosed");
+      btnTogglePool.textContent = document.body.classList.contains("poolClosed") ? "Pool ▸" : "Pool";
+    });
+
     // Nav + logout
     btnToLeitstelle.addEventListener("click", () => {
-      // falls du eine andere Datei/Route nutzt, hier anpassen:
       window.location.href = "index.html";
     });
 
@@ -908,7 +919,6 @@
       await loadData();
       setupRealtime();
 
-      // keep UI in sync if auth changes in other tab
       sb.auth.onAuthStateChange(async (_event, session) => {
         sessionUser = session?.user || null;
         userRole = sessionUser ? await detectRole(sessionUser) : "none";
