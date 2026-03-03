@@ -156,6 +156,11 @@
       overflow:auto;
     }
 
+    /* ===== FIX: Wenn Pool eingeklappt ist, schieb "Abteilungen" + Badge nach rechts ===== */
+    body.poolClosed #deptPanel .panelHeader .panelTitle{
+      padding-left: 56px; /* genug Abstand, damit der Slide-Button nix überdeckt */
+    }
+
     /* ===== Toggle Button (ein Element, wandert zwischen Slots) ===== */
     .poolToggleBtn{
       width: 44px;
@@ -500,7 +505,7 @@
     </div>
 
     <!-- Departments -->
-    <div class="panel">
+    <div class="panel" id="deptPanel">
       <div class="panelHeader">
         <div class="panelTitle">
           Abteilungen
