@@ -293,6 +293,22 @@
     flex:0 0 auto;
   }
 
+  /* ✅ NEW: Dienstnummer = grün */
+  .pill.pillDn{
+    border-color: rgba(0,255,140,0.35);
+    background: rgba(0,255,140,0.10);
+    color: rgba(220,255,240,0.92);
+    box-shadow: 0 0 0 1px rgba(0,255,140,0.10) inset;
+  }
+
+  /* ✅ NEW: Rang = blau */
+  .pill.pillRank{
+    border-color: rgba(0,140,255,0.35);
+    background: rgba(0,140,255,0.10);
+    color: rgba(220,240,255,0.92);
+    box-shadow: 0 0 0 1px rgba(0,140,255,0.10) inset;
+  }
+
   /* ✅ Dot wie Verwaltung */
   .dot{
     width:8px; height:8px; border-radius:999px;
@@ -1528,11 +1544,15 @@
       renderCreatedPool();
     }
 
+    /* ✅ UPDATED: DN = grün, Rang = blau */
     function getOfficerRankPills(o){
       const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
       const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
-      const rankPill = abbr ? `<span class="pill">${escapeHtml(abbr)}</span>` : "";
-      return `<span class="pill">${escapeHtml(dn)}</span>${rankPill}`;
+
+      const dnPill = `<span class="pill pillDn">${escapeHtml(dn)}</span>`;
+      const rankPill = abbr ? `<span class="pill pillRank">${escapeHtml(abbr)}</span>` : "";
+
+      return `${dnPill}${rankPill}`;
     }
 
     function renderCreatedPool(){
