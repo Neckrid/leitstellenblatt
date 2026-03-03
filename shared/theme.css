@@ -1,28 +1,29 @@
 /* ============================= */
-/* LSPD GLOBAL THEME (MASTER)   */
-/* Vorbild: Leitstellenblatt    */
+/* LSPD GLOBAL THEME (MASTER)    */
+/* Vorbild: Leitstellenblatt     */
 /* ============================= */
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 
 :root{
+  /* Verwaltung/Leitstellenblatt Tokens */
   --stroke: rgba(255,255,255,0.10);
   --shadow: 0 20px 60px rgba(0,0,0,0.55);
   --shadow2: 0 14px 36px rgba(0,0,0,0.45);
   --muted: rgba(255,255,255,0.75);
   --muted2: rgba(255,255,255,0.55);
 
+  /* Header Layout */
   --hdrH: 64px;
   --appTopPad: calc(var(--hdrH) + 14px);
 }
-
-/* ===== BACKGROUND IDENTISCH ===== */
 
 body{
   margin:0;
   font-family: Arial, Helvetica, sans-serif;
   color:#fff;
+  overflow:hidden;
   background:
     radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
     radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
@@ -30,50 +31,189 @@ body{
     linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
 }
 
-/* ===== HEADER ===== */
-
+/* ========= GLOBAL TOP HEADER ========= */
 .topHeader{
   position:fixed;
-  left:0;
-  right:0;
-  top:0;
+  left:0; right:0; top:0;
   height:var(--hdrH);
   z-index:900;
+
   border-bottom: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
   backdrop-filter: blur(10px);
+
   display:flex;
   align-items:center;
   padding: 10px 18px;
   gap:12px;
+  overflow:hidden;
 }
-
 .topHeaderLeft{
   display:flex;
   align-items:center;
   gap:12px;
-  flex:1;
+  min-width:0;
+  flex:1 1 auto;
 }
-
+.topHeaderText{
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+  min-width:0;
+}
 .topHeaderTitle{
   font-size:14px;
   font-weight:700;
+  letter-spacing:0.3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-
 .topHeaderSub{
   font-size:12px;
   color: var(--muted2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-top:1px;
 }
-
 .topHeaderRight{
   margin-left:auto;
   display:flex;
   align-items:center;
   gap:10px;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+.topHeaderExtra{
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 
-/* ===== LOGIN ===== */
+/* ========= Badge / Pill / Dot (wie Leitstellenblatt) ========= */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.05);
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:0.4px;
+  color: var(--muted);
+  white-space:nowrap;
+}
 
+.pill{
+  padding:6px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  border-radius:999px;
+  font-size:12px;
+  color: var(--muted);
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.dot{
+  width:8px; height:8px; border-radius:999px;
+  background: rgba(255,255,255,0.35);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+  flex:0 0 auto;
+}
+.dot.on{
+  background: rgba(0,255,140,0.85);
+  box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
+}
+.dot.off{
+  background: rgba(255,70,180,0.85);
+  box-shadow: 0 0 0 3px rgba(255,70,180,0.12);
+}
+.dot.red{
+  background: rgba(255,60,90,0.85);
+  box-shadow: 0 0 0 3px rgba(255,60,90,0.12);
+}
+.dot.warn{
+  background: rgba(255,200,0,0.9);
+  box-shadow: 0 0 0 3px rgba(255,200,0,0.12);
+}
+.dot.ok{
+  background: rgba(0,255,140,0.85);
+  box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
+}
+
+/* ========= Inputs (wie Leitstellenblatt) ========= */
+label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
+input, select, textarea{
+  width:100%;
+  background: rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.12);
+  color:#fff;
+  border-radius:12px;
+  padding:10px 10px;
+  outline:none;
+  font-size:14px;
+}
+textarea{ resize:vertical; min-height:120px; }
+
+/* ========= Buttons (wie Leitstellenblatt) ========= */
+.btn{
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  padding:9px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  transition: transform .05s ease, background .15s ease, border-color .15s ease;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+  font-weight:600;
+  font-size:13px;
+  line-height:1;
+  user-select:none;
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+.btnPrimary{
+  border-color: rgba(0,255,195,0.25);
+  box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
+  background: rgba(255,255,255,0.06);
+}
+.btnDanger{
+  border-color: rgba(255,60,90,0.28);
+  background: rgba(255,60,90,0.12);
+}
+.btnDanger:hover{
+  background: rgba(255,60,90,0.18);
+  border-color: rgba(255,60,90,0.40);
+}
+.btnGhost{
+  background: transparent;
+  box-shadow:none;
+}
+.btnLogoutRed{
+  border-color: rgba(255,60,90,0.28);
+  background: rgba(255,60,90,0.12);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+}
+.btnLogoutRed:hover{
+  background: rgba(255,60,90,0.18);
+  border-color: rgba(255,60,90,0.40);
+}
+
+/* ========= LOGIN OVERLAY (identisch) ========= */
 .loginOverlay{
   position:fixed;
   inset:0;
@@ -89,7 +229,6 @@ body{
     rgba(0,0,0,0.55);
   backdrop-filter: blur(10px);
 }
-
 .loginCard{
   width:min(560px, 100%);
   border:1px solid rgba(255,255,255,0.12);
@@ -99,78 +238,19 @@ body{
   box-shadow: 0 18px 70px rgba(0,0,0,0.55);
   overflow:hidden;
 }
-
 .loginHeader{
-  padding:16px;
+  padding:16px 16px 14px;
   border-bottom:1px solid rgba(255,255,255,0.08);
   display:flex;
   align-items:center;
+  justify-content:space-between;
+  gap:12px;
 }
-
+.loginTitleWrap{ line-height:1.1; min-width:0; }
+.loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
+.loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .loginBody{ padding:16px; }
+.loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-.loginErr{
-  font-size:12px;
-  color: rgba(255,120,120,0.95);
-  margin-top:10px;
-  display:none;
-}
-
-/* ===== BUTTONS ===== */
-
-.btn{
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  color:#fff;
-  padding:9px 12px;
-  border-radius:10px;
-  cursor:pointer;
-  font-size:13px;
-}
-
-.btn:hover{
-  background: rgba(255,255,255,0.10);
-}
-
-.btnPrimary{
-  border-color: rgba(0,255,195,0.25);
-}
-
-.btnDanger{
-  border-color: rgba(255,60,90,0.40);
-  background: rgba(255,60,90,0.15);
-}
-
-/* ===== BADGE / PILL ===== */
-
-.badge{
-  padding:7px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.05);
-  border-radius:999px;
-  font-size:12px;
-  font-weight:800;
-}
-
-.pill{
-  padding:6px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  border-radius:999px;
-  font-size:12px;
-}
-
-.dot{
-  width:8px;
-  height:8px;
-  border-radius:999px;
-  background: rgba(255,255,255,0.4);
-}
-
-.dot.on{
-  background: rgba(0,255,140,0.85);
-}
-
-.dot.off{
-  background: rgba(255,70,180,0.85);
-}
+/* Utility */
+.row{ display:flex; gap:10px; }
