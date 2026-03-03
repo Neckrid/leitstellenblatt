@@ -120,9 +120,13 @@
     }
 
     .poolPanel{
-      transform: translateX(0);
-      transition: transform .22s ease, opacity .22s ease;
-      min-width:0;
+  transition: opacity .22s ease;
+  min-width:0;
+}
+body.poolClosed .poolPanel{
+  opacity: 0;
+  pointer-events: none;
+}
     }
     body.poolClosed .poolPanel{
       transform: translateX(calc(-330px - 14px));
@@ -186,13 +190,13 @@
       transform: translateY(-1px);
     }
     body.poolClosed .poolEdgeToggle{
-      position: fixed;
-      left: calc(14px - 12px);
-      right: auto;
-      top: 50%;
-      transform: translateY(calc(-50% + 32px));
-      z-index: 9999;
-    }
+  position: fixed;
+  left: calc(14px - 12px);
+  right: auto;
+  top: calc(64px + (100vh - 64px)/2);
+  transform: translateY(-50%);
+  z-index: 9999;
+}
 
     .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
     input, select{
