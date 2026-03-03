@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <style>
+<style>
   *{ box-sizing:border-box; }
   html,body{ height:100%; }
   body{
@@ -24,11 +24,18 @@
   }
 
   :root{
-    /* ✅ Header flush (kein Rand oben/seitlich) */
-    --hdrTop: 0px;           /* vorher 12px */
-    --hdrH: 58px;            /* wie Verwaltungsheader */
-    --hdrPadX: 0px;          /* vorher 14px */
-    --appTopPad: calc(var(--hdrH) + 12px); /* vorher: calc(var(--hdrTop) + var(--hdrH) + 12px) */
+    /* ===== Verwaltung-Token (für identische Proportionen) ===== */
+    --stroke: rgba(255,255,255,0.10);
+    --shadow: 0 20px 60px rgba(0,0,0,0.55);
+    --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+    --muted: rgba(255,255,255,0.75);
+    --muted2: rgba(255,255,255,0.55);
+
+    /* ===== Header Layout (wie Verwaltung: 64px) ===== */
+    --hdrTop: 0px;
+    --hdrH: 64px;                 /* ✅ identisch Verwaltung topbar height */
+    --hdrPadX: 0px;
+    --appTopPad: calc(var(--hdrH) + 14px); /* ✅ wie wrapPad 14px */
   }
 
   /* ========= LOGIN OVERLAY ========= */
@@ -70,23 +77,30 @@
   .loginBody{ padding:16px; }
   .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-  /* ========= GLOBAL TOP HEADER (EXAKT wie Verwaltungsseite – Größen/Spacing) ========= */
+  /* ========= GLOBAL TOP HEADER (✅ identisch zur Verwaltungsseite Topbar) ========= */
   .topHeader{
     position:fixed;
-    left:0;                 /* ✅ flush */
-    right:0;                /* ✅ flush */
-    top:0;                  /* ✅ flush */
+    left:0;
+    right:0;
+    top:0;
     height:var(--hdrH);
     z-index:900;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(14, 18, 28, 0.55);
+
+    /* Verwaltung: bottom stroke + gradient glass */
+    border-bottom: 1px solid var(--stroke);
+    border-left:0;
+    border-right:0;
+    border-top:0;
+
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
     backdrop-filter: blur(10px);
-    border-radius:0;        /* ✅ keine Rundung am Screen-Rand */
-    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+
+    border-radius:0;
+    box-shadow:none; /* Verwaltung-topbar hat keinen großen “Card”-Shadow */
     display:flex;
     align-items:center;
-    padding:12px 14px;
-    gap:14px;
+    padding: 10px 18px;  /* ✅ identisch */
+    gap:12px;
     overflow:hidden;
   }
   .topHeaderLeft{
@@ -103,20 +117,21 @@
     min-width:0;
   }
   .topHeaderTitle{
-    font-size:15px;
-    font-weight:900;
+    font-size:14px;          /* ✅ Verwaltung brandTitle */
+    font-weight:700;
     letter-spacing:0.3px;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
   }
   .topHeaderSub{
-    font-size:11px;
-    opacity:0.72;
+    font-size:12px;          /* ✅ Verwaltung brandSub */
+    color: var(--muted2);
+    opacity:1;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
-    margin-top:2px;
+    margin-top:1px;
   }
   .topHeaderRight{
     margin-left:auto;
@@ -174,24 +189,27 @@
   #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
   .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
+
+  /* ✅ Badge wie Verwaltung (kleine Capsule) */
   .badge{
-    height:34px;
-    width:auto;
-    min-width:34px;
-    padding:0 12px;
-    border-radius:12px;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
-    border:1px solid rgba(255,255,255,0.16);
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    font-weight:900;
-    letter-spacing:0.5px;
-    white-space:nowrap;
+    padding:7px 10px;           /* ✅ */
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.05);
+    border-radius:999px;        /* ✅ Capsule */
     font-size:12px;
-    flex:0 0 auto;
+    font-weight:800;
+    letter-spacing:0.4px;
+    color: var(--muted);
+    white-space:nowrap;
+    box-shadow:none;            /* ✅ Verwaltung */
+    min-width:0;
+    height:auto;
+    width:auto;
   }
+
   .titleWrap{ line-height:1.05; min-width:0; }
   .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -218,69 +236,98 @@
   }
   textarea{ resize:vertical; min-height:120px; }
 
+  /* ✅ Buttons wie Verwaltung */
   .btn{
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.08);
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.06);
     color:#fff;
-    padding:10px 12px;
-    border-radius:14px;
+    padding:9px 12px;           /* ✅ */
+    border-radius:10px;         /* ✅ */
     cursor:pointer;
-    font-weight:700;
-    letter-spacing:0.2px;
-    transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+    transition: transform .05s ease, background .15s ease, border-color .15s ease;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.25); /* ✅ */
+    font-weight:600;            /* ✅ */
+    font-size:13px;             /* ✅ */
+    line-height:1;
     user-select:none;
     white-space:nowrap;
-    height:44px;
+    height:auto;                /* ✅ entfernt 44px */
     display:inline-flex;
     align-items:center;
     justify-content:center;
+    letter-spacing:0;
   }
-  .btn:hover{ background: rgba(255,255,255,0.12); }
+  .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
   .btn:active{ transform: translateY(1px); }
   .btn:disabled{ opacity:0.45; cursor:not-allowed; }
 
+  /* optische Varianten beibehalten, aber “Verwaltung”-Feeling */
   .btnPrimary{
-    background: linear-gradient(135deg, rgba(0,255,195,0.22), rgba(0,140,255,0.18));
     border-color: rgba(0,255,195,0.25);
+    box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
+    background: rgba(255,255,255,0.06);
   }
   .btnDanger{
-    background: linear-gradient(135deg, rgba(255,70,180,0.18), rgba(255,70,70,0.16));
-    border-color: rgba(255,70,180,0.25);
+    border-color: rgba(255,60,90,0.28);
+    background: rgba(255,60,90,0.12);
   }
-  .btnGhost{ background: transparent; }
+  .btnDanger:hover{
+    background: rgba(255,60,90,0.18);
+    border-color: rgba(255,60,90,0.40);
+  }
+  .btnGhost{
+    background: transparent;
+    box-shadow:none;
+  }
 
   .btnLogoutRed{
-    background: linear-gradient(135deg, rgba(255,70,70,0.18), rgba(255,70,180,0.14));
-    border-color: rgba(255,70,70,0.28);
+    border-color: rgba(255,60,90,0.28);
+    background: rgba(255,60,90,0.12);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
   }
-  .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
+  .btnLogoutRed:hover{
+    background: rgba(255,60,90,0.18);
+    border-color: rgba(255,60,90,0.40);
+  }
 
   .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
-  .btnIcon{ width:44px; padding:0; font-size:18px; line-height:1; }
+  .btnIcon{ width:44px; height:44px; padding:0; font-size:18px; line-height:1; }
 
+  /* ✅ Pills wie Verwaltung */
   .pill{
+    padding:6px 10px;
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.06);
+    border-radius:999px;
+    font-size:12px;
+    color: var(--muted);
+    white-space:nowrap;
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding:7px 10px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    font-size:12px;
-    opacity:0.92;
-    white-space:nowrap;
+    opacity:1;
     flex:0 0 auto;
   }
 
+  /* ✅ Dot wie Verwaltung */
   .dot{
-    width:10px; height:10px; border-radius:50%;
-    background: rgba(255,255,255,0.3);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+    width:8px; height:8px; border-radius:999px;
+    background: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
     flex:0 0 auto;
   }
-  .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
-  .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
-  .dot.red{ background: rgba(255,70,70,0.95); box-shadow: 0 0 0 3px rgba(255,70,70,0.14), 0 0 18px rgba(255,70,70,0.30); }
+  .dot.on{
+    background: rgba(0,255,140,0.85);
+    box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
+  }
+  .dot.off{
+    background: rgba(255,70,180,0.85);
+    box-shadow: 0 0 0 3px rgba(255,70,180,0.12);
+  }
+  .dot.red{
+    background: rgba(255,60,90,0.85);
+    box-shadow: 0 0 0 3px rgba(255,60,90,0.12);
+  }
 
   .muted{ opacity:0.75; font-size:12px; }
 
@@ -528,7 +575,7 @@
     body{ overflow:auto; }
     :root{
       --hdrTop: 0px;
-      --hdrH: 58px;
+      --hdrH: 64px;
       --hdrPadX: 0px;
       --appTopPad: calc(var(--hdrH) + 10px);
     }
