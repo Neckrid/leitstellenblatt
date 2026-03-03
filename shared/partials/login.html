@@ -1,0 +1,49 @@
+<div class="loginOverlay" id="loginOverlay" style="display:none;">
+  <div class="loginCard">
+    
+    <div class="loginHeader">
+      <div class="brand" style="display:flex; gap:10px; align-items:center; min-width:0;">
+        <div class="badge">LSPD</div>
+        <div class="loginTitleWrap">
+          <div class="loginTitle">LOGIN</div>
+          <div class="loginSub">Bitte anmelden</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loginBody">
+      <label for="inpLoginName">Name</label>
+      <input 
+        id="inpLoginName" 
+        placeholder="Name" 
+        autocomplete="username"
+        spellcheck="false"
+      />
+
+      <div style="height:12px"></div>
+
+      <label for="inpLoginPw">Passwort</label>
+      <input 
+        id="inpLoginPw" 
+        type="password" 
+        placeholder="Passwort" 
+        autocomplete="current-password"
+      />
+
+      <div class="loginErr" id="loginErr" style="display:none;">—</div>
+
+      <div style="height:16px"></div>
+
+      <div class="row" style="justify-content:flex-end;">
+        <button 
+          class="btn btnPrimary" 
+          id="btnLogin" 
+          type="button"
+        >
+          Login
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
