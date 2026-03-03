@@ -31,6 +31,12 @@
       --ok: rgba(0,255,140,0.85);
       --muted: rgba(255,255,255,0.75);
       --muted2: rgba(255,255,255,0.55);
+
+      /* Layout constants */
+      --wrapPad: 14px;
+      --gap: 14px;
+      --poolW: 330px;
+      --toggleOverhang: 12px;
     }
 
     .topbar{
@@ -100,9 +106,9 @@
     .wrap{
       height: calc(100vh - 64px);
       display:grid;
-      grid-template-columns: 330px 1fr;
-      gap: 14px;
-      padding: 14px;
+      grid-template-columns: var(--poolW) 1fr;
+      gap: var(--gap);
+      padding: var(--wrapPad);
       transition: grid-template-columns .22s ease;
       position:relative;
     }
@@ -119,18 +125,11 @@
       position:relative;
     }
 
-    .poolPanel{
-  transition: opacity .22s ease;
-  min-width:0;
-}
-body.poolClosed .poolPanel{
-  opacity: 0;
-  pointer-events: none;
-}
-    }
+    /* PoolPanel: kein transform! (damit Toggle nie "mit raus wandert") */
+    .poolPanel{ min-width:0; transition: opacity .22s ease; }
     body.poolClosed .poolPanel{
-      transform: translateX(calc(-330px - 14px));
-      opacity: 0;
+      opacity:0;
+      pointer-events:none;
     }
 
     .panelHeader{
@@ -157,12 +156,12 @@ body.poolClosed .poolPanel{
       overflow:auto;
     }
 
-    /* Pool Toggle: immer sichtbar + snap an Pool-Kante + Pfeile < / > */
+    /* ✅ Pool Toggle: IMMER fixed am Viewport -> kann nie verschwinden */
     .poolEdgeToggle{
-      position:absolute;
-      right:-12px;
-      top: 50%;
+      position:fixed;
+      top: calc(64px + (100vh - 64px)/2);
       transform: translateY(-50%);
+      left: calc(var(--wrapPad) + var(--poolW) - var(--toggleOverhang)); /* an Pool-Kante */
       width: 44px;
       height: 44px;
       border-radius: 12px;
@@ -175,8 +174,8 @@ body.poolClosed .poolPanel{
       justify-content:center;
       cursor:pointer;
       user-select:none;
-      z-index: 500;
-      transition: .15s;
+      z-index: 99999;
+      transition: background .15s ease, border-color .15s ease, left .22s ease;
     }
     .poolEdgeToggle:hover{
       background: rgba(255,255,255,0.08);
@@ -190,13 +189,8 @@ body.poolClosed .poolPanel{
       transform: translateY(-1px);
     }
     body.poolClosed .poolEdgeToggle{
-  position: fixed;
-  left: calc(14px - 12px);
-  right: auto;
-  top: calc(64px + (100vh - 64px)/2);
-  transform: translateY(-50%);
-  z-index: 9999;
-}
+      left: calc(var(--wrapPad) - var(--toggleOverhang)); /* an linke Kante "snappen" */
+    }
 
     .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
     input, select{
@@ -476,6 +470,11 @@ body.poolClosed .poolPanel{
     </div>
   </div>
 
+  <!-- ✅ Toggle ist NICHT mehr im Pool-Panel -> kann niemals "mit raus" verschwinden -->
+  <div class="poolEdgeToggle" id="poolEdgeToggle" title="Officer Pool ein-/ausblenden">
+    <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
+  </div>
+
   <div class="wrap">
     <!-- Pool -->
     <div class="panel poolPanel" id="poolPanel">
@@ -483,10 +482,6 @@ body.poolClosed .poolPanel{
         <div class="panelTitle">
           Officer Pool
           <span class="pill" id="poolCount">0</span>
-        </div>
-
-        <div class="poolEdgeToggle" id="poolEdgeToggle" title="Officer Pool ein-/ausblenden">
-          <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
         </div>
       </div>
 
@@ -584,7 +579,7 @@ body.poolClosed .poolPanel{
      * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
      ***********************************************************************/
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmVzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
     const sb = supabase.createClient(SB_URL, SB_KEY);
 
     // UI
@@ -853,7 +848,7 @@ body.poolClosed .poolPanel{
                     ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
                     : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
                 }
-                <!-- ✅ Stv. Badge oben raus -->
+                <!-- ✅ Stv. Badge oben entfernt -->
               </div>
             </div>
 
@@ -894,6 +889,7 @@ body.poolClosed .poolPanel{
     function renderAll(){
       detectIdTypes();
 
+      // Pool bleibt IMMER komplett
       const search = (poolSearch.value || "").trim().toLowerCase();
       let pool = officers.slice().sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
 
@@ -929,6 +925,7 @@ body.poolClosed .poolPanel{
     function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
 
     function wireDeptActions(){
+      // delete dept
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
         btn.addEventListener("click", (e) => {
           if(!isAdmin()) return;
@@ -943,6 +940,7 @@ body.poolClosed .poolPanel{
         });
       });
 
+      // leader select
       deptGrid.querySelectorAll("[data-action='leader-select']").forEach(sel => {
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
@@ -959,6 +957,7 @@ body.poolClosed .poolPanel{
         });
       });
 
+      // deputy leader select
       deptGrid.querySelectorAll("[data-action='deputy-select']").forEach(sel => {
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
@@ -975,6 +974,7 @@ body.poolClosed .poolPanel{
         });
       });
 
+      // remove membership
       deptGrid.querySelectorAll("[data-action='remove-membership']").forEach(btn => {
         btn.addEventListener("click", async (e) => {
           if(!isAdmin()) return;
@@ -985,6 +985,7 @@ body.poolClosed .poolPanel{
           const deptId = castDeptId(deptIdStr);
           const officerId = castOfficerId(officerIdStr);
 
+          // wenn Leitung/Stv entfernt wird -> nullen
           const dept = departments.find(d => idToStr(d.id) === idToStr(deptIdStr));
           if(dept){
             const patch = {};
@@ -1045,6 +1046,7 @@ body.poolClosed .poolPanel{
 
       const canDrag = isAdmin();
 
+      // Pool: Quelle, CLONE -> Pool bleibt immer gleich
       poolSortable = new Sortable(poolList, {
         group: { name:"officers", pull:"clone", put:false },
         animation: 140,
@@ -1056,6 +1058,7 @@ body.poolClosed .poolPanel{
         disabled: !canDrag
       });
 
+      // Depts: Ziel, move zwischen Depts erlaubt
       deptGrid.querySelectorAll(".deptList").forEach(listEl => {
         const s = new Sortable(listEl, {
           group: { name:"officers", pull:true, put:true },
@@ -1076,11 +1079,13 @@ body.poolClosed .poolPanel{
 
             if(!officerIdStr || !toDeptIdStr) return;
 
+            // von Pool (clone): membership hinzufügen
             if(evt.from === poolList){
               await ensureMembership(toDeptIdStr, officerIdStr);
               return;
             }
 
+            // von anderer Dept: move membership
             if(fromDeptIdStr && fromDeptIdStr !== toDeptIdStr){
               await moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr);
             }
@@ -1119,6 +1124,7 @@ body.poolClosed .poolPanel{
         .subscribe();
     }
 
+    // ✅ Wheel -> horizontal scroll in DeptGrid
     function enableWheelHorizontalScroll(){
       deptGrid.addEventListener("wheel", (e) => {
         if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
@@ -1132,6 +1138,7 @@ body.poolClosed .poolPanel{
       if(poolArrowTxt) poolArrowTxt.textContent = closed ? ">" : "<";
     }
 
+    // Modals
     modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
     modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
     window.addEventListener("keydown", (e) => {
@@ -1169,7 +1176,10 @@ body.poolClosed .poolPanel{
 
       const deptId = castDeptId(deptIdStr);
 
+      // memberships entfernen
       await sb.from("department_members").delete().match({ department_id: deptId });
+
+      // leader/stv nullen
       await sb.from("departments").update({ leader_officer_id: null, deputy_leader_officer_id: null }).eq("id", deptId);
 
       const { error } = await sb.from("departments").delete().eq("id", deptId);
@@ -1177,6 +1187,7 @@ body.poolClosed .poolPanel{
       else { closeModal(modalDeleteDept); pendingDeleteDeptIdStr = null; }
     });
 
+    // ✅ Pool toggle (Button ist fixed -> immer erreichbar)
     poolEdgeToggle.addEventListener("click", () => {
       document.body.classList.toggle("poolClosed");
       syncPoolToggleArrow();
