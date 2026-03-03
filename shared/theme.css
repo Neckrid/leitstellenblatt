@@ -1,0 +1,176 @@
+/* ============================= */
+/* LSPD GLOBAL THEME (MASTER)   */
+/* Vorbild: Leitstellenblatt    */
+/* ============================= */
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+:root{
+  --stroke: rgba(255,255,255,0.10);
+  --shadow: 0 20px 60px rgba(0,0,0,0.55);
+  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+  --muted: rgba(255,255,255,0.75);
+  --muted2: rgba(255,255,255,0.55);
+
+  --hdrH: 64px;
+  --appTopPad: calc(var(--hdrH) + 14px);
+}
+
+/* ===== BACKGROUND IDENTISCH ===== */
+
+body{
+  margin:0;
+  font-family: Arial, Helvetica, sans-serif;
+  color:#fff;
+  background:
+    radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
+    radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
+    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
+    linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
+}
+
+/* ===== HEADER ===== */
+
+.topHeader{
+  position:fixed;
+  left:0;
+  right:0;
+  top:0;
+  height:var(--hdrH);
+  z-index:900;
+  border-bottom: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  backdrop-filter: blur(10px);
+  display:flex;
+  align-items:center;
+  padding: 10px 18px;
+  gap:12px;
+}
+
+.topHeaderLeft{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex:1;
+}
+
+.topHeaderTitle{
+  font-size:14px;
+  font-weight:700;
+}
+
+.topHeaderSub{
+  font-size:12px;
+  color: var(--muted2);
+}
+
+.topHeaderRight{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* ===== LOGIN ===== */
+
+.loginOverlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:999;
+  background:
+    radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
+    radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
+    radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
+    rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+}
+
+.loginCard{
+  width:min(560px, 100%);
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(14, 18, 28, 0.70);
+  backdrop-filter: blur(12px);
+  border-radius:22px;
+  box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+  overflow:hidden;
+}
+
+.loginHeader{
+  padding:16px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  align-items:center;
+}
+
+.loginBody{ padding:16px; }
+
+.loginErr{
+  font-size:12px;
+  color: rgba(255,120,120,0.95);
+  margin-top:10px;
+  display:none;
+}
+
+/* ===== BUTTONS ===== */
+
+.btn{
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  padding:9px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.btn:hover{
+  background: rgba(255,255,255,0.10);
+}
+
+.btnPrimary{
+  border-color: rgba(0,255,195,0.25);
+}
+
+.btnDanger{
+  border-color: rgba(255,60,90,0.40);
+  background: rgba(255,60,90,0.15);
+}
+
+/* ===== BADGE / PILL ===== */
+
+.badge{
+  padding:7px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.05);
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.pill{
+  padding:6px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  border-radius:999px;
+  font-size:12px;
+}
+
+.dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.4);
+}
+
+.dot.on{
+  background: rgba(0,255,140,0.85);
+}
+
+.dot.off{
+  background: rgba(255,70,180,0.85);
+}
