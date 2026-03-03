@@ -550,7 +550,7 @@
   <script>
   (function(){
     /***********************************************************************
-     * WICHTIG: HIER 1:1 deine Werte eintragen (nicht verändern!)
+     * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
      ***********************************************************************/
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
@@ -632,7 +632,6 @@
 
     function setRoleUI(){
       btnLogout.style.display = sessionUser ? "inline-flex" : "none";
-
       if(!sessionUser){
         roleText.textContent = "Nicht angemeldet";
         roleDot.className = "dot warn";
@@ -650,13 +649,9 @@
       btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
     }
 
+    // ✅ Rollen ohne profiles Tabelle (fix für 404)
     async function detectRole(user){
-      try{
-        const { data, error } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-        if(!error && data && data.role) return String(data.role).toLowerCase();
-      }catch(_){}
-
-      const email = (user.email || "").toLowerCase();
+      const email = (user?.email || "").toLowerCase();
       if(email === "admin@gta.local") return "admin";
       if(email === "leitstelle@gta.local") return "leitstelle";
       return "officer";
