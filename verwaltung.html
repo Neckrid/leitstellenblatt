@@ -104,6 +104,7 @@
       gap: 14px;
       padding: 14px;
       transition: grid-template-columns .22s ease;
+      position:relative;
     }
     body.poolClosed .wrap{ grid-template-columns: 0px 1fr; }
 
@@ -126,7 +127,7 @@
     body.poolClosed .poolPanel{
       transform: translateX(calc(-330px - 14px));
       opacity: 0;
-      pointer-events:none;
+      /* WICHTIG: nicht pointer-events:none, sonst kann der Toggle nie wieder geklickt werden */
     }
 
     .panelHeader{
@@ -153,15 +154,15 @@
       overflow:auto;
     }
 
-    /* Pool Toggle am rechten Rand, bewegt sich mit */
+    /* Pool Toggle - Look wie Screenshot */
     .poolEdgeToggle{
       position:absolute;
       right:-12px;
       top: 50%;
       transform: translateY(-50%);
-      width: 28px;
-      height: 56px;
-      border-radius: 14px;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
       border:1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.28);
       backdrop-filter: blur(10px);
@@ -171,28 +172,48 @@
       justify-content:center;
       cursor:pointer;
       user-select:none;
-      z-index: 5;
+      z-index: 50;
       transition: .15s;
     }
     .poolEdgeToggle:hover{
       background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.18);
     }
+
+    /* Chevron (links/rechts) */
     .poolEdgeToggle .chev{
-      width:14px;height:14px; position:relative;
-      transition: transform .22s ease;
+      width: 14px;
+      height: 14px;
+      position:relative;
+      transform: translateX(-1px);
     }
-    .poolEdgeToggle .chev:before, .poolEdgeToggle .chev:after{
+    .poolEdgeToggle .chev:before,
+    .poolEdgeToggle .chev:after{
       content:"";
       position:absolute;
-      width:9px;height:2px;border-radius:2px;
-      background: rgba(255,255,255,0.78);
+      width:10px;
+      height:2px;
+      border-radius:2px;
+      background: rgba(255,255,255,0.85);
       top:6px;
       left:2px;
     }
     .poolEdgeToggle .chev:before{ transform: rotate(45deg); }
     .poolEdgeToggle .chev:after{ transform: rotate(-45deg); }
-    body.poolClosed .poolEdgeToggle .chev{ transform: rotate(180deg); }
+
+    /* Wenn Pool zu: Toggle als fixed Button am linken Bildschirmrand (damit wieder öffnen möglich ist) */
+    body.poolClosed .poolEdgeToggle{
+      position: fixed;
+      left: 10px;
+      right: auto;
+      top: calc(64px + (100vh - 64px)/2);
+      transform: translateY(-50%);
+      z-index: 200;
+    }
+    /* Pfeilrichtung drehen wenn geschlossen */
+    body.poolClosed .poolEdgeToggle .chev{
+      transform: translateX(1px) rotate(180deg);
+    }
 
     .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
     input, select{
@@ -667,7 +688,7 @@
       return msg;
     }
 
-    // Ränge exakt wie vorgegeben
+    // Ränge exakt wie vorgegeben (Fallback falls rank_abbr leer ist)
     const RANK_MAP = new Map([
       ["chief of police","CoP"],
       ["deputy chief","DC"],
@@ -692,9 +713,15 @@
     function getDienstnummer(o){
       return o.badge_number ?? o.dienstnummer ?? o.badge ?? o.callsign_number ?? "";
     }
+
+    // ✅ Nimmt jetzt PRIMÄR officers.rank_abbr aus Supabase
     function getRankAbbrev(o){
+      const fromTable = (o.rank_abbr ?? "").toString().trim();
+      if(fromTable) return fromTable;
+
       const direct = (o.rank_short ?? o.rank_abbrev ?? o.rank_code ?? "");
       if(direct) return String(direct);
+
       const n = String(o.rank_name ?? o.rank ?? "").trim();
       if(!n) return "";
       return RANK_MAP.get(n.toLowerCase()) || "";
@@ -702,7 +729,8 @@
 
     function officerCardHTML(o, isLeader=false){
       const name = escapeHtml(o.name || "Unbekannt");
-      const dn = escapeHtml(String(getDienstnummer(o) || ""));
+      const dnRaw = String(getDienstnummer(o) || "");
+      const dn = escapeHtml(dnRaw);
       const rankAbbrev = escapeHtml(String(getRankAbbrev(o) || ""));
       const officerIdStr = escapeHtml(idToStr(o.id));
 
@@ -714,7 +742,7 @@
               <div class="oName">${name}</div>
               <div class="oMeta">
                 <span class="badgeBox">
-                  ${dn ? `<span class="tag dn">${dn}</span>` : ``}
+                  ${dn ? `<span class="tag dn">DN ${dn}</span>` : ``}
                   ${rankAbbrev ? `<span class="tag rank">${rankAbbrev}</span>` : ``}
                   ${isLeader ? `<span class="tag lead">Leitung</span>` : ``}
                 </span>
@@ -730,7 +758,13 @@
       const name = escapeHtml(d.name || "Abteilung");
 
       const leaderIdStr = idToStr(d.leader_officer_id);
-      const members = officers.filter(o => idToStr(o.department_id) === deptIdStr);
+
+      // ✅ Mitglieder nach DN sortieren
+      const members = officers
+        .filter(o => idToStr(o.department_id) === deptIdStr)
+        .slice()
+        .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
+
       const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
 
       const leaderOptions = [
