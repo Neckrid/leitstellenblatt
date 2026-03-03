@@ -9,682 +9,683 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: Arial, Helvetica, sans-serif;
-      color:#fff;
-      overflow:hidden;
-      background:
-        radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
-        radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-        radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
-        linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
-    }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    color:#fff;
+    overflow:hidden;
+    background:
+      radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
+      radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
+      radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
+      linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
+  }
 
+  :root{
+    /* ✅ Header flush (kein Rand oben/seitlich) */
+    --hdrTop: 0px;           /* vorher 12px */
+    --hdrH: 58px;            /* wie Verwaltungsheader */
+    --hdrPadX: 0px;          /* vorher 14px */
+    --appTopPad: calc(var(--hdrH) + 12px); /* vorher: calc(var(--hdrTop) + var(--hdrH) + 12px) */
+  }
+
+  /* ========= LOGIN OVERLAY ========= */
+  .loginOverlay{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:999;
+    background:
+      radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
+      radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
+      radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
+      rgba(0,0,0,0.55);
+    backdrop-filter: blur(10px);
+  }
+  .loginCard{
+    width:min(560px, 100%);
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(14, 18, 28, 0.70);
+    backdrop-filter: blur(12px);
+    border-radius:22px;
+    box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+    overflow:hidden;
+  }
+  .loginHeader{
+    padding:16px 16px 14px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .loginTitleWrap{ line-height:1.1; min-width:0; }
+  .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
+  .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .loginBody{ padding:16px; }
+  .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
+
+  /* ========= GLOBAL TOP HEADER (EXAKT wie Verwaltungsseite – Größen/Spacing) ========= */
+  .topHeader{
+    position:fixed;
+    left:0;                 /* ✅ flush */
+    right:0;                /* ✅ flush */
+    top:0;                  /* ✅ flush */
+    height:var(--hdrH);
+    z-index:900;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(14, 18, 28, 0.55);
+    backdrop-filter: blur(10px);
+    border-radius:0;        /* ✅ keine Rundung am Screen-Rand */
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    display:flex;
+    align-items:center;
+    padding:12px 14px;
+    gap:14px;
+    overflow:hidden;
+  }
+  .topHeaderLeft{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+    flex:1 1 auto;
+  }
+  .topHeaderText{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+    min-width:0;
+  }
+  .topHeaderTitle{
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:0.3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .topHeaderSub{
+    font-size:11px;
+    opacity:0.72;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    margin-top:2px;
+  }
+  .topHeaderRight{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:nowrap;
+    justify-content:flex-end;
+    flex:0 0 auto;
+  }
+
+  /* ========= APP GRID (collapsible left/right) ========= */
+  .app{
+    height:100%;
+    display:grid;
+    gap:14px;
+    padding:14px;
+    padding-top: var(--appTopPad);
+    grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
+    transition: grid-template-columns .25s ease;
+  }
+  .app.leftCollapsed{ --leftW: 0px; }
+  .app.rightCollapsed{ --rightW: 0px; }
+
+  .panel{
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(14, 18, 28, 0.55);
+    backdrop-filter: blur(10px);
+    border-radius:18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    min-width:0;
+    position:relative;
+  }
+
+  .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
+  .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+  .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
+
+  .panelHeader{
+    padding:14px 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    min-width:0;
+  }
+  /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
+  #panelLeft .panelHeader{ padding-right:64px; }
+  #panelRight .panelHeader{ padding-left:72px; }
+  #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
+
+  .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
+  .badge{
+    height:34px;
+    width:auto;
+    min-width:34px;
+    padding:0 12px;
+    border-radius:12px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
+    border:1px solid rgba(255,255,255,0.16);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    font-weight:900;
+    letter-spacing:0.5px;
+    white-space:nowrap;
+    font-size:12px;
+    flex:0 0 auto;
+  }
+  .titleWrap{ line-height:1.05; min-width:0; }
+  .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .content{ padding:14px; overflow:auto; min-height:0; }
+
+  .row{ display:flex; gap:10px; }
+  .field{
+    background: rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:14px;
+    padding:10px;
+  }
+  label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
+  input, select, textarea{
+    width:100%;
+    background: rgba(0,0,0,0.25);
+    border:1px solid rgba(255,255,255,0.12);
+    color:#fff;
+    border-radius:12px;
+    padding:10px 10px;
+    outline:none;
+    font-size:14px;
+  }
+  textarea{ resize:vertical; min-height:120px; }
+
+  .btn{
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    color:#fff;
+    padding:10px 12px;
+    border-radius:14px;
+    cursor:pointer;
+    font-weight:700;
+    letter-spacing:0.2px;
+    transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+    user-select:none;
+    white-space:nowrap;
+    height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.12); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  .btnPrimary{
+    background: linear-gradient(135deg, rgba(0,255,195,0.22), rgba(0,140,255,0.18));
+    border-color: rgba(0,255,195,0.25);
+  }
+  .btnDanger{
+    background: linear-gradient(135deg, rgba(255,70,180,0.18), rgba(255,70,70,0.16));
+    border-color: rgba(255,70,180,0.25);
+  }
+  .btnGhost{ background: transparent; }
+
+  .btnLogoutRed{
+    background: linear-gradient(135deg, rgba(255,70,70,0.18), rgba(255,70,180,0.14));
+    border-color: rgba(255,70,70,0.28);
+  }
+  .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
+
+  .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
+  .btnIcon{ width:44px; padding:0; font-size:18px; line-height:1; }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    font-size:12px;
+    opacity:0.92;
+    white-space:nowrap;
+    flex:0 0 auto;
+  }
+
+  .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+    flex:0 0 auto;
+  }
+  .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
+  .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
+  .dot.red{ background: rgba(255,70,70,0.95); box-shadow: 0 0 0 3px rgba(255,70,70,0.14), 0 0 18px rgba(255,70,70,0.30); }
+
+  .muted{ opacity:0.75; font-size:12px; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(260px, 1fr));
+    gap:14px;
+  }
+  @media (max-width: 1500px){
+    .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  }
+  @media (max-width: 1100px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  .card{
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.05);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+    min-width:0;
+  }
+
+  .cardHeader{
+    padding:12px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .patrolDrag{
+    cursor:grab;
+    user-select:none;
+    padding:6px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+    font-weight:900;
+    opacity:0.9;
+    line-height:1;
+  }
+  .patrolDrag:active{ cursor:grabbing; }
+
+  .patrolName{
+    font-weight:900;
+    letter-spacing:0.4px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:180px;
+    flex: 1 1 180px;
+  }
+  .patrolName input{
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    letter-spacing:0.3px;
+    width:100%;
+    min-width:0;
+  }
+
+  .statusSelect{
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    letter-spacing:0.2px;
+    width:auto;
+    flex: 0 1 220px;
+    min-width:160px;
+    height:44px;
+  }
+  @media (max-width: 900px){
+    .statusSelect{ flex: 1 1 100%; }
+  }
+
+  .cardBody{ padding:12px; }
+
+  .dropZone{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height: 52px;
+  }
+
+  .officerLine{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.18);
+    transition: border-color .15s ease, background .15s ease, transform .08s ease;
+  }
+  .officerLine.clickable{ cursor:pointer; }
+  .officerLine.selected{
+    border-color: rgba(0,255,195,0.35);
+    background: rgba(0,255,195,0.07);
+  }
+
+  .dragHandle{
+    cursor:grab;
+    user-select:none;
+    padding:6px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+    font-weight:900;
+    opacity:0.9;
+    align-self: stretch;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dragHandle:active{ cursor:grabbing; }
+
+  .rightBox h3{
+    margin:0 0 10px 0;
+    font-size:13px;
+    letter-spacing:0.6px;
+    opacity:0.9;
+  }
+  .codeList{ display:flex; flex-direction:column; gap:8px; }
+  .codeRow{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.04);
+  }
+  .codeRow b{ font-size:12px; white-space:nowrap; }
+  .codeRow span{ font-size:12px; opacity:0.82; }
+
+  .topActions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(10,12,18,0.72);
+    backdrop-filter: blur(10px);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    font-size:13px;
+    z-index:998;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+
+  .officerLine .btnBack{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .officerLine:hover .btnBack{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
+
+  .cardHeader .btnDanger{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .card:hover .cardHeader .btnDanger{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
+
+  .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
+  .sortable-chosen{ cursor:grabbing; }
+
+  /* ========= Dock / Toggle Buttons ========= */
+  .dockBtn{
+    position:absolute;
+    top:12px;
+    width:34px;
+    height:34px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    transition: transform .08s ease, background .2s ease, opacity .2s ease;
+    z-index:5;
+  }
+  .dockBtn:hover{ background: rgba(255,255,255,0.12); }
+  .dockBtn:active{ transform: translateY(1px); }
+  #btnToggleLeft{ right:12px; }
+  #btnToggleRight{ left:12px; }
+
+  /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
+  .edgeBtn{
+    position:fixed;
+    top: calc(var(--appTopPad) + 12px);
+    width:36px;
+    height:42px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    z-index:950;
+    transition: background .2s ease, transform .08s ease;
+  }
+  .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
+  .edgeBtn:active{ transform: translateY(1px); }
+  #edgeLeft{ left:10px; }
+  #edgeRight{ right:10px; }
+  .app.leftCollapsed ~ #edgeLeft{ display:flex; }
+  .app.rightCollapsed ~ #edgeRight{ display:flex; }
+
+  @media (max-width: 1200px){
+    body{ overflow:auto; }
     :root{
-      --hdrTop: 12px;
-      --hdrH: 58px;           /* wie Verwaltungsheader (leicht höher, “sauber”) */
-      --hdrPadX: 14px;
-      --appTopPad: calc(var(--hdrTop) + var(--hdrH) + 12px);
+      --hdrTop: 0px;
+      --hdrH: 58px;
+      --hdrPadX: 0px;
+      --appTopPad: calc(var(--hdrH) + 10px);
     }
+    .app{ height:auto; grid-template-columns: 1fr; }
+    #btnToggleLeft, #btnToggleRight{ display:none; }
+    #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
+  }
 
-    /* ========= LOGIN OVERLAY ========= */
-    .loginOverlay{
-      position:fixed;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:999;
-      background:
-        radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
-        radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
-        radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
-        rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px);
-    }
-    .loginCard{
-      width:min(560px, 100%);
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(14, 18, 28, 0.70);
-      backdrop-filter: blur(12px);
-      border-radius:22px;
-      box-shadow: 0 18px 70px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    .loginHeader{
-      padding:16px 16px 14px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-    .loginTitleWrap{ line-height:1.1; min-width:0; }
-    .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
-    .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .loginBody{ padding:16px; }
-    .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
+  /* ========= Collapsible "Beamter erstellen" ========= */
+  .collapseCard{ padding:0; overflow:hidden; }
+  .collapseHead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .collapseHead .collapseTitle{
+    font-size:12px;
+    opacity:0.85;
+    font-weight:800;
+    letter-spacing:0.4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .chev{
+    width:32px; height:32px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    transition: transform .18s ease, background .2s ease;
+    flex:0 0 auto;
+  }
+  .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
+  .collapseBody{
+    padding:0 10px 10px 10px;
+    transform-origin: top;
+    transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
+    max-height: 520px;
+    opacity:1;
+    transform: translateY(0);
+  }
+  .collapsedUp .collapseBody{
+    max-height:0px;
+    opacity:0;
+    transform: translateY(-6px);
+    padding-bottom:0;
+  }
+  .collapsedUp .chev{ transform: rotate(-90deg); }
 
-    /* ========= GLOBAL TOP HEADER (EXAKT wie Verwaltungsseite – Größen/Spacing) ========= */
-    .topHeader{
-      position:fixed;
-      left:var(--hdrPadX);
-      right:var(--hdrPadX);
-      top:var(--hdrTop);
-      height:var(--hdrH);
-      z-index:900;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(14, 18, 28, 0.55);
-      backdrop-filter: blur(10px);
-      border-radius:18px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
-      display:flex;
-      align-items:center;
-      padding:12px 14px;
-      gap:14px;
-      overflow:hidden;
-    }
-    .topHeaderLeft{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      min-width:0;
-      flex:1 1 auto;
-    }
-    .topHeaderText{
-      display:flex;
-      flex-direction:column;
-      line-height:1.05;
-      min-width:0;
-    }
-    .topHeaderTitle{
-      font-size:15px;
-      font-weight:900;
-      letter-spacing:0.3px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .topHeaderSub{
-      font-size:11px;
-      opacity:0.72;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      margin-top:2px;
-    }
-    .topHeaderRight{
-      margin-left:auto;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:nowrap;
-      justify-content:flex-end;
-      flex:0 0 auto;
-    }
+  .createActions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
 
-    /* ========= APP GRID (collapsible left/right) ========= */
-    .app{
-      height:100%;
-      display:grid;
-      gap:14px;
-      padding:14px;
-      padding-top: var(--appTopPad);
-      grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
-      transition: grid-template-columns .25s ease;
-    }
-    .app.leftCollapsed{ --leftW: 0px; }
-    .app.rightCollapsed{ --rightW: 0px; }
+  /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
+  #btnDeleteOfficer{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .createActions:hover #btnDeleteOfficer.show{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
 
-    .panel{
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(14, 18, 28, 0.55);
-      backdrop-filter: blur(10px);
-      border-radius:18px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      min-width:0;
-      position:relative;
-    }
+  /* ========= MODAL ========= */
+  .modalOverlay{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:1000;
+    background:
+      radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
+      radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
+      rgba(0,0,0,0.62);
+    backdrop-filter: blur(10px);
+  }
+  .modalCard{
+    width:min(520px, 100%);
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(14, 18, 28, 0.78);
+    backdrop-filter: blur(12px);
+    border-radius:22px;
+    box-shadow: 0 18px 70px rgba(0,0,0,0.60);
+    overflow:hidden;
+  }
+  .modalHeader{
+    padding:14px 16px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .modalTitle{
+    font-size:13px;
+    font-weight:900;
+    letter-spacing:0.5px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .modalBody{ padding:16px; }
+  .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
+  .modalHint{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.22);
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .modalHint .dot{ margin-top:3px; }
+  .modalFooter{
+    padding:14px 16px 16px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+  .modalCloseX{
+    width:40px; height:40px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    transition: background .2s ease, transform .08s ease;
+    flex:0 0 auto;
+  }
+  .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+  .modalCloseX:active{ transform: translateY(1px); }
 
-    .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-    .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
-    .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
-
-    .panelHeader{
-      padding:14px 14px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      min-width:0;
-    }
-    /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
-    #panelLeft .panelHeader{ padding-right:64px; }
-    #panelRight .panelHeader{ padding-left:72px; }
-    #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
-
-    .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-    .badge{
-      height:34px;
-      width:auto;
-      min-width:34px;
-      padding:0 12px;
-      border-radius:12px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
-      border:1px solid rgba(255,255,255,0.16);
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      font-weight:900;
-      letter-spacing:0.5px;
-      white-space:nowrap;
-      font-size:12px;
-      flex:0 0 auto;
-    }
-    .titleWrap{ line-height:1.05; min-width:0; }
-    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    .content{ padding:14px; overflow:auto; min-height:0; }
-
-    .row{ display:flex; gap:10px; }
-    .field{
-      background: rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:14px;
-      padding:10px;
-    }
-    label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
-    input, select, textarea{
-      width:100%;
-      background: rgba(0,0,0,0.25);
-      border:1px solid rgba(255,255,255,0.12);
-      color:#fff;
-      border-radius:12px;
-      padding:10px 10px;
-      outline:none;
-      font-size:14px;
-    }
-    textarea{ resize:vertical; min-height:120px; }
-
-    .btn{
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.08);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:14px;
-      cursor:pointer;
-      font-weight:700;
-      letter-spacing:0.2px;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
-      user-select:none;
-      white-space:nowrap;
-      height:44px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .btn:hover{ background: rgba(255,255,255,0.12); }
-    .btn:active{ transform: translateY(1px); }
-    .btn:disabled{ opacity:0.45; cursor:not-allowed; }
-
-    .btnPrimary{
-      background: linear-gradient(135deg, rgba(0,255,195,0.22), rgba(0,140,255,0.18));
-      border-color: rgba(0,255,195,0.25);
-    }
-    .btnDanger{
-      background: linear-gradient(135deg, rgba(255,70,180,0.18), rgba(255,70,70,0.16));
-      border-color: rgba(255,70,180,0.25);
-    }
-    .btnGhost{ background: transparent; }
-
-    .btnLogoutRed{
-      background: linear-gradient(135deg, rgba(255,70,70,0.18), rgba(255,70,180,0.14));
-      border-color: rgba(255,70,70,0.28);
-    }
-    .btnLogoutRed:hover{ background: linear-gradient(135deg, rgba(255,70,70,0.24), rgba(255,70,180,0.18)); }
-
-    .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
-    .btnIcon{ width:44px; padding:0; font-size:18px; line-height:1; }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      font-size:12px;
-      opacity:0.92;
-      white-space:nowrap;
-      flex:0 0 auto;
-    }
-
-    .dot{
-      width:10px; height:10px; border-radius:50%;
-      background: rgba(255,255,255,0.3);
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
-      flex:0 0 auto;
-    }
-    .dot.on{ background: rgba(0,255,195,0.95); box-shadow: 0 0 0 3px rgba(0,255,195,0.12), 0 0 18px rgba(0,255,195,0.35); }
-    .dot.off{ background: rgba(255,70,180,0.90); box-shadow: 0 0 0 3px rgba(255,70,180,0.12), 0 0 18px rgba(255,70,180,0.28); }
-    .dot.red{ background: rgba(255,70,70,0.95); box-shadow: 0 0 0 3px rgba(255,70,70,0.14), 0 0 18px rgba(255,70,70,0.30); }
-
-    .muted{ opacity:0.75; font-size:12px; }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(260px, 1fr));
-      gap:14px;
-    }
-    @media (max-width: 1500px){
-      .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-    }
-    @media (max-width: 1100px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-
-    .card{
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
-      min-width:0;
-    }
-
-    .cardHeader{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .patrolDrag{
-      cursor:grab;
-      user-select:none;
-      padding:6px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      font-weight:900;
-      opacity:0.9;
-      line-height:1;
-    }
-    .patrolDrag:active{ cursor:grabbing; }
-
-    .patrolName{
-      font-weight:900;
-      letter-spacing:0.4px;
-      font-size:13px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:180px;
-      flex: 1 1 180px;
-    }
-    .patrolName input{
-      padding:8px 10px;
-      border-radius:12px;
-      font-weight:800;
-      letter-spacing:0.3px;
-      width:100%;
-      min-width:0;
-    }
-
-    .statusSelect{
-      padding:8px 10px;
-      border-radius:12px;
-      font-weight:800;
-      letter-spacing:0.2px;
-      width:auto;
-      flex: 0 1 220px;
-      min-width:160px;
-      height:44px;
-    }
-    @media (max-width: 900px){
-      .statusSelect{ flex: 1 1 100%; }
-    }
-
-    .cardBody{ padding:12px; }
-
-    .dropZone{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      min-height: 52px;
-    }
-
-    .officerLine{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.18);
-      transition: border-color .15s ease, background .15s ease, transform .08s ease;
-    }
-    .officerLine.clickable{ cursor:pointer; }
-    .officerLine.selected{
-      border-color: rgba(0,255,195,0.35);
-      background: rgba(0,255,195,0.07);
-    }
-
-    .dragHandle{
-      cursor:grab;
-      user-select:none;
-      padding:6px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      font-weight:900;
-      opacity:0.9;
-      align-self: stretch;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .dragHandle:active{ cursor:grabbing; }
-
-    .rightBox h3{
-      margin:0 0 10px 0;
-      font-size:13px;
-      letter-spacing:0.6px;
-      opacity:0.9;
-    }
-    .codeList{ display:flex; flex-direction:column; gap:8px; }
-    .codeRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-    }
-    .codeRow b{ font-size:12px; white-space:nowrap; }
-    .codeRow span{ font-size:12px; opacity:0.82; }
-
-    .topActions{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(10,12,18,0.72);
-      backdrop-filter: blur(10px);
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .2s ease, transform .2s ease;
-      font-size:13px;
-      z-index:998;
-    }
-    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
-
-    .officerLine .btnBack{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .officerLine:hover .btnBack{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
-
-    .cardHeader .btnDanger{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .card:hover .cardHeader .btnDanger{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
-
-    .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
-    .sortable-chosen{ cursor:grabbing; }
-
-    /* ========= Dock / Toggle Buttons ========= */
-    .dockBtn{
-      position:absolute;
-      top:12px;
-      width:34px;
-      height:34px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      font-weight:900;
-      transition: transform .08s ease, background .2s ease, opacity .2s ease;
-      z-index:5;
-    }
-    .dockBtn:hover{ background: rgba(255,255,255,0.12); }
-    .dockBtn:active{ transform: translateY(1px); }
-    #btnToggleLeft{ right:12px; }
-    #btnToggleRight{ left:12px; }
-
-    /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
-    .edgeBtn{
-      position:fixed;
-      top: calc(var(--appTopPad) + 12px);
-      width:36px;
-      height:42px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      font-weight:900;
-      z-index:950;
-      transition: background .2s ease, transform .08s ease;
-    }
-    .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
-    .edgeBtn:active{ transform: translateY(1px); }
-    #edgeLeft{ left:10px; }
-    #edgeRight{ right:10px; }
-    .app.leftCollapsed ~ #edgeLeft{ display:flex; }
-    .app.rightCollapsed ~ #edgeRight{ display:flex; }
-
-    @media (max-width: 1200px){
-      body{ overflow:auto; }
-      :root{
-        --hdrTop: 10px;
-        --hdrH: 58px;
-        --hdrPadX: 10px;
-        --appTopPad: calc(var(--hdrTop) + var(--hdrH) + 10px);
-      }
-      .app{ height:auto; grid-template-columns: 1fr; }
-      #btnToggleLeft, #btnToggleRight{ display:none; }
-      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
-    }
-
-    /* ========= Collapsible "Beamter erstellen" ========= */
-    .collapseCard{ padding:0; overflow:hidden; }
-    .collapseHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 10px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .collapseHead .collapseTitle{
-      font-size:12px;
-      opacity:0.85;
-      font-weight:800;
-      letter-spacing:0.4px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .chev{
-      width:32px; height:32px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      transition: transform .18s ease, background .2s ease;
-      flex:0 0 auto;
-    }
-    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
-    .collapseBody{
-      padding:0 10px 10px 10px;
-      transform-origin: top;
-      transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-      max-height: 520px;
-      opacity:1;
-      transform: translateY(0);
-    }
-    .collapsedUp .collapseBody{
-      max-height:0px;
-      opacity:0;
-      transform: translateY(-6px);
-      padding-bottom:0;
-    }
-    .collapsedUp .chev{ transform: rotate(-90deg); }
-
-    .createActions{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-
-    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
-    #btnDeleteOfficer{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .createActions:hover #btnDeleteOfficer.show{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
-
-    /* ========= MODAL ========= */
-    .modalOverlay{
-      position:fixed;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:1000;
-      background:
-        radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
-        radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
-        rgba(0,0,0,0.62);
-      backdrop-filter: blur(10px);
-    }
-    .modalCard{
-      width:min(520px, 100%);
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(14, 18, 28, 0.78);
-      backdrop-filter: blur(12px);
-      border-radius:22px;
-      box-shadow: 0 18px 70px rgba(0,0,0,0.60);
-      overflow:hidden;
-    }
-    .modalHeader{
-      padding:14px 16px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-    .modalTitle{
-      font-size:13px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-    .modalBody{ padding:16px; }
-    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
-    .modalHint{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.22);
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-    }
-    .modalHint .dot{ margin-top:3px; }
-    .modalFooter{
-      padding:14px 16px 16px;
-      border-top:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-    }
-    .modalCloseX{
-      width:40px; height:40px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      transition: background .2s ease, transform .08s ease;
-      flex:0 0 auto;
-    }
-    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
-    .modalCloseX:active{ transform: translateY(1px); }
-
-    /* Role hide */
-    .hideCreateCard #createCard{ display:none !important; }
-  </style>
+  /* Role hide */
+  .hideCreateCard #createCard{ display:none !important; }
+</style>
 </head>
 
 <body>
