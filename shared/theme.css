@@ -1,68 +1,73 @@
 /* ============================= */
-/* PANELS / BOXES → wie Header   */
+/* LSPD PREMIUM BOX STYLE       */
+/* (Passend zum Header-Glas)    */
 /* ============================= */
 
-/* Optional: einheitliche Glass-Fläche als Variable */
-:root{
-  --glassA: rgba(255,255,255,0.08);
-  --glassB: rgba(255,255,255,0.03);
-  --boxBg: rgba(10, 12, 18, 0.58);      /* dunkler Grund */
-  --boxBg2: rgba(10, 12, 18, 0.42);     /* fürs innen */
-}
-
-/* Hauptboxen (links/center/right) */
+/* Hauptbereiche (Links / Center / Rechts) */
 .panel{
-  border:1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
   background:
-    linear-gradient(180deg, var(--glassA), var(--glassB)),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
     rgba(10,12,18,0.62);
   backdrop-filter: blur(10px);
-  border-radius:18px;
-  box-shadow: var(--shadow2);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 18px 40px rgba(0,0,0,0.35);
 }
 
-/* Sub-Boxen / Felder innerhalb */
+/* Unterboxen / Felder */
 .field{
-  border:1px solid rgba(255,255,255,0.10);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.22);
-  backdrop-filter: blur(10px);
-  border-radius:16px;
-  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
-}
-
-/* Karten (Streifen) */
-.card{
-  border:1px solid rgba(255,255,255,0.10);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.20);
-  backdrop-filter: blur(10px);
-  border-radius:18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.32);
-}
-
-/* Kleine Reihenboxen (Funcodes etc.) */
-.codeRow{
-  border:1px solid rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.18);
-  backdrop-filter: blur(8px);
-}
-
-/* Officer Zeilen (Pool + Streife) – mehr “Glass” wie Header */
-.officerLine{
-  border:1px solid rgba(255,255,255,0.10);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.20);
+    rgba(0,0,0,0.28);
   backdrop-filter: blur(10px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 14px 34px rgba(0,0,0,0.28);
 }
 
-/* Optional: Header-Trennlinie in Box-Headers etwas stärker */
+/* Streifen-Karten */
+.card{
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 20px 44px rgba(0,0,0,0.35);
+}
+
+/* Kleine Info-Zeilen (Funcodes etc.) */
+.codeRow{
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.20);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+
+/* Officer-Zeilen (Pool + Streife) */
+.officerLine{
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+/* Header-Trennlinien in Panels */
 .panelHeader,
 .cardHeader{
-  border-bottom:1px solid rgba(255,255,255,0.10);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
 }
