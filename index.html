@@ -8,86 +8,41 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- ✅ Theme einbinden -->
+  <!-- ✅ Global Theme -->
   <link rel="stylesheet" href="shared/theme.css"/>
+
+  <!-- ✅ Global Layout (injects header + login) -->
+  <script src="shared/layout.js"></script>
 
   <style>
     /* =========================================================
-       LEITSTELLENBLATT – PAGE CSS (nur das Nötigste)
-       Alles wiederverwendbare ist in shared/theme.css
+       LEITSTELLENBLATT – PAGE CSS ONLY
+       (Theme.css ist Master für Look & Feel)
        ========================================================= */
+
+    /* ✅ Nur noch page-spezifische Layout-Kleinigkeiten */
 
     /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
     #panelLeft .panelHeader{ padding-right:64px; }
     #panelRight .panelHeader{ padding-left:72px; }
     #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
-    /* Kleine Layout-Details, die in theme.css noch nicht drin sind */
-    .field{ padding:12px; }
+    /* Dock positions (page-specific IDs) */
+    #btnToggleLeft{ right:12px; }
+    #btnToggleRight{ left:12px; }
+    #edgeLeft{ left:10px; }
+    #edgeRight{ right:10px; }
 
-    .codeRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 10px;
-    }
-    .codeRow b{ font-size:12px; white-space:nowrap; }
-    .codeRow span{ font-size:12px; opacity:0.82; }
-
+    /* Responsive: Dock buttons ausblenden wie vorher */
     @media (max-width: 1200px){
+      #btnToggleLeft, #btnToggleRight{ display:none; }
       #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
     }
   </style>
 </head>
 
 <body>
-  <!-- LOGIN -->
-  <div class="loginOverlay" id="loginOverlay" style="display:none;">
-    <div class="loginCard">
-      <div class="loginHeader">
-        <div class="brand">
-          <div class="badge">LSPD</div>
-          <div class="loginTitleWrap">
-            <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Bitte anmelden</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="loginBody">
-        <label>Name</label>
-        <input id="inpLoginName" placeholder="Name" autocomplete="username" />
-        <div style="height:10px"></div>
-        <label>Passwort</label>
-        <input id="inpLoginPw" type="password" placeholder="Passwort" autocomplete="current-password" />
-        <div class="loginErr" id="loginErr">—</div>
-        <div style="height:12px"></div>
-        <div class="row">
-          <button class="btn btnPrimary" id="btnLogin" type="button">Login</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- GLOBAL HEADER -->
-  <header class="topHeader" id="topHeader" style="display:none;">
-    <div class="topHeaderLeft">
-      <div class="badge">LSPD</div>
-      <div class="topHeaderText">
-        <div class="topHeaderTitle">LSPD Leitstelle</div>
-        <div class="topHeaderSub">Leitstellenblatt</div>
-      </div>
-    </div>
-
-    <div class="topHeaderRight">
-      <span class="pill" title="Leitstelle Online/Offline">
-        <span class="dot off" id="connDot"></span>
-        <span id="connText">Leitstelle</span>
-      </span>
-      <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
-    </div>
-  </header>
+  <!-- ✅ Header + Login kommen jetzt aus shared/partials/* via layout.js -->
 
   <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
@@ -262,7 +217,7 @@
      * CONFIG
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
@@ -376,60 +331,80 @@
     }
 
     /***********************
-     * DOM
+     * DOM (loaded after layout injected)
      ***********************/
-    const app = document.getElementById("app");
-    const topHeader = document.getElementById("topHeader");
-    const loginOverlay = document.getElementById("loginOverlay");
-    const inpLoginName = document.getElementById("inpLoginName");
-    const inpLoginPw = document.getElementById("inpLoginPw");
-    const btnLogin = document.getElementById("btnLogin");
-    const loginErr = document.getElementById("loginErr");
+    let app;
 
-    const btnToggleLeft = document.getElementById("btnToggleLeft");
-    const btnToggleRight = document.getElementById("btnToggleRight");
-    const edgeLeft = document.getElementById("edgeLeft");
-    const edgeRight = document.getElementById("edgeRight");
+    // From login partial
+    let inpLoginName, inpLoginPw, btnLogin;
 
-    const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText");
-    const toastEl = document.getElementById("toast");
+    // Header partial IDs (optional use)
+    // (connDot/connText exist in header.html, but we now drive them via UI.setPresenceState)
 
-    const inpName = document.getElementById("inpName");
-    const inpDienstnr = document.getElementById("inpDienstnr");
-    const selRank = document.getElementById("selRank");
-    const btnCreateOfficer = document.getElementById("btnCreateOfficer");
-    const btnRemember = document.getElementById("btnRemember");
-    const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
-    const meHint = document.getElementById("meHint");
+    // Page DOM
+    let btnToggleLeft, btnToggleRight, edgeLeft, edgeRight;
+    let toastEl;
 
-    const inpSearch = document.getElementById("inpSearch");
-    const createdList = document.getElementById("createdList");
-    const createdCount = document.getElementById("createdCount");
+    let inpName, inpDienstnr, selRank, btnCreateOfficer, btnRemember, btnDeleteOfficer, meHint;
+    let inpSearch, createdList, createdCount;
+    let patrolGrid, btnAddPatrol, onDutyCountEl;
+    let txtNotes, noteStatus, funcodeList;
 
-    const patrolGrid = document.getElementById("patrolGrid");
-    const btnAddPatrol = document.getElementById("btnAddPatrol");
-    const onDutyCountEl = document.getElementById("onDutyCount");
+    let createCard, createToggle, createMiniHint;
 
-    const txtNotes = document.getElementById("txtNotes");
-    const noteStatus = document.getElementById("noteStatus");
+    let confirmOverlay, confirmText, confirmClose, confirmCancel, confirmDelete;
 
-    const funcodeList = document.getElementById("funcodeList");
+    function cacheDom(){
+      app = document.getElementById("app");
 
-    const createCard = document.getElementById("createCard");
-    const createToggle = document.getElementById("createToggle");
-    const createMiniHint = document.getElementById("createMiniHint");
+      inpLoginName = document.getElementById("inpLoginName");
+      inpLoginPw   = document.getElementById("inpLoginPw");
+      btnLogin     = document.getElementById("btnLogin");
 
-    const confirmOverlay = document.getElementById("confirmOverlay");
-    const confirmText = document.getElementById("confirmText");
-    const confirmClose = document.getElementById("confirmClose");
-    const confirmCancel = document.getElementById("confirmCancel");
-    const confirmDelete = document.getElementById("confirmDelete");
+      btnToggleLeft  = document.getElementById("btnToggleLeft");
+      btnToggleRight = document.getElementById("btnToggleRight");
+      edgeLeft  = document.getElementById("edgeLeft");
+      edgeRight = document.getElementById("edgeRight");
+
+      toastEl = document.getElementById("toast");
+
+      inpName = document.getElementById("inpName");
+      inpDienstnr = document.getElementById("inpDienstnr");
+      selRank = document.getElementById("selRank");
+      btnCreateOfficer = document.getElementById("btnCreateOfficer");
+      btnRemember = document.getElementById("btnRemember");
+      btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
+      meHint = document.getElementById("meHint");
+
+      inpSearch = document.getElementById("inpSearch");
+      createdList = document.getElementById("createdList");
+      createdCount = document.getElementById("createdCount");
+
+      patrolGrid = document.getElementById("patrolGrid");
+      btnAddPatrol = document.getElementById("btnAddPatrol");
+      onDutyCountEl = document.getElementById("onDutyCount");
+
+      txtNotes = document.getElementById("txtNotes");
+      noteStatus = document.getElementById("noteStatus");
+
+      funcodeList = document.getElementById("funcodeList");
+
+      createCard = document.getElementById("createCard");
+      createToggle = document.getElementById("createToggle");
+      createMiniHint = document.getElementById("createMiniHint");
+
+      confirmOverlay = document.getElementById("confirmOverlay");
+      confirmText = document.getElementById("confirmText");
+      confirmClose = document.getElementById("confirmClose");
+      confirmCancel = document.getElementById("confirmCancel");
+      confirmDelete = document.getElementById("confirmDelete");
+    }
 
     /***********************
      * HELPERS
      ***********************/
     function toast(msg){
+      if(!toastEl) return;
       toastEl.textContent = msg;
       toastEl.classList.add("show");
       setTimeout(() => toastEl.classList.remove("show"), 2200);
@@ -451,20 +426,6 @@
     function emailFromName(name){
       const key = normalizeKey(name);
       return key ? `${key}@gta.local` : "";
-    }
-
-    function showLogin(errMsg = ""){
-      loginOverlay.style.display = "flex";
-      app.style.display = "none";
-      topHeader.style.display = "none";
-      loginErr.style.display = errMsg ? "block" : "none";
-      loginErr.textContent = errMsg || "";
-      setTimeout(()=> inpLoginName.focus(), 50);
-    }
-    function hideLogin(){
-      loginOverlay.style.display = "none";
-      app.style.display = "grid";
-      topHeader.style.display = "flex";
     }
 
     function friendlyAuthError(error){
@@ -538,7 +499,7 @@
     function restorePatrolNameFocus(snapshot){
       if(!snapshot || !Number.isFinite(snapshot.id)) return;
       requestAnimationFrame(() => {
-        const inp = patrolGrid.querySelector(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
+        const inp = patrolGrid?.querySelector?.(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
         if(!inp) return;
         inp.value = snapshot.value;
         inp.focus({ preventScroll:true });
@@ -651,10 +612,6 @@
       btnToggleLeft.textContent = ui.left ? "❯" : "❮";
       btnToggleRight.textContent = ui.right ? "❮" : "❯";
     }
-    btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
 
     const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
     function loadCreateCollapsed(){ try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; } }
@@ -664,11 +621,6 @@
       createCard.classList.toggle("collapsedUp", createCollapsed);
       createMiniHint.style.display = createCollapsed ? "inline" : "none";
     }
-    createToggle.addEventListener("click", ()=>{
-      createCollapsed = !createCollapsed;
-      saveCreateCollapsed(createCollapsed);
-      applyCreateCollapsed();
-    });
 
     /***********************
      * Leitstelle Online/Offline (Presence)
@@ -676,9 +628,10 @@
     let presenceChannel = null;
 
     function setLeitstelleIndicator(isOnline){
-      connDot.classList.toggle("on", !!isOnline);
-      connDot.classList.toggle("off", !isOnline);
-      connText.textContent = "Leitstelle";
+      // ✅ Now driven through global UI helper (header partial)
+      if(window.UI?.setPresenceState){
+        window.UI.setPresenceState({ online: !!isOnline, text: "Leitstelle" });
+      }
     }
 
     function computeLeitstelleOnlineFromPresence(state){
@@ -1428,22 +1381,6 @@
       confirmOverlay.setAttribute("aria-hidden", "true");
     }
 
-    confirmClose.addEventListener("click", closeDeleteModal);
-    confirmCancel.addEventListener("click", closeDeleteModal);
-    confirmOverlay.addEventListener("click", (e)=>{ if(e.target === confirmOverlay) closeDeleteModal(); });
-    document.addEventListener("keydown", (e)=>{ if(confirmOverlay.style.display === "flex" && e.key === "Escape") closeDeleteModal(); });
-
-    confirmDelete.addEventListener("click", async ()=>{
-      if(pendingDeleteId == null) return closeDeleteModal();
-      const id = pendingDeleteId;
-      closeDeleteModal();
-      await deleteOfficer(id);
-      inpName.value = "";
-      inpDienstnr.value = "";
-      if(selRank) selRank.value = "Officer";
-      clearOfficerSelection();
-    });
-
     /***********************
      * REALTIME (✅ FIX: setAuth BEFORE subscribe)
      ***********************/
@@ -1616,11 +1553,17 @@
     /***********************
      * LOGIN / LOGOUT
      ***********************/
+    function showLogin(errMsg=""){
+      // ✅ Use global layout UI
+      window.UI?.showLogin?.(errMsg);
+    }
+    function hideLogin(){
+      window.UI?.hideLogin?.();
+    }
+
     async function doLogin(){
       const name = normalizeSpaces(inpLoginName.value);
       const pw = (inpLoginPw.value ?? "").toString();
-      loginErr.style.display = "none";
-      loginErr.textContent = "";
 
       if(!name) return showLogin("Bitte Namen eingeben.");
       if(!pw) return showLogin("Bitte Passwort eingeben.");
@@ -1663,48 +1606,6 @@
     }
 
     /***********************
-     * Events
-     ***********************/
-    inpSearch.addEventListener("input", renderCreatedPool);
-
-    btnRemember.addEventListener("click", ()=>{
-      inpName.value = "";
-      inpDienstnr.value = "";
-      if(selRank) selRank.value = "Officer";
-      meHint.textContent = "Eingaben gelöscht";
-      setTimeout(()=> meHint.textContent = "", 1500);
-      clearOfficerSelection();
-    });
-
-    btnDeleteOfficer.addEventListener("click", ()=>{
-      if(selectedOfficerId == null) return;
-      const o = officers.find(x => x.id === selectedOfficerId);
-      if(!o) return;
-      openDeleteModal(o);
-    });
-
-    txtNotes.addEventListener("input", ()=>{
-      noteStatus.textContent = "tippt…";
-      if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
-      noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
-    });
-
-    inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
-    inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
-    btnLogin.addEventListener("click", doLogin);
-
-    document.addEventListener("click", (e) => {
-      const logout = e.target.closest("#btnLogout");
-      if(logout){ e.preventDefault(); doLogout(); return; }
-
-      const add = e.target.closest("#btnAddPatrol");
-      if(add){ e.preventDefault(); addPatrol(); return; }
-
-      const save = e.target.closest("#btnCreateOfficer");
-      if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
-    }, true);
-
-    /***********************
      * TAB/FOKUS FIX + CATCHUP
      ***********************/
     let returnFromTabRunning = false;
@@ -1721,7 +1622,6 @@
         await syncRealtimeAuth();
         try{ sb.realtime.connect(); }catch{}
 
-        // ✅ falls Channels weg waren: schnell neu setzen
         if(!rtChannels.length){
           await setupRealtime();
         }
@@ -1735,37 +1635,117 @@
       }
     }
 
-    window.addEventListener("focus", () => { onReturnFromTab(); });
-
-    document.addEventListener("visibilitychange", () => {
-      if(!document.hidden){
-        onReturnFromTab();
-      }else{
-        isDragging = false;
-        pendingRender = false;
-        rtQueue = [];
-      }
-    });
-
-    window.addEventListener("pageshow", () => { onReturnFromTab(); });
-
     /***********************
-     * Single-init Guard
+     * INIT
      ***********************/
     let lastInitUserId = null;
     let loginInitRunning = false;
 
-    /***********************
-     * INIT
-     ***********************/
     (async function init(){
-      applyUi();
-      applyCreateCollapsed();
+      // ✅ Wait until header/login are injected and window.UI exists
+      if(window.__layoutReady) await window.__layoutReady;
+
+      cacheDom();
+
+      // ✅ Set global header text for this page
+      window.UI?.setHeader?.("LSPD Leitstelle", "Leitstellenblatt");
+      // Presence pill should be visible on this page
+      window.UI?.setPresenceVisible?.(true);
+      setLeitstelleIndicator(false);
+
       renderFuncodes();
       renderRankDropdown();
-      setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
+      // UI + collapse states
+      applyUi();
+      applyCreateCollapsed();
+
+      // Panel toggles
+      btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+
+      createToggle.addEventListener("click", ()=>{
+        createCollapsed = !createCollapsed;
+        saveCreateCollapsed(createCollapsed);
+        applyCreateCollapsed();
+      });
+
+      // Modal events
+      confirmClose.addEventListener("click", closeDeleteModal);
+      confirmCancel.addEventListener("click", closeDeleteModal);
+      confirmOverlay.addEventListener("click", (e)=>{ if(e.target === confirmOverlay) closeDeleteModal(); });
+      document.addEventListener("keydown", (e)=>{ if(confirmOverlay.style.display === "flex" && e.key === "Escape") closeDeleteModal(); });
+
+      confirmDelete.addEventListener("click", async ()=>{
+        if(pendingDeleteId == null) return closeDeleteModal();
+        const id = pendingDeleteId;
+        closeDeleteModal();
+        await deleteOfficer(id);
+        inpName.value = "";
+        inpDienstnr.value = "";
+        if(selRank) selRank.value = "Officer";
+        clearOfficerSelection();
+      });
+
+      // Page events
+      inpSearch.addEventListener("input", renderCreatedPool);
+
+      btnRemember.addEventListener("click", ()=>{
+        inpName.value = "";
+        inpDienstnr.value = "";
+        if(selRank) selRank.value = "Officer";
+        meHint.textContent = "Eingaben gelöscht";
+        setTimeout(()=> meHint.textContent = "", 1500);
+        clearOfficerSelection();
+      });
+
+      btnDeleteOfficer.addEventListener("click", ()=>{
+        if(selectedOfficerId == null) return;
+        const o = officers.find(x => x.id === selectedOfficerId);
+        if(!o) return;
+        openDeleteModal(o);
+      });
+
+      txtNotes.addEventListener("input", ()=>{
+        noteStatus.textContent = "tippt…";
+        if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
+        noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
+      });
+
+      inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+      inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+      btnLogin.addEventListener("click", doLogin);
+
+      document.addEventListener("click", (e) => {
+        const logout = e.target.closest("#btnLogout");
+        if(logout){ e.preventDefault(); doLogout(); return; }
+
+        const add = e.target.closest("#btnAddPatrol");
+        if(add){ e.preventDefault(); addPatrol(); return; }
+
+        const save = e.target.closest("#btnCreateOfficer");
+        if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
+      }, true);
+
+      window.addEventListener("focus", () => { onReturnFromTab(); });
+
+      document.addEventListener("visibilitychange", () => {
+        if(!document.hidden){
+          onReturnFromTab();
+        }else{
+          isDragging = false;
+          pendingRender = false;
+          rtQueue = [];
+        }
+      });
+
+      window.addEventListener("pageshow", () => { onReturnFromTab(); });
+      window.addEventListener("online", () => { onReturnFromTab(); });
+
+      // Initial auth state
       try{
         const { data } = await sb.auth.getSession();
         const session = data?.session;
@@ -1781,7 +1761,6 @@
       }
 
       sb.auth.onAuthStateChange(async (evt, session) => {
-        // ✅ SUPER WICHTIG: Token refresh -> realtime JWT updaten
         if(evt === "TOKEN_REFRESHED" && session){
           await syncRealtimeAuth();
         }
@@ -1815,8 +1794,6 @@
           showLogin("");
         }
       });
-
-      window.addEventListener("online", () => { onReturnFromTab(); });
     })();
   </script>
 </body>
