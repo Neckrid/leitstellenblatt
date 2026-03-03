@@ -2,591 +2,1304 @@
 <html lang="de">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LSPD Verwaltung</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>LSPD Leitstelle – Verwaltung</title>
 
-  <!-- Global Theme (identisch Leitstellenblatt) -->
-  <link rel="stylesheet" href="shared/theme.css"/>
-
-  <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- Shared Header/Login Loader -->
-  <script src="shared/layout.js"></script>
-
   <style>
-    /* ========================= */
-    /* Verwaltung Layout (Theme identisch) */
-    /* ========================= */
-
-    .app{
-      height:100%;
-      display:grid;
-      gap:14px;
-      padding:14px;
-      padding-top: var(--appTopPad);
-      grid-template-columns: var(--leftW, 420px) 1fr;
-      transition: grid-template-columns .25s ease;
-      min-height:0;
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      color:#fff;
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
+        radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
+        radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
+        linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
     }
-    .app.leftCollapsed{ --leftW: 0px; }
+    :root{
+      --stroke: rgba(255,255,255,0.10);
+      --shadow: 0 20px 60px rgba(0,0,0,0.55);
+      --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+      --danger: rgba(255,60,90,0.85);
+      --warn: rgba(255,200,0,0.9);
+      --ok: rgba(0,255,140,0.85);
+      --muted: rgba(255,255,255,0.75);
+      --muted2: rgba(255,255,255,0.55);
+
+      --wrapPad: 14px;
+      --gap: 14px;
+      --poolW: 330px;
+    }
+
+    .topbar{
+      height:64px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      backdrop-filter: blur(10px);
+      position:relative;
+      z-index: 50;
+    }
+    .brand{ display:flex; gap:12px; align-items:center; user-select:none; }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .brandTitle{ font-weight:700; letter-spacing:0.3px; font-size:14px; }
+    .brandSub{ font-size:12px; color: var(--muted2); margin-top:1px; }
+    .rightTop{ display:flex; gap:10px; align-items:center; }
+
+    .btn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      padding:9px 12px;
+      border-radius: 10px;
+      cursor:pointer;
+      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      font-weight:600;
+      font-size:13px;
+      line-height:1;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ border-color: rgba(0,255,195,0.25); box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30); }
+    .btn.danger{ border-color: rgba(255,60,90,0.28); background: rgba(255,60,90,0.12); }
+    .btn.danger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
+    .btn.ghost{ box-shadow:none; }
+
+    .badge{
+      display:flex; align-items:center; gap:8px;
+      padding:7px 10px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,0.35);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+    }
+    .dot.ok{ background: var(--ok); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
+    .dot.warn{ background: var(--warn); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
+
+    .wrap{
+      height: calc(100vh - 64px);
+      display:grid;
+      grid-template-columns: var(--poolW) 1fr;
+      gap: var(--gap);
+      padding: var(--wrapPad);
+      transition: grid-template-columns .22s ease;
+      position:relative;
+    }
+    body.poolClosed .wrap{ grid-template-columns: 0px 1fr; }
 
     .panel{
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(14, 18, 28, 0.55);
-      backdrop-filter: blur(10px);
-      border-radius:18px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045));
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
       overflow:hidden;
-      display:flex;
-      flex-direction:column;
       min-height:0;
-      min-width:0;
       position:relative;
     }
 
-    .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-    .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+    /* PoolPanel: kein transform -> stabil */
+    .poolPanel{ min-width:0; transition: opacity .22s ease; }
+    body.poolClosed .poolPanel{
+      opacity:0;
+      pointer-events:none;
+    }
 
     .panelHeader{
-      padding:14px 14px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
+      padding: 12px 12px 10px 12px;
+      border-bottom: 1px solid var(--stroke);
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      min-width:0;
+      position:relative;
     }
-    /* Platz für Dock-Button, damit nix überdeckt */
-    #panelLeft .panelHeader{ padding-right:64px; }
-
-    .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-    .titleWrap{ line-height:1.05; min-width:0; }
-    .title{
-      font-size:14px;
+    .panelTitle{
+      font-size:13px;
       font-weight:800;
-      letter-spacing:0.6px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      letter-spacing:0.3px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      position:relative;  /* ✅ optional stabil */
+      z-index:1;          /* ✅ optional stabil */
     }
-    .subtitle{
-      font-size:12px;
-      opacity:0.75;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .content{ padding:14px; overflow:auto; min-height:0; }
-
-    .field{
-      background: rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:14px;
-      padding:10px;
+    .panelBody{
+      padding: 12px;
+      height: calc(100% - 46px);
+      overflow:auto;
     }
 
-    .muted{ opacity:0.75; font-size:12px; }
+    /* ===== FIX: Wenn Pool eingeklappt ist, schieb "Abteilungen" + Badge nach rechts ===== */
+    body.poolClosed #deptPanel .panelHeader .panelTitle{
+      padding-left: 84px; /* ✅ größerer Abstand, damit Toggle garantiert nicht überdeckt */
+    }
 
-    /* Dock / Toggle Buttons (wie Leitstellenblatt) */
-    .dockBtn{
-      position:absolute;
-      top:12px;
-      width:34px;
-      height:34px;
-      border-radius:12px;
+    /* ===== Toggle Button (ein Element, wandert zwischen Slots) ===== */
+    .poolToggleBtn{
+      width: 44px;
+      height: 36px;
+      border-radius: 12px;
       border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.28);
       backdrop-filter: blur(10px);
+      box-shadow: 0 16px 38px rgba(0,0,0,0.45);
       display:flex;
       align-items:center;
       justify-content:center;
       cursor:pointer;
       user-select:none;
-      font-weight:900;
-      transition: transform .08s ease, background .2s ease, opacity .2s ease;
-      z-index:5;
+      transition: .15s;
+      flex: 0 0 auto;
     }
-    .dockBtn:hover{ background: rgba(255,255,255,0.12); }
-    .dockBtn:active{ transform: translateY(1px); }
-    #btnToggleLeft{ right:12px; }
-
-    .edgeBtn{
-      position:fixed;
-      top: calc(var(--appTopPad) + 12px);
-      left:10px;
-      width:36px;
-      height:42px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
+    .poolToggleBtn:hover{
       background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .poolToggleBtn .arrowTxt{
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -1px;
+      color: rgba(255,255,255,0.88);
+      transform: translateY(-1px);
+    }
+
+    /* Slot oben links (wie Leitstellenblatt) */
+    #poolToggleSlotTopLeft{
+      position: fixed;
+      left: var(--wrapPad);
+      top: calc(64px + var(--wrapPad));
+      z-index: 99999;
+      display:none; /* nur wenn poolClosed */
+    }
+    body.poolClosed #poolToggleSlotTopLeft{ display:block; }
+
+    /* Slot im Pool Header (nur wenn offen) */
+    body.poolClosed #poolToggleSlotInPool{ display:none; }
+    #poolToggleSlotInPool{ display:flex; }
+
+    .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
+    input, select{
+      width:100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      border-radius: 12px;
+      padding: 10px 10px;
+      outline:none;
+      font-size:13px;
+    }
+    input::placeholder{ color: rgba(255,255,255,0.45); }
+    option{ color:#000; }
+
+    .officer{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      border-radius: 14px;
+      padding: 10px 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      user-select:none;
+      position:relative;
+    }
+    .officer:hover{
+      border-color: rgba(0,255,195,0.20);
+      box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 30px rgba(0,0,0,0.32);
+    }
+    .oLeft{ display:flex; align-items:center; gap:10px; min-width:0; width:100%; }
+    .handle{
+      width:28px; height:28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0.85;
+      cursor: grab;
+      flex: 0 0 auto;
+    }
+    .bars{ width:14px; height:12px; position:relative; }
+    .bars:before,.bars:after,.bars i{
+      content:"";
+      position:absolute; left:0; right:0;
+      height:2px; border-radius: 2px;
+      background: rgba(255,255,255,0.70);
+    }
+    .bars:before{ top:0; }
+    .bars i{ top:5px; }
+    .bars:after{ bottom:0; }
+
+    .oText{ min-width:0; flex:1 1 auto; }
+    .oName{
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .oMeta{
+      margin-top:4px;
+      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+      font-size:11px;
+      color: var(--muted2);
+    }
+    .badgeBox{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .tag{
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
+      font-weight:800;
+      font-size:11px;
+      line-height:1.2;
+      white-space:nowrap;
+    }
+    .tag.dn{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
+    .tag.rank{ border-color: rgba(0,140,255,0.22); background: rgba(0,140,255,0.10); }
+    .tag.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
+    .tag.deputy{ border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
+
+    .memRemoveWrap{
+      opacity:0;
+      pointer-events:none;
+      transition:.15s;
+      flex:0 0 auto;
+    }
+    .officer:hover .memRemoveWrap{ opacity:1; pointer-events:auto; }
+    .memRemoveBtn{
+      width:34px; height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,60,90,0.28);
+      background: rgba(255,60,90,0.12);
+      color:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:.15s;
+      user-select:none;
+    }
+    .memRemoveBtn:hover{
+      background: rgba(255,60,90,0.18);
+      border-color: rgba(255,60,90,0.40);
+    }
+
+    .deptGrid{
+      height:100%;
+      display:flex;
+      gap: 12px;
+      overflow:auto;
+      padding: 12px;
+    }
+    .dept{
+      min-width: 320px;
+      max-width: 360px;
+      flex: 0 0 auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+      min-height: 140px;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+    }
+    .deptHead{
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .deptName{ font-weight:900; letter-spacing:0.2px; font-size:13px; }
+    .deptSub{
+      margin-top:4px;
+      font-size:11px;
+      color: var(--muted2);
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .deptActions{ display:flex; gap:8px; align-items:center; }
+    .dept .delWrap{ opacity:0; pointer-events:none; transition:.15s; }
+    .dept:hover .delWrap{ opacity:1; pointer-events:auto; }
+
+    .iconBtn{
+      width:34px; height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:.15s;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+    .iconBtn.danger{
+      border-color: rgba(255,60,90,0.28);
+      background: rgba(255,60,90,0.12);
+    }
+    .iconBtn.danger:hover{
+      background: rgba(255,60,90,0.18);
+      border-color: rgba(255,60,90,0.40);
+    }
+
+    .deptBody{ padding: 12px; overflow:auto; min-height:0; flex: 1 1 auto; }
+
+    .overlay{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      z-index: 999;
+      padding: 16px;
+    }
+    .loginCard{
+      width: 420px; max-width: 100%;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.045));
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .loginTitle{ font-weight:900; letter-spacing:0.3px; margin-bottom:10px; }
+    .loginSub{ color: rgba(255,255,255,0.60); font-size:12px; margin-bottom: 12px; }
+    .msg{ margin-top:10px; font-size:12px; color: rgba(255,255,255,0.75); }
+    .msg.err{ color: rgba(255,120,140,0.95); }
+    .small{ font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 10px; line-height: 1.35; }
+
+    .ghost{ opacity: .35; filter: saturate(0.85); }
+    .chosen{ box-shadow: 0 0 0 1px rgba(0,255,195,0.18) inset, 0 18px 40px rgba(0,0,0,0.45); transform: rotate(0.2deg); }
+    .dragging{ cursor: grabbing !important; }
+
+    .modalOverlay{
+      position:fixed; inset:0;
       display:none;
       align-items:center;
       justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      font-weight:900;
-      z-index:950;
-      transition: background .2s ease, transform .08s ease;
-    }
-    .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
-    .edgeBtn:active{ transform: translateY(1px); }
-    .app.leftCollapsed ~ #edgeLeft{ display:flex; }
-
-    /* ========================= */
-    /* Abteilungen Header Fix: Text + Badge nach rechts */
-    /* (damit Slide-Button nichts überdeckt) */
-    /* ========================= */
-    .deptHeaderRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .deptHeaderLeft{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      /* ✅ das ist der eigentliche Fix */
-      padding-left: 52px; /* schiebt "Abteilungen" + Badge nach rechts */
-      min-width:0;
-    }
-    .deptHeaderLeft .title{
-      margin:0;
-    }
-
-    /* Horizontales Scrollen (nice für viele Abteilungen) */
-    .deptScroll{
-      display:flex;
-      gap:12px;
-      overflow:auto;
-      padding-bottom:6px;
-      scroll-behavior:smooth;
-    }
-    .deptCard{
-      min-width: 340px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
-    }
-    .deptCardHead{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .deptCardBody{
-      padding:12px;
-    }
-
-    /* Mobile */
-    @media (max-width: 1200px){
-      body{ overflow:auto; }
-      :root{ --appTopPad: calc(var(--hdrH) + 10px); }
-      .app{ height:auto; grid-template-columns: 1fr; }
-      #btnToggleLeft{ display:none; }
-      .deptHeaderLeft{ padding-left: 0px; }
-      .edgeBtn{ display:none !important; }
-    }
-
-    /* Toast */
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(10,12,18,0.72);
+      background: rgba(0,0,0,0.55);
       backdrop-filter: blur(10px);
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .2s ease, transform .2s ease;
-      font-size:13px;
-      z-index:998;
+      z-index: 1000;
+      padding: 16px;
     }
-    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+    .modal{
+      width: 460px; max-width: 100%;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.095), rgba(255,255,255,0.045));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding: 14px 14px 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .modalTitle{ font-weight:900; letter-spacing:0.3px; font-size:13px; }
+    .modalBody{ padding: 14px; }
+    .modalFoot{
+      padding: 12px 14px 14px 14px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      display:flex; gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .xBtn{
+      width:34px;height:34px;border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color:#fff; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:.15s;
+    }
+    .xBtn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+    .modalHint{ color: rgba(255,255,255,0.65); font-size:12px; line-height:1.4; }
+    .dangerText{ color: rgba(255,120,140,0.95); font-weight:800; }
   </style>
 </head>
 
 <body>
-  <!-- APP -->
-  <div class="app" id="app" style="display:none;">
-    <!-- LEFT: Officer Pool -->
-    <section class="panel collapseX" id="panelLeft">
-      <div class="dockBtn" id="btnToggleLeft" title="Links ein/aus">❮</div>
+  <div class="topbar">
+    <div class="brand">
+      <div class="pill">LSPD</div>
+      <div>
+        <div class="brandTitle">Verwaltung</div>
+        <div class="brandSub">Abteilungen • Leitung • Mitglieder</div>
+      </div>
+    </div>
 
-      <div class="panelHeader">
-        <div class="brand">
-          <div class="badge">LSPD</div>
-          <div class="titleWrap">
-            <div class="title">OFFICER POOL</div>
-            <div class="subtitle">Drag & Drop in Abteilungen</div>
-          </div>
-        </div>
+    <div class="rightTop">
+      <div class="badge">
+        <span class="dot warn" id="roleDot"></span>
+        <span id="roleText">Nicht angemeldet</span>
       </div>
 
-      <div class="content">
-        <div class="field">
-          <label>Suche</label>
-          <input id="inpSearchPool" placeholder="Name / DN / Rang"/>
-          <div style="height:10px"></div>
-          <div class="muted" id="poolHint">—</div>
-          <div style="height:10px"></div>
-          <div id="poolList" class="muted">Pool lädt…</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CENTER: Abteilungen -->
-    <section class="panel" id="panelCenter">
-      <div class="panelHeader">
-        <div class="deptHeaderRow" style="width:100%;">
-          <div class="deptHeaderLeft">
-            <div class="titleWrap" style="min-width:0;">
-              <div class="title">ABTEILUNGEN</div>
-              <div class="subtitle">Leitung / Stv. Leitung / Mitglieder</div>
-            </div>
-            <span class="badge" id="deptCountBadge">0</span>
-          </div>
-
-          <div style="display:flex; gap:10px; align-items:center;">
-            <button class="btn" id="btnAddDept" type="button">+ Abteilung</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="content">
-        <div class="deptScroll" id="deptScroll">
-          <!-- Cards werden per JS gerendert -->
-        </div>
-      </div>
-    </section>
+      <button class="btn ghost primary" id="btnToLeitstelle">Zur Leitstelle</button>
+      <button class="btn danger" id="btnLogout" style="display:none;">Logout</button>
+    </div>
   </div>
 
-  <!-- Edge Button (wenn links eingeklappt) -->
-  <div class="edgeBtn" id="edgeLeft" title="Links öffnen">❯</div>
+  <!-- Slot oben links (nur wenn Pool eingeklappt ist) -->
+  <div id="poolToggleSlotTopLeft"></div>
 
-  <div class="toast" id="toast"></div>
+  <div class="wrap">
+    <!-- Pool -->
+    <div class="panel poolPanel" id="poolPanel">
+      <div class="panelHeader">
+        <div class="panelTitle">
+          Officer Pool
+          <span class="pill" id="poolCount">0</span>
+        </div>
+
+        <!-- Slot IN der Box (nur wenn Pool offen) -->
+        <div id="poolToggleSlotInPool"></div>
+      </div>
+
+      <div class="panelBody">
+        <div class="searchWrap">
+          <input id="poolSearch" placeholder="Suchen (Name / Dienstnummer / Rang)"/>
+        </div>
+        <div id="poolList"></div>
+      </div>
+    </div>
+
+    <!-- Departments -->
+    <div class="panel" id="deptPanel">
+      <div class="panelHeader">
+        <div class="panelTitle">
+          Abteilungen
+          <span class="pill" id="deptCount">0</span>
+        </div>
+
+        <button class="btn primary" id="btnCreateDeptTop" style="display:none;">+ Abteilung</button>
+      </div>
+
+      <div class="panelBody" style="padding:0; height: calc(100% - 46px);">
+        <div class="deptGrid" id="deptGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Der EINZIGE Toggle-Button (wandert in Slots) -->
+  <div class="poolToggleBtn" id="poolToggleBtn" title="Officer Pool ein-/ausblenden" style="display:none;">
+    <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
+  </div>
+
+  <!-- Login -->
+  <div class="overlay" id="loginOverlay" style="display:none;">
+    <div class="loginCard">
+      <div class="loginTitle">Login</div>
+      <div class="loginSub">Bitte mit deinem Supabase-Account anmelden.</div>
+
+      <div class="searchWrap" style="margin-bottom:10px;">
+        <input id="loginName" placeholder="Name (z.B. admin)"/>
+      </div>
+      <div class="searchWrap" style="margin-bottom:12px;">
+        <input id="loginPass" type="password" placeholder="Passwort"/>
+      </div>
+
+      <div class="searchWrap">
+        <button class="btn primary" id="btnLogin" style="width:100%;">Einloggen</button>
+      </div>
+
+      <div class="msg" id="loginMsg"></div>
+      <div class="small">
+        E-Mail-Format: <b>name@gta.local</b> (case-insensitive).<br/>
+        (Wenn du bereits im Leitstellenblatt eingeloggt bist, sollte es hier automatisch durchgehen.)
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Create Department -->
+  <div class="modalOverlay" id="modalCreateDept">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modalHead">
+        <div class="modalTitle">Neue Abteilung</div>
+        <button class="xBtn" id="closeCreateDept" title="Schließen">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="modalHint" style="margin-bottom:10px;">Name der Abteilung eingeben.</div>
+        <input id="createDeptName" placeholder="z.B. SWAT, Detectives, K9 Unit ..."/>
+      </div>
+      <div class="modalFoot">
+        <button class="btn ghost" id="cancelCreateDept">Abbrechen</button>
+        <button class="btn primary" id="confirmCreateDept">Erstellen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Delete Department -->
+  <div class="modalOverlay" id="modalDeleteDept">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modalHead">
+        <div class="modalTitle">Abteilung löschen</div>
+        <button class="xBtn" id="closeDeleteDept" title="Schließen">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="modalHint">
+          Willst du die Abteilung <span class="dangerText" id="delDeptName">—</span> wirklich löschen?<br/>
+          Memberships werden entfernt (Officer bleiben im Pool).
+        </div>
+      </div>
+      <div class="modalFoot">
+        <button class="btn ghost" id="cancelDeleteDept">Abbrechen</button>
+        <button class="btn danger" id="confirmDeleteDept">Löschen</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    (async function(){
-      await window.__layoutReady;
+  (function(){
+    /***********************************************************************
+     * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
+     ***********************************************************************/
+    const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const sb = supabase.createClient(SB_URL, SB_KEY);
 
-      // ===== Header Setup (identisch Theme / Login) =====
-      UI.setHeader("LSPD Verwaltung", "Abteilungen & Officer Pool");
-      UI.setPresenceVisible(false); // ✅ Verwaltung: kein Leitstelle Online/Offline
-      UI.setExtraHTML(`
-        <span class="pill" title="Rolle">
-          <span class="dot warn" id="roleDot"></span>
-          <span id="roleText">guest</span>
-        </span>
-        <a class="btn btnGhost" href="index.html" style="text-decoration:none;">Zur Leitstelle</a>
-      `);
+    // UI
+    const roleDot = document.getElementById("roleDot");
+    const roleText = document.getElementById("roleText");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnToLeitstelle = document.getElementById("btnToLeitstelle");
 
-      // ===== Toast =====
-      const toastEl = document.getElementById("toast");
-      function toast(msg){
-        toastEl.textContent = msg;
-        toastEl.classList.add("show");
-        setTimeout(() => toastEl.classList.remove("show"), 2200);
+    const poolToggleBtn = document.getElementById("poolToggleBtn");
+    const poolArrowTxt = document.getElementById("poolArrowTxt");
+    const poolToggleSlotTopLeft = document.getElementById("poolToggleSlotTopLeft");
+    const poolToggleSlotInPool = document.getElementById("poolToggleSlotInPool");
+
+    const poolSearch = document.getElementById("poolSearch");
+    const poolList = document.getElementById("poolList");
+    const poolCount = document.getElementById("poolCount");
+
+    const deptGrid = document.getElementById("deptGrid");
+    const deptCount = document.getElementById("deptCount");
+    const btnCreateDeptTop = document.getElementById("btnCreateDeptTop");
+
+    const loginOverlay = document.getElementById("loginOverlay");
+    const btnLogin = document.getElementById("btnLogin");
+    const loginName = document.getElementById("loginName");
+    const loginPass = document.getElementById("loginPass");
+    const loginMsg = document.getElementById("loginMsg");
+
+    const modalCreateDept = document.getElementById("modalCreateDept");
+    const closeCreateDept = document.getElementById("closeCreateDept");
+    const cancelCreateDept = document.getElementById("cancelCreateDept");
+    const confirmCreateDept = document.getElementById("confirmCreateDept");
+    const createDeptName = document.getElementById("createDeptName");
+
+    const modalDeleteDept = document.getElementById("modalDeleteDept");
+    const closeDeleteDept = document.getElementById("closeDeleteDept");
+    const cancelDeleteDept = document.getElementById("cancelDeleteDept");
+    const confirmDeleteDept = document.getElementById("confirmDeleteDept");
+    const delDeptName = document.getElementById("delDeptName");
+
+    // State
+    let sessionUser = null;
+    let userRole = "none";
+    let departments = [];
+    let officers = [];
+    let memberships = []; // department_members
+    let rtChannel = null;
+
+    let pendingDeleteDeptIdStr = null;
+
+    // ID typing
+    let deptIdIsNumeric = null;
+    let officerIdIsNumeric = null;
+
+    const escapeHtml = (s="") => String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+    const idToStr = (v) => (v === null || v === undefined) ? "" : String(v);
+
+    function detectIdTypes(){
+      if(deptIdIsNumeric === null && departments.length){
+        const v = departments[0].id;
+        deptIdIsNumeric = (typeof v === "number") || (/^\d+$/.test(String(v)));
+      }
+      if(officerIdIsNumeric === null && officers.length){
+        const v = officers[0].id;
+        officerIdIsNumeric = (typeof v === "number") || (/^\d+$/.test(String(v)));
+      }
+    }
+    function castDeptId(v){
+      if(v === null || v === undefined || v === "") return null;
+      return deptIdIsNumeric ? Number(v) : String(v);
+    }
+    function castOfficerId(v){
+      if(v === null || v === undefined || v === "") return null;
+      return officerIdIsNumeric ? Number(v) : String(v);
+    }
+
+    function isAdmin(){ return userRole === "admin"; }
+
+    function setRoleUI(){
+      btnLogout.style.display = sessionUser ? "inline-flex" : "none";
+      if(!sessionUser){
+        roleText.textContent = "Nicht angemeldet";
+        roleDot.className = "dot warn";
+        btnCreateDeptTop.style.display = "none";
+        return;
       }
 
-      // ===== Supabase (gleiche Config wie Leitstellenblatt) =====
-      const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+      const label =
+        (userRole === "admin") ? "Admin" :
+        (userRole === "leitstelle") ? "Leitstelle" :
+        (userRole === "officer") ? "Officer" : "User";
 
-      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        realtime: { params: { eventsPerSecond: 10 } }
+      roleText.textContent = label;
+      roleDot.className = (userRole === "admin") ? "dot ok" : "dot";
+      btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
+    }
+
+    async function detectRole(user){
+      const email = (user?.email || "").toLowerCase();
+      if(email === "admin@gta.local") return "admin";
+      if(email === "leitstelle@gta.local") return "leitstelle";
+      return "officer";
+    }
+
+    function niceError(err){
+      if(!err) return "Unbekannter Fehler";
+      const msg = err.message || String(err);
+      const low = msg.toLowerCase();
+      if(low.includes("row level security")) return "RLS blockiert (Policy fehlt).";
+      if(low.includes("permission denied")) return "Keine Rechte (RLS/Policy).";
+      if(low.includes("jwt")) return "Key/Session ungültig (401).";
+      return msg;
+    }
+
+    // Fallback rank map (nur falls rank_abbr leer)
+    const RANK_MAP = new Map([
+      ["chief of police","CoP"],
+      ["deputy chief","DC"],
+      ["assistant chief","AC"],
+      ["commander","Cmd"],
+      ["trial commander","Tr.Cmd"],
+      ["captain","Cap"],
+      ["senior lieutenant","SrLt"],
+      ["lieutenant","Lt"],
+      ["master sergeant","MSgt"],
+      ["staff sergeant","StSgt"],
+      ["sergeant","Sgt"],
+      ["senior corporal","SrCorp"],
+      ["corporal","Corp"],
+      ["senior officer","SrOf"],
+      ["officer","Of"],
+      ["junior officer","JrOf"],
+      ["rookie","Rk"],
+      ["k9","K9"]
+    ]);
+
+    function getDienstnummer(o){
+      return o.badge_number ?? o.dienstnummer ?? o.badge ?? o.callsign_number ?? "";
+    }
+    function getRankAbbrev(o){
+      const fromTable = (o.rank_abbr ?? "").toString().trim();
+      if(fromTable) return fromTable;
+
+      const direct = (o.rank_short ?? o.rank_abbrev ?? o.rank_code ?? "");
+      if(direct) return String(direct);
+
+      const n = String(o.rank_name ?? o.rank ?? "").trim();
+      if(!n) return "";
+      return RANK_MAP.get(n.toLowerCase()) || "";
+    }
+
+    function parseDN(v){
+      const s = String(v ?? "").trim();
+      const n = parseInt(s.replace(/[^\d]/g,""), 10);
+      return Number.isFinite(n) ? n : Infinity;
+    }
+
+    function officerCardHTML(o, opts={}){
+      const { inDept=false, deptIdStr=null, isLeader=false, isDeputy=false } = opts;
+
+      const name = escapeHtml(o.name || "Unbekannt");
+      const dn = escapeHtml(String(getDienstnummer(o) || ""));
+      const rankAbbrev = escapeHtml(String(getRankAbbrev(o) || ""));
+      const officerIdStr = escapeHtml(idToStr(o.id));
+
+      const removeBtn = (inDept && isAdmin() && deptIdStr)
+        ? `<div class="memRemoveWrap">
+             <button class="memRemoveBtn" title="Aus Abteilung entfernen" data-action="remove-membership" data-dept-id="${escapeHtml(deptIdStr)}" data-officer-id="${officerIdStr}">✕</button>
+           </div>`
+        : ``;
+
+      return `
+        <div class="officer" data-officer-id="${officerIdStr}">
+          <div class="oLeft">
+            <div class="handle" title="Ziehen" ${isAdmin() ? "" : "style='opacity:.35;cursor:not-allowed;'"}><div class="bars"><i></i></div></div>
+            <div class="oText">
+              <div class="oName">${name}</div>
+              <div class="oMeta">
+                <span class="badgeBox">
+                  ${dn ? `<span class="tag dn">DN ${dn}</span>` : ``}
+                  ${rankAbbrev ? `<span class="tag rank">${rankAbbrev}</span>` : ``}
+                  ${isLeader ? `<span class="tag lead">Leitung</span>` : ``}
+                  ${isDeputy ? `<span class="tag deputy">Stv.</span>` : ``}
+                </span>
+              </div>
+            </div>
+            ${removeBtn}
+          </div>
+        </div>
+      `;
+    }
+
+    function hasMembership(deptIdStr, officerIdStr){
+      return memberships.some(m =>
+        idToStr(m.department_id) === idToStr(deptIdStr) &&
+        idToStr(m.officer_id) === idToStr(officerIdStr)
+      );
+    }
+
+    function deptHTML(d){
+      const deptIdStr = idToStr(d.id);
+      const name = escapeHtml(d.name || "Abteilung");
+
+      const leaderIdStr = idToStr(d.leader_officer_id);
+      const deputyIdStr = idToStr(d.deputy_leader_officer_id);
+
+      // Mitglieder-IDs
+      const memberOfficerIds = memberships
+        .filter(m => idToStr(m.department_id) === deptIdStr)
+        .map(m => idToStr(m.officer_id));
+
+      // Mitglieder holen
+      const membersRaw = officers
+        .filter(o => memberOfficerIds.includes(idToStr(o.id)))
+        .slice();
+
+      // Sortierung: Leiter immer oben, Stv direkt darunter, Rest nach DN
+      const members = membersRaw.sort((a,b) => {
+        const aId = idToStr(a.id);
+        const bId = idToStr(b.id);
+
+        if(leaderIdStr){
+          if(aId === leaderIdStr && bId !== leaderIdStr) return -1;
+          if(bId === leaderIdStr && aId !== leaderIdStr) return 1;
+        }
+        if(deputyIdStr && deputyIdStr !== leaderIdStr){
+          if(aId === deputyIdStr && bId !== deputyIdStr) return -1;
+          if(bId === deputyIdStr && aId !== deputyIdStr) return 1;
+        }
+        return parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b));
       });
 
-      const LEITSTELLE_EMAIL = "leitstelle@gta.local";
-      const OFFICER_EMAIL = "officer@gta.local";
-      const ADMIN_EMAIL = "admin@gta.local";
+      const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
 
-      // ===== DOM (Login kommt aus shared/partials/login.html) =====
-      const app = document.getElementById("app");
-      const inpLoginName = document.getElementById("inpLoginName");
-      const inpLoginPw = document.getElementById("inpLoginPw");
-      const btnLogin = document.getElementById("btnLogin");
-      const loginErr = document.getElementById("loginErr");
-      const btnLogout = document.getElementById("btnLogout");
+      // Leitung/Stv NUR aus Mitgliedern auswählbar
+      const officerOptions = members
+        .slice()
+        .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)) || String(a.name||"").localeCompare(String(b.name||"")))
+        .map(o => {
+          const oid = idToStr(o.id);
+          const dn = getDienstnummer(o);
+          const label = `${o.name || ""}${dn ? " (DN " + dn + ")" : ""}`;
+          return `<option value="${escapeHtml(oid)}">${escapeHtml(label)}</option>`;
+        });
 
-      // Header role pills
-      const roleText = document.getElementById("roleText");
-      const roleDot  = document.getElementById("roleDot");
+      const leaderOptions = [
+        `<option value="">— keine Leitung —</option>`,
+        ...officerOptions.map(opt => leaderIdStr ? opt.replace(`value="${escapeHtml(leaderIdStr)}"`, `value="${escapeHtml(leaderIdStr)}" selected`) : opt)
+      ].join("").replace('selected selected','selected');
 
-      // Panels
-      const panelApp = document.getElementById("app");
-      const panelLeft = document.getElementById("panelLeft");
-      const btnToggleLeft = document.getElementById("btnToggleLeft");
-      const edgeLeft = document.getElementById("edgeLeft");
+      const deputyOptions = [
+        `<option value="">— keine Stv. —</option>`,
+        ...officerOptions.map(opt => deputyIdStr ? opt.replace(`value="${escapeHtml(deputyIdStr)}"`, `value="${escapeHtml(deputyIdStr)}" selected`) : opt)
+      ].join("").replace('selected selected','selected');
 
-      // Verwaltung UI
-      const deptScroll = document.getElementById("deptScroll");
-      const deptCountBadge = document.getElementById("deptCountBadge");
-      const btnAddDept = document.getElementById("btnAddDept");
-      const inpSearchPool = document.getElementById("inpSearchPool");
-      const poolList = document.getElementById("poolList");
-      const poolHint = document.getElementById("poolHint");
+      return `
+        <div class="dept" data-dept-id="${escapeHtml(deptIdStr)}">
+          <div class="deptHead">
+            <div style="min-width:0;">
+              <div class="deptName" title="${name}">${name}</div>
+              <div class="deptSub">
+                <span class="pill" style="padding:4px 8px;border-radius:999px;">Mitglieder: ${members.length}</span>
+                ${
+                  leader
+                    ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
+                    : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
+                }
+              </div>
+            </div>
 
-      function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
-      function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
-      function emailFromName(name){
-        const key = normalizeKey(name);
-        return key ? `${key}@gta.local` : "";
-      }
-
-      function friendlyAuthError(error){
-        const msg = (error?.message || "").toLowerCase();
-        if(msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")){
-          return "Falscher Name oder Passwort.";
-        }
-        if(msg.includes("email not confirmed")){
-          return "Account ist noch nicht bestätigt.";
-        }
-        if(msg.includes("too many requests") || msg.includes("rate limit")){
-          return "Zu viele Versuche. Bitte kurz warten.";
-        }
-        return "Login fehlgeschlagen.";
-      }
-
-      function showLogin(errMsg=""){
-        UI.showLogin(errMsg);
-        app.style.display = "none";
-        loginErr.style.display = errMsg ? "block" : "none";
-        loginErr.textContent = errMsg || "";
-      }
-      function hideLogin(){
-        UI.hideLogin();
-        app.style.display = "grid";
-      }
-
-      // ===== Permissions (gleiches Rollenprinzip) =====
-      const perms = { email:"", role:"guest" };
-      function setRoleFromEmail(email){
-        const e = (email || "").toLowerCase().trim();
-        perms.email = e;
-
-        if(e === ADMIN_EMAIL) perms.role = "admin";
-        else if(e === LEITSTELLE_EMAIL) perms.role = "leitstelle";
-        else if(e === OFFICER_EMAIL) perms.role = "officer";
-        else if(e) perms.role = "user";
-        else perms.role = "guest";
-
-        roleText.textContent = perms.role;
-
-        roleDot.classList.remove("ok","warn","off","on");
-        if(perms.role === "admin") roleDot.classList.add("ok");
-        else if(perms.role === "leitstelle") roleDot.classList.add("warn");
-        else if(perms.role === "officer") roleDot.classList.add("off");
-        else if(perms.role === "user") roleDot.classList.add("warn");
-        else roleDot.classList.add("off");
-      }
-
-      // ===== Collapsible Left Panel =====
-      const LS_UI = "lspd_admin_ui_left";
-      function loadUi(){
-        try{ return localStorage.getItem(LS_UI) === "1"; }catch{ return false; }
-      }
-      function saveUi(v){ try{ localStorage.setItem(LS_UI, v ? "1":"0"); }catch{} }
-      let leftCollapsed = loadUi();
-
-      function applyUi(){
-        panelApp.classList.toggle("leftCollapsed", leftCollapsed);
-        btnToggleLeft.textContent = leftCollapsed ? "❯" : "❮";
-      }
-
-      btnToggleLeft.addEventListener("click", ()=>{
-        leftCollapsed = !leftCollapsed;
-        saveUi(leftCollapsed);
-        applyUi();
-      });
-
-      edgeLeft.addEventListener("click", ()=>{
-        leftCollapsed = false;
-        saveUi(leftCollapsed);
-        applyUi();
-      });
-
-      // ===== Minimal Demo Render (damit die Seite nicht “leer” wirkt) =====
-      // -> Wenn du schon eine fertige Verwaltung-Logik hast, kannst du unten bei
-      //    "HIER DEIN ORIGINAL-VERWALTUNGS-JS" einfach deinen Code einfügen und
-      //    diese Demo-Renderer entfernen.
-      let departments = [];
-      let pool = [];
-
-      function renderDepartments(){
-        deptCountBadge.textContent = departments.length;
-        if(!departments.length){
-          deptScroll.innerHTML = `
-            <div class="deptCard">
-              <div class="deptCardHead">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <div class="badge">i</div>
-                  <div>
-                    <div style="font-weight:900; letter-spacing:.4px;">Keine Abteilungen</div>
-                    <div class="muted">Klicke „+ Abteilung“</div>
-                  </div>
+            <div class="deptActions">
+              ${isAdmin() ? `
+                <div class="delWrap">
+                  <button class="iconBtn danger" title="Abteilung löschen" data-action="delete-dept">✕</button>
                 </div>
-              </div>
-              <div class="deptCardBody" class="muted">
-                <div class="muted">Du kannst hier später deine echte Abteilungs-Logik rendern.</div>
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        deptScroll.innerHTML = departments.map(d => `
-          <div class="deptCard" data-id="${d.id}">
-            <div class="deptCardHead">
-              <div style="min-width:0;">
-                <div style="font-weight:900; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(d.name)}</div>
-                <div class="muted">Mitglieder: ${d.members?.length || 0}</div>
-              </div>
-              <button class="btn btnGhost" data-act="delDept" data-id="${d.id}" title="Löschen">✕</button>
-            </div>
-            <div class="deptCardBody">
-              <div class="muted">Drop-Zone / Leitung / Stv. Leitung kannst du hier wie gewohnt einbauen.</div>
+              ` : ``}
             </div>
           </div>
-        `).join("");
 
-        deptScroll.querySelectorAll("button[data-act='delDept']").forEach(b=>{
-          b.addEventListener("click", ()=>{
-            const id = b.getAttribute("data-id");
-            departments = departments.filter(x => x.id !== id);
-            renderDepartments();
-          });
+          <div class="deptBody">
+            ${isAdmin() ? `
+              <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-direction:column;">
+                <select data-action="leader-select" title="Leitung festlegen" style="width:100%;">
+                  ${leaderOptions}
+                </select>
+                <select data-action="deputy-select" title="Stv. Leitung festlegen" style="width:100%;">
+                  ${deputyOptions}
+                </select>
+              </div>
+            ` : ``}
+
+            <div class="deptList" data-dept-id="${escapeHtml(deptIdStr)}">
+              ${members.map(o => officerCardHTML(o, {
+                inDept:true,
+                deptIdStr,
+                isLeader: leaderIdStr && idToStr(o.id) === leaderIdStr,
+                isDeputy: deputyIdStr && idToStr(o.id) === deputyIdStr
+              })).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll(){
+      detectIdTypes();
+
+      const search = (poolSearch.value || "").trim().toLowerCase();
+      let pool = officers.slice().sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
+
+      if(search){
+        pool = pool.filter(o => {
+          const name = String(o.name||"").toLowerCase();
+          const dn = String(getDienstnummer(o)||"").toLowerCase();
+          const r  = String(getRankAbbrev(o)||"").toLowerCase();
+          return name.includes(search) || dn.includes(search) || r.includes(search);
         });
       }
 
-      function escapeHtml(s){
-        return (s ?? "").toString().replace(/[&<>"']/g, m => ({
-          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-        }[m]));
-      }
+      poolList.innerHTML =
+        pool.map(o => officerCardHTML(o, { inDept:false })).join("") ||
+        `<div class="pill" style="display:inline-flex;">Keine Treffer</div>`;
 
-      function renderPool(){
-        const q = (inpSearchPool.value || "").trim().toLowerCase();
-        const list = pool.filter(o => !q || (o.name||"").toLowerCase().includes(q) || (o.dn||"").toLowerCase().includes(q));
-        poolHint.textContent = `Pool: ${list.length}`;
-        poolList.innerHTML = list.length
-          ? list.map(o => `<div class="field" style="margin-bottom:10px;"><b>${escapeHtml(o.name)}</b><div class="muted">DN ${escapeHtml(o.dn||"—")}</div></div>`).join("")
-          : `<div class="muted">Keine Treffer.</div>`;
-      }
+      poolCount.textContent = String(officers.length);
 
-      inpSearchPool.addEventListener("input", renderPool);
+      const sortedDepts = [...departments].sort((a,b) => (a.sort||0) - (b.sort||0) || (a.name||"").localeCompare(b.name||""));
+      deptGrid.innerHTML = sortedDepts.map(d => deptHTML(d)).join("");
+      deptCount.textContent = String(sortedDepts.length);
 
-      btnAddDept.addEventListener("click", ()=>{
-        const id = "d-" + Math.random().toString(16).slice(2);
-        departments.push({ id, name: "Neue Abteilung", members: [] });
-        renderDepartments();
-        toast("Abteilung erstellt (Demo)");
+      wireDeptActions();
+      initSortable();
+    }
+
+    function openModal(el){
+      el.style.display = "flex";
+      const inp = el.querySelector("input");
+      if(inp) setTimeout(() => inp.focus(), 50);
+    }
+    function closeModal(el){ el.style.display = "none"; }
+    function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
+
+    function wireDeptActions(){
+      deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptIdStr = deptEl?.dataset?.deptId;
+          const dept = departments.find(x => idToStr(x.id) === idToStr(deptIdStr));
+          if(!deptIdStr || !dept) return;
+
+          pendingDeleteDeptIdStr = idToStr(deptIdStr);
+          delDeptName.textContent = dept.name || "—";
+          openModal(modalDeleteDept);
+        });
       });
 
-      // ===== LOGIN / LOGOUT =====
-      async function doLogin(){
-        const name = normalizeSpaces(inpLoginName.value);
-        const pw = (inpLoginPw.value ?? "").toString();
+      deptGrid.querySelectorAll("[data-action='leader-select']").forEach(sel => {
+        sel.addEventListener("change", async (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptIdStr = deptEl?.dataset?.deptId;
+          if(!deptIdStr) return;
 
-        loginErr.style.display = "none";
-        loginErr.textContent = "";
+          const deptId = castDeptId(deptIdStr);
+          const leaderIdStr = e.currentTarget.value || "";
+          const leaderId = leaderIdStr ? castOfficerId(leaderIdStr) : null;
 
-        if(!name) return showLogin("Bitte Namen eingeben.");
-        if(!pw) return showLogin("Bitte Passwort eingeben.");
+          const { error } = await sb.from("departments").update({ leader_officer_id: leaderId }).eq("id", deptId);
+          if(error) alert("Leitung setzen fehlgeschlagen: " + niceError(error));
+        });
+      });
 
-        const email = emailFromName(name);
+      deptGrid.querySelectorAll("[data-action='deputy-select']").forEach(sel => {
+        sel.addEventListener("change", async (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptIdStr = deptEl?.dataset?.deptId;
+          if(!deptIdStr) return;
 
-        try{
-          btnLogin.disabled = true;
-          btnLogin.textContent = "Login…";
+          const deptId = castDeptId(deptIdStr);
+          const deputyIdStr = e.currentTarget.value || "";
+          const deputyId = deputyIdStr ? castOfficerId(deputyIdStr) : null;
 
-          const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-          if(error) throw error;
+          const { error } = await sb.from("departments").update({ deputy_leader_officer_id: deputyId }).eq("id", deptId);
+          if(error) alert("Stv. Leitung setzen fehlgeschlagen: " + niceError(error));
+        });
+      });
 
-          toast("Eingeloggt");
-        }catch(e){
-          console.error(e);
-          showLogin(friendlyAuthError(e));
-        }finally{
-          btnLogin.disabled = false;
-          btnLogin.textContent = "Login";
+      deptGrid.querySelectorAll("[data-action='remove-membership']").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          if(!isAdmin()) return;
+          const deptIdStr = e.currentTarget.dataset.deptId;
+          const officerIdStr = e.currentTarget.dataset.officerId;
+          if(!deptIdStr || !officerIdStr) return;
+
+          const deptId = castDeptId(deptIdStr);
+          const officerId = castOfficerId(officerIdStr);
+
+          const dept = departments.find(d => idToStr(d.id) === idToStr(deptIdStr));
+          if(dept){
+            const patch = {};
+            if(idToStr(dept.leader_officer_id) === idToStr(officerIdStr)) patch.leader_officer_id = null;
+            if(idToStr(dept.deputy_leader_officer_id) === idToStr(officerIdStr)) patch.deputy_leader_officer_id = null;
+            if(Object.keys(patch).length){
+              await sb.from("departments").update(patch).eq("id", deptId);
+            }
+          }
+
+          const { error } = await sb.from("department_members")
+            .delete()
+            .match({ department_id: deptId, officer_id: officerId });
+
+          if(error) alert("Entfernen fehlgeschlagen: " + niceError(error));
+        });
+      });
+    }
+
+    let poolSortable = null;
+    let deptSortables = [];
+
+    function destroySortable(){
+      try{ poolSortable?.destroy(); }catch(_){}
+      deptSortables.forEach(s => { try{s.destroy();}catch(_){ } });
+      deptSortables = [];
+      poolSortable = null;
+    }
+
+    async function ensureMembership(deptIdStr, officerIdStr){
+      const deptId = castDeptId(deptIdStr);
+      const officerId = castOfficerId(officerIdStr);
+
+      if(hasMembership(deptIdStr, officerIdStr)) return;
+
+      const { error } = await sb.from("department_members").insert({
+        department_id: deptId,
+        officer_id: officerId
+      });
+
+      if(error){
+        const msg = (error.message||"").toLowerCase();
+        if(!msg.includes("duplicate") && !msg.includes("unique")) alert("Zuordnung fehlgeschlagen: " + niceError(error));
+      }
+    }
+
+    async function moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr){
+      const fromDeptId = castDeptId(fromDeptIdStr);
+      const toDeptId = castDeptId(toDeptIdStr);
+      const officerId = castOfficerId(officerIdStr);
+
+      await sb.from("department_members").delete().match({ department_id: fromDeptId, officer_id: officerId });
+      await ensureMembership(toDeptIdStr, officerIdStr);
+    }
+
+    function initSortable(){
+      destroySortable();
+
+      const canDrag = isAdmin();
+
+      poolSortable = new Sortable(poolList, {
+        group: { name:"officers", pull:"clone", put:false },
+        animation: 140,
+        ghostClass: "ghost",
+        chosenClass: "chosen",
+        dragClass: "dragging",
+        handle: ".handle",
+        sort: false,
+        disabled: !canDrag
+      });
+
+      deptGrid.querySelectorAll(".deptList").forEach(listEl => {
+        const s = new Sortable(listEl, {
+          group: { name:"officers", pull:true, put:true },
+          animation: 140,
+          ghostClass: "ghost",
+          chosenClass: "chosen",
+          dragClass: "dragging",
+          handle: ".handle",
+          sort: false,
+          disabled: !canDrag,
+
+          onAdd: async (evt) => {
+            if(!canDrag) return;
+
+            const officerIdStr = evt.item?.dataset?.officerId;
+            const toDeptIdStr = evt.to?.dataset?.deptId;
+            const fromDeptIdStr = evt.from?.dataset?.deptId || null;
+
+            if(!officerIdStr || !toDeptIdStr) return;
+
+            if(evt.from === poolList){
+              await ensureMembership(toDeptIdStr, officerIdStr);
+              return;
+            }
+
+            if(fromDeptIdStr && fromDeptIdStr !== toDeptIdStr){
+              await moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr);
+            }
+          }
+        });
+        deptSortables.push(s);
+      });
+    }
+
+    async function loadData(){
+      const d1 = await sb.from("departments").select("*");
+      if(d1.error){ alert("Departments laden fehlgeschlagen: " + niceError(d1.error)); departments = []; }
+      else departments = d1.data || [];
+
+      const d2 = await sb.from("officers").select("*");
+      if(d2.error){ alert("Officers laden fehlgeschlagen: " + niceError(d2.error)); officers = []; }
+      else officers = d2.data || [];
+
+      const d3 = await sb.from("department_members").select("*");
+      if(d3.error){ alert("Members laden fehlgeschlagen: " + niceError(d3.error)); memberships = []; }
+      else memberships = d3.data || [];
+
+      renderAll();
+    }
+
+    function setupRealtime(){
+      if(rtChannel){
+        try{ sb.removeChannel(rtChannel); }catch(_){}
+        rtChannel = null;
+      }
+      rtChannel = sb.channel("verwaltung-rt");
+      rtChannel
+        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => loadData())
+        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => loadData())
+        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => loadData())
+        .subscribe();
+    }
+
+    function enableWheelHorizontalScroll(){
+      deptGrid.addEventListener("wheel", (e) => {
+        if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        deptGrid.scrollLeft += e.deltaY;
+      }, { passive:false });
+    }
+
+    function syncPoolToggleArrow(){
+      const closed = document.body.classList.contains("poolClosed");
+      if(poolArrowTxt) poolArrowTxt.textContent = closed ? ">" : "<";
+    }
+
+    function mountPoolToggle(){
+      if(!poolToggleBtn || !poolToggleSlotTopLeft || !poolToggleSlotInPool) return;
+
+      poolToggleBtn.style.display = "flex";
+
+      const closed = document.body.classList.contains("poolClosed");
+      if(closed){
+        if(poolToggleBtn.parentElement !== poolToggleSlotTopLeft){
+          poolToggleSlotTopLeft.appendChild(poolToggleBtn);
+        }
+      }else{
+        if(poolToggleBtn.parentElement !== poolToggleSlotInPool){
+          poolToggleSlotInPool.appendChild(poolToggleBtn);
         }
       }
+      syncPoolToggleArrow();
+    }
 
-      async function doLogout(){
-        showLogin("");
-        toast("Ausgeloggt");
+    // Modals
+    modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
+    modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
+    window.addEventListener("keydown", (e) => {
+      if(e.key === "Escape"){
+        closeModal(modalCreateDept);
+        closeModal(modalDeleteDept);
+      }
+    });
 
-        setRoleFromEmail("");
+    btnCreateDeptTop.addEventListener("click", () => {
+      if(!isAdmin()) return;
+      createDeptName.value = "";
+      openModal(modalCreateDept);
+    });
+    closeCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
+    cancelCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
+    confirmCreateDept.addEventListener("click", async () => {
+      if(!isAdmin()) return;
+      const name = String(createDeptName.value || "").trim();
+      if(!name) return;
 
-        try{
-          const { error } = await sb.auth.signOut();
-          if(error) console.error("signOut error:", error);
-        }catch(e){
-          console.error("signOut throw:", e);
-        }
+      const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
+      const { error } = await sb.from("departments").insert({ name, sort: maxSort + 1 });
+      if(error) alert("Erstellen fehlgeschlagen: " + niceError(error));
+      else closeModal(modalCreateDept);
+    });
+    createDeptName.addEventListener("keydown", (e) => { if(e.key === "Enter") confirmCreateDept.click(); });
+
+    closeDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
+    cancelDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
+    confirmDeleteDept.addEventListener("click", async () => {
+      if(!isAdmin()) return;
+      const deptIdStr = pendingDeleteDeptIdStr;
+      if(!deptIdStr) return;
+
+      const deptId = castDeptId(deptIdStr);
+
+      await sb.from("department_members").delete().match({ department_id: deptId });
+      await sb.from("departments").update({ leader_officer_id: null, deputy_leader_officer_id: null }).eq("id", deptId);
+
+      const { error } = await sb.from("departments").delete().eq("id", deptId);
+      if(error) alert("Löschen fehlgeschlagen: " + niceError(error));
+      else { closeModal(modalDeleteDept); pendingDeleteDeptIdStr = null; }
+    });
+
+    // Pool toggle click
+    poolToggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("poolClosed");
+      mountPoolToggle(); // wandert zwischen Slots
+    });
+
+    poolSearch.addEventListener("input", () => renderAll());
+
+    btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
+
+    btnLogout.addEventListener("click", async () => {
+      await sb.auth.signOut();
+      sessionUser = null;
+      userRole = "none";
+      setRoleUI();
+      loginOverlay.style.display = "flex";
+      destroySortable();
+    });
+
+    function normalizeNameToEmail(name){
+      const n = (name || "").trim().toLowerCase();
+      return n ? `${n}@gta.local` : "";
+    }
+
+    async function doLogin(){
+      loginMsg.textContent = "";
+      loginMsg.className = "msg";
+
+      const email = normalizeNameToEmail(loginName.value);
+      const password = loginPass.value || "";
+      if(!email || !password){
+        loginMsg.textContent = "Bitte Name und Passwort eingeben.";
+        loginMsg.className = "msg err";
+        return;
       }
 
-      btnLogin.addEventListener("click", doLogin);
-      inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
-      inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error){
+        loginMsg.textContent = "Falscher Name/Passwort";
+        loginMsg.className = "msg err";
+        return;
+      }
 
-      btnLogout.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+      sessionUser = data.user;
+      userRole = await detectRole(sessionUser);
+      setRoleUI();
+      loginOverlay.style.display = "none";
+      await loadData();
+      setupRealtime();
+      mountPoolToggle();
+    }
 
-      // ===== AUTH INIT =====
-      applyUi();
-      setRoleFromEmail("");
+    btnLogin.addEventListener("click", doLogin);
+    loginPass.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
 
-      try{
-        const { data } = await sb.auth.getSession();
-        const session = data?.session;
+    (async function init(){
+      enableWheelHorizontalScroll();
 
-        if(session){
-          hideLogin();
+      const { data } = await sb.auth.getSession();
+      sessionUser = data?.session?.user || null;
+
+      if(!sessionUser){
+        setRoleUI();
+        loginOverlay.style.display = "flex";
+        return;
+      }
+
+      userRole = await detectRole(sessionUser);
+      setRoleUI();
+
+      await loadData();
+      setupRealtime();
+      mountPoolToggle();
+
+      sb.auth.onAuthStateChange(async (_event, session) => {
+        sessionUser = session?.user || null;
+        userRole = sessionUser ? await detectRole(sessionUser) : "none";
+        setRoleUI();
+
+        if(sessionUser){
+          loginOverlay.style.display = "none";
+          await loadData();
+          setupRealtime();
+          mountPoolToggle();
         }else{
-          showLogin("");
-        }
-      }catch(e){
-        console.error(e);
-        showLogin("Auth-Fehler.");
-      }
-
-      sb.auth.onAuthStateChange(async (_evt, session) => {
-        if(session){
-          hideLogin();
-          const email = (session.user?.email || "").toLowerCase();
-          setRoleFromEmail(email);
-
-          // Demo Seed (nur damit sichtbar)
-          pool = [
-            { name:"John Doe", dn:"4711" },
-            { name:"Jane Smith", dn:"1001" },
-            { name:"Alex Carter", dn:"2090" }
-          ];
-          renderPool();
-          renderDepartments();
-
-          // ===== HIER DEIN ORIGINAL-VERWALTUNGS-JS =====
-          // Wenn du schon eine fertige Verwaltung hast:
-          // - ersetze die Demo-Renderer oben
-          // - und füge hier deinen Original-Code ein (oder lade ihn als script).
-        }else{
-          setRoleFromEmail("");
-          showLogin("");
+          loginOverlay.style.display = "flex";
+          destroySortable();
         }
       });
     })();
+  })();
   </script>
 </body>
 </html>
