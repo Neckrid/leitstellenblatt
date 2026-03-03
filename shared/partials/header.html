@@ -1,17 +1,20 @@
 <header class="topHeader" id="topHeader" style="display:none;">
   <div class="topHeaderLeft">
     <div class="badge">LSPD</div>
-    <div>
+    <div class="topHeaderText">
       <div class="topHeaderTitle" id="globalHeaderTitle">LSPD</div>
       <div class="topHeaderSub" id="globalHeaderSub">System</div>
     </div>
   </div>
 
   <div class="topHeaderRight">
-    <span class="pill">
+    <div class="topHeaderExtra" id="globalHeaderExtra"></div>
+
+    <span class="pill" id="presencePill" title="Leitstelle Online/Offline">
       <span class="dot off" id="connDot"></span>
-      <span>Leitstelle</span>
+      <span id="connText">Leitstelle</span>
     </span>
-    <button class="btn btnDanger" id="btnLogout">Logout</button>
+
+    <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
   </div>
 </header>
