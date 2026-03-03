@@ -1,51 +1,55 @@
 /* ============================= */
-/* LSPD GLOBAL LAYOUT LOADER    */
+/* LSPD GLOBAL LAYOUT LOADER     */
 /* ============================= */
 
-async function loadPartial(path){
-  const res = await fetch(path);
+async function __loadPartial(path){
+  const res = await fetch(path, { cache: "no-store" });
+  if(!res.ok) throw new Error(`Partial failed: ${path} (${res.status})`);
   return await res.text();
 }
 
-async function initLayout(){
-  const body = document.body;
+window.__layoutReady = (async () => {
+  const headerHtml = await __loadPartial("shared/partials/header.html");
+  const loginHtml  = await __loadPartial("shared/partials/login.html");
 
-  const headerHtml = await loadPartial("shared/partials/header.html");
-  const loginHtml = await loadPartial("shared/partials/login.html");
+  document.body.insertAdjacentHTML("afterbegin", headerHtml + loginHtml);
 
-  body.insertAdjacentHTML("afterbegin", headerHtml + loginHtml);
+  const topHeader = document.getElementById("topHeader");
+  const loginOverlay = document.getElementById("loginOverlay");
+  const loginErr = document.getElementById("loginErr");
+  const globalHeaderTitle = document.getElementById("globalHeaderTitle");
+  const globalHeaderSub = document.getElementById("globalHeaderSub");
+  const extra = document.getElementById("globalHeaderExtra");
+  const presencePill = document.getElementById("presencePill");
 
   window.UI = {
-    showLogin(msg=""){
-      const overlay = document.getElementById("loginOverlay");
-      const header = document.getElementById("topHeader");
-      overlay.style.display = "flex";
-      header.style.display = "none";
-      const err = document.getElementById("loginErr");
-      if(msg){
-        err.style.display = "block";
-        err.textContent = msg;
-      }else{
-        err.style.display = "none";
-      }
+    showLogin(errMsg=""){
+      loginOverlay.style.display = "flex";
+      topHeader.style.display = "none";
+      loginErr.style.display = errMsg ? "block" : "none";
+      loginErr.textContent = errMsg || "";
+      setTimeout(()=> document.getElementById("inpLoginName")?.focus(), 50);
     },
-
     hideLogin(){
-      document.getElementById("loginOverlay").style.display = "none";
-      document.getElementById("topHeader").style.display = "flex";
+      loginOverlay.style.display = "none";
+      topHeader.style.display = "flex";
+      loginErr.style.display = "none";
+      loginErr.textContent = "";
     },
-
     setHeader(title, sub){
-      document.getElementById("globalHeaderTitle").textContent = title;
-      document.getElementById("globalHeaderSub").textContent = sub;
+      globalHeaderTitle.textContent = title || "LSPD";
+      globalHeaderSub.textContent = sub || "";
+    },
+    setExtraHTML(html){
+      extra.innerHTML = html || "";
+    },
+    clearExtra(){
+      extra.innerHTML = "";
+    },
+    setPresenceVisible(v){
+      presencePill.style.display = v ? "inline-flex" : "none";
     }
   };
 
-  document.addEventListener("click", e=>{
-    if(e.target.id === "btnLogout"){
-      location.reload();
-    }
-  });
-}
-
-document.addEventListener("DOMContentLoaded", initLayout);
+  return true;
+})();
