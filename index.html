@@ -77,7 +77,7 @@
   .loginBody{ padding:16px; }
   .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-  /* ========= GLOBAL TOP HEADER (✅ identisch zur Verwaltungsseite Topbar) ========= */
+  /* ========= GLOBAL TOP HEADER (✅ sichtbar + identisch zur Verwaltungsseite Topbar) ========= */
   .topHeader{
     position:fixed;
     left:0;
@@ -86,20 +86,13 @@
     height:var(--hdrH);
     z-index:900;
 
-    /* Verwaltung: bottom stroke + gradient glass */
     border-bottom: 1px solid var(--stroke);
-    border-left:0;
-    border-right:0;
-    border-top:0;
-
     background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
     backdrop-filter: blur(10px);
 
-    border-radius:0;
-    box-shadow:none; /* Verwaltung-topbar hat keinen großen “Card”-Shadow */
     display:flex;
     align-items:center;
-    padding: 10px 18px;  /* ✅ identisch */
+    padding: 10px 18px;
     gap:12px;
     overflow:hidden;
   }
@@ -117,7 +110,7 @@
     min-width:0;
   }
   .topHeaderTitle{
-    font-size:14px;          /* ✅ Verwaltung brandTitle */
+    font-size:14px;
     font-weight:700;
     letter-spacing:0.3px;
     white-space:nowrap;
@@ -125,9 +118,8 @@
     text-overflow:ellipsis;
   }
   .topHeaderSub{
-    font-size:12px;          /* ✅ Verwaltung brandSub */
+    font-size:12px;
     color: var(--muted2);
-    opacity:1;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -195,19 +187,15 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding:7px 10px;           /* ✅ */
+    padding:7px 10px;
     border:1px solid var(--stroke);
     background: rgba(255,255,255,0.05);
-    border-radius:999px;        /* ✅ Capsule */
+    border-radius:999px;
     font-size:12px;
     font-weight:800;
     letter-spacing:0.4px;
     color: var(--muted);
     white-space:nowrap;
-    box-shadow:none;            /* ✅ Verwaltung */
-    min-width:0;
-    height:auto;
-    width:auto;
   }
 
   .titleWrap{ line-height:1.05; min-width:0; }
@@ -241,27 +229,24 @@
     border:1px solid var(--stroke);
     background: rgba(255,255,255,0.06);
     color:#fff;
-    padding:9px 12px;           /* ✅ */
-    border-radius:10px;         /* ✅ */
+    padding:9px 12px;
+    border-radius:10px;
     cursor:pointer;
     transition: transform .05s ease, background .15s ease, border-color .15s ease;
-    box-shadow: 0 10px 22px rgba(0,0,0,0.25); /* ✅ */
-    font-weight:600;            /* ✅ */
-    font-size:13px;             /* ✅ */
+    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+    font-weight:600;
+    font-size:13px;
     line-height:1;
     user-select:none;
     white-space:nowrap;
-    height:auto;                /* ✅ entfernt 44px */
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    letter-spacing:0;
   }
   .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
   .btn:active{ transform: translateY(1px); }
   .btn:disabled{ opacity:0.45; cursor:not-allowed; }
 
-  /* optische Varianten beibehalten, aber “Verwaltung”-Feeling */
   .btnPrimary{
     border-color: rgba(0,255,195,0.25);
     box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
@@ -305,7 +290,6 @@
     display:inline-flex;
     align-items:center;
     gap:8px;
-    opacity:1;
     flex:0 0 auto;
   }
 
@@ -764,6 +748,26 @@
     </div>
   </div>
 
+  <!-- ✅ FIX: GLOBAL HEADER war nur CSS – jetzt ist er auch im HTML -->
+  <header class="topHeader" id="topHeader" style="display:none;">
+    <div class="topHeaderLeft">
+      <div class="badge">LSPD</div>
+      <div class="topHeaderText">
+        <div class="topHeaderTitle">LSPD Leitstelle</div>
+        <div class="topHeaderSub">Leitstellenblatt</div>
+      </div>
+    </div>
+
+    <div class="topHeaderRight">
+      <span class="pill" title="Leitstelle Online/Offline">
+        <span class="dot off" id="connDot"></span>
+        <!-- ✅ FIX: Name vom Online-Symbol ist immer “Leitstelle” -->
+        <span id="connText">Leitstelle</span>
+      </span>
+      <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
+    </div>
+  </header>
+
   <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
     <section class="panel collapseX" id="panelLeft">
@@ -772,14 +776,10 @@
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">LSPD</div>
-        </div>
-
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span class="pill" title="Leitstelle Online/Offline">
-            <span class="dot off" id="connDot"></span>
-            <span id="connText">Leitstelle</span>
-          </span>
-          <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
+          <div class="titleWrap">
+            <div class="title">BEAMTEN</div>
+            <div class="subtitle">Erstellen & Pool</div>
+          </div>
         </div>
       </div>
 
@@ -1058,6 +1058,7 @@
      * DOM
      ***********************/
     const app = document.getElementById("app");
+    const topHeader = document.getElementById("topHeader"); // ✅ FIX: global header toggle
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
@@ -1134,6 +1135,7 @@
     function showLogin(errMsg = ""){
       loginOverlay.style.display = "flex";
       app.style.display = "none";
+      topHeader.style.display = "none";   // ✅ FIX: header ausblenden im Login
       loginErr.style.display = errMsg ? "block" : "none";
       loginErr.textContent = errMsg || "";
       setTimeout(()=> inpLoginName.focus(), 50);
@@ -1141,6 +1143,7 @@
     function hideLogin(){
       loginOverlay.style.display = "none";
       app.style.display = "grid";
+      topHeader.style.display = "flex";  // ✅ FIX: header einblenden wenn App sichtbar
     }
 
     function friendlyAuthError(error){
@@ -1354,6 +1357,7 @@
     function setLeitstelleIndicator(isOnline){
       connDot.classList.toggle("on", !!isOnline);
       connDot.classList.toggle("off", !isOnline);
+      // ✅ FIX: Text niemals “admin”, immer “Leitstelle”
       connText.textContent = "Leitstelle";
     }
 
@@ -1864,7 +1868,6 @@
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
       if(oRes.error) throw oRes.error;
 
-      // fallback defaults, falls alte rows keine rank Felder haben
       officers = (oRes.data || []).map(o => ({
         ...o,
         rank: o.rank || "Officer",
