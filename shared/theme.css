@@ -1,16 +1,24 @@
-/* ========================================================= */
-/* LSPD GLOBAL THEME – MASTER                               */
-/* Premium Glass Dark                                        */
-/* ========================================================= */
+/* ============================= */
+/* LSPD GLOBAL THEME (MASTER)    */
+/* Premium Glass Dark + Overrides */
+/* ============================= */
 
-*,
-*::before,
-*::after{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 
-html,body{
-  height:100%;
+:root{
+  /* Tokens */
+  --stroke: rgba(255,255,255,0.10);
+  --stroke2: rgba(255,255,255,0.12);
+  --muted: rgba(255,255,255,0.75);
+  --muted2: rgba(255,255,255,0.55);
+
+  --shadow: 0 20px 60px rgba(0,0,0,0.55);
+  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+
+  /* Header Layout */
+  --hdrH: 64px;
+  --appTopPad: calc(var(--hdrH) + 14px);
 }
 
 body{
@@ -21,323 +29,322 @@ body{
   background:
     radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
     radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.08), transparent 60%),
-    #0b0f17;
+    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
+    linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
 }
 
-/* ========================================================= */
-/* TOKENS                                                    */
-/* ========================================================= */
-
-:root{
-  --stroke: rgba(255,255,255,0.10);
-  --stroke2: rgba(255,255,255,0.14);
-  --muted: rgba(255,255,255,0.75);
-  --muted2: rgba(255,255,255,0.55);
-
-  --shadow: 0 20px 60px rgba(0,0,0,0.55);
-  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-
-  --hdrH: 64px;
-  --appTopPad: calc(var(--hdrH) + 14px);
-}
-
-/* ========================================================= */
-/* GLOBAL HEADER                                             */
-/* ========================================================= */
-
+/* ========= GLOBAL TOP HEADER ========= */
 .topHeader{
   position:fixed;
-  top:0;
-  left:0;
-  right:0;
+  left:0; right:0; top:0;
   height:var(--hdrH);
+  z-index:900;
+
+  border-bottom: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  backdrop-filter: blur(10px);
+
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  background:rgba(15,18,28,0.75);
-  backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--stroke);
-  z-index:1000;
-}
-
-.topHeaderLeft,
-.topHeaderRight{
-  display:flex;
-  align-items:center;
-  gap:16px;
-  min-width:0;
-}
-
-.badge{
-  background:linear-gradient(135deg,#00ffd0,#00a2ff);
-  color:#000;
-  font-weight:700;
-  font-size:13px;
-  padding:6px 10px;
-  border-radius:8px;
-  white-space:nowrap;
-}
-
-.topHeaderText{
-  display:flex;
-  flex-direction:column;
-  min-width:0;
-}
-
-.topHeaderTitle{
-  font-size:15px;
-  font-weight:700;
-  white-space:nowrap;
+  padding: 10px 18px;
+  gap:12px;
   overflow:hidden;
-  text-overflow:ellipsis;
 }
-
-.topHeaderSub{
-  font-size:12px;
-  color:var(--muted2);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.topHeaderExtra{
+.topHeaderLeft{
   display:flex;
   align-items:center;
   gap:12px;
+  min-width:0;
+  flex:1 1 auto;
+}
+.topHeaderText{
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+  min-width:0;
+}
+.topHeaderTitle{
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:0.3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topHeaderSub{
+  font-size:12px;
+  color: var(--muted2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-top:1px;
+}
+.topHeaderRight{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+.topHeaderExtra{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-/* ========================================================= */
-/* BUTTONS                                                   */
-/* ========================================================= */
-
-.btn{
-  border:1px solid var(--stroke2);
-  background:rgba(255,255,255,0.06);
-  color:#fff;
-  padding:6px 12px;
-  border-radius:10px;
-  cursor:pointer;
-  transition:all .18s ease;
-  font-size:13px;
-}
-
-.btn:hover{
-  background:rgba(255,255,255,0.12);
-}
-
-.btnPrimary{
-  background:linear-gradient(135deg,#00ffd0,#00a2ff);
-  color:#000;
-  border:none;
-  font-weight:600;
-}
-
-.btnDanger{
-  background:rgba(255,70,70,0.18);
-  border:1px solid rgba(255,70,70,0.5);
-}
-
-.btnGhost{
-  background:transparent;
-}
-
-.btnLogoutRed{
-  background:rgba(255,0,0,0.18);
-  border:1px solid rgba(255,0,0,0.4);
-}
-
-/* ========================================================= */
-/* PILL + STATUS DOT                                         */
-/* ========================================================= */
-
-.pill{
+/* ========= Badge / Pill / Dot ========= */
+.badge{
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  padding:4px 10px;
+  justify-content:center;
+  padding:7px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.05);
   border-radius:999px;
   font-size:12px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,0.05);
+  font-weight:800;
+  letter-spacing:0.4px;
+  color: var(--muted);
   white-space:nowrap;
 }
 
-.dot{
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:#666;
+.pill{
+  padding:6px 10px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  border-radius:999px;
+  font-size:12px;
+  color: var(--muted);
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
 }
 
-.dot.on{ background:#00ff8a; }
-.dot.off{ background:#ff4d4d; }
-.dot.red{ background:#ff4d4d; }
+.dot{
+  width:8px; height:8px; border-radius:999px;
+  background: rgba(255,255,255,0.35);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+  flex:0 0 auto;
+}
+.dot.on{ background: rgba(0,255,140,0.85); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
+.dot.off{ background: rgba(255,70,180,0.85); box-shadow: 0 0 0 3px rgba(255,70,180,0.12); }
+.dot.red{ background: rgba(255,60,90,0.85); box-shadow: 0 0 0 3px rgba(255,60,90,0.12); }
+.dot.warn{ background: rgba(255,200,0,0.90); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
+.dot.ok{ background: rgba(0,255,140,0.85); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
 
-/* ========================================================= */
-/* LOGIN                                                     */
-/* ========================================================= */
+/* ========= Inputs ========= */
+label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
+input, select, textarea{
+  width:100%;
+  background: rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.12);
+  color:#fff;
+  border-radius:12px;
+  padding:10px 10px;
+  outline:none;
+  font-size:14px;
+}
+textarea{ resize:vertical; min-height:120px; }
 
+/* ========= Buttons ========= */
+.btn{
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  padding:9px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  transition: transform .05s ease, background .15s ease, border-color .15s ease;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+  font-weight:600;
+  font-size:13px;
+  line-height:1;
+  user-select:none;
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+.btnPrimary{
+  border-color: rgba(0,255,195,0.25);
+  box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
+  background: rgba(255,255,255,0.06);
+}
+.btnDanger{
+  border-color: rgba(255,60,90,0.28);
+  background: rgba(255,60,90,0.12);
+}
+.btnDanger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
+.btnGhost{ background: transparent; box-shadow:none; }
+.btnLogoutRed{
+  border-color: rgba(255,60,90,0.28);
+  background: rgba(255,60,90,0.12);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+}
+.btnLogoutRed:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
+
+/* ========= LOGIN OVERLAY ========= */
 .loginOverlay{
   position:fixed;
   inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(6px);
-  z-index:2000;
+  padding:18px;
+  z-index:999;
+  background:
+    radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
+    radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
+    radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
+    rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
 }
-
 .loginCard{
-  width:360px;
-  background:rgba(20,24,36,0.9);
-  border:1px solid var(--stroke);
-  border-radius:18px;
-  box-shadow:var(--shadow);
-  padding:22px;
-}
-
-.loginHeader{
-  margin-bottom:20px;
-}
-
-.loginTitle{
-  font-size:18px;
-  font-weight:700;
-}
-
-.loginSub{
-  font-size:12px;
-  color:var(--muted2);
-}
-
-.loginBody label{
-  font-size:12px;
-  color:var(--muted2);
-}
-
-.loginBody input{
-  width:100%;
-  padding:8px 10px;
-  border-radius:10px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,0.06);
-  color:#fff;
-}
-
-.loginErr{
-  margin-top:8px;
-  font-size:12px;
-  color:#ff4d4d;
-}
-
-/* ========================================================= */
-/* PANELS                                                    */
-/* ========================================================= */
-
-.app{
-  display:grid;
-  grid-template-columns: 320px 1fr 320px;
-  gap:14px;
-  padding:var(--appTopPad) 14px 14px;
-  height:100%;
-}
-
-.panel{
-  display:flex;
-  flex-direction:column;
-  background:rgba(20,24,36,0.85);
-  border:1px solid var(--stroke);
-  border-radius:18px;
+  width:min(560px, 100%);
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(14, 18, 28, 0.70);
+  backdrop-filter: blur(12px);
+  border-radius:22px;
+  box-shadow: 0 18px 70px rgba(0,0,0,0.55);
   overflow:hidden;
-  backdrop-filter:blur(12px);
-  min-width:0;
 }
-
-.panelHeader{
-  padding:14px 16px;
-  border-bottom:1px solid var(--stroke);
+.loginHeader{
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
   display:flex;
   align-items:center;
   justify-content:space-between;
-  min-width:0;
+  gap:12px;
+}
+.loginTitleWrap{ line-height:1.1; min-width:0; }
+.loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
+.loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.loginBody{ padding:16px; }
+.loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
+
+/* =======================================================
+   PREMIUM GLASS BOXES (mit Overrides gegen index <style>)
+   ======================================================= */
+
+/* Panels */
+.panel{
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    rgba(10,12,18,0.62) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 18px 40px rgba(0,0,0,0.35) !important;
 }
 
-.panel .content{
-  padding:14px;
-  overflow:auto;
-  min-width:0;
-}
-
-/* ========================================================= */
-/* CARDS                                                     */
-/* ========================================================= */
-
-.card{
-  background:rgba(255,255,255,0.04);
-  border:1px solid var(--stroke);
-  border-radius:14px;
-  padding:12px;
-  margin-bottom:12px;
-  min-width:0;
-}
-
+/* Header Trennlinien */
+.panelHeader,
 .cardHeader{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+}
+
+/* Fields */
+.field{
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.28) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 14px 34px rgba(0,0,0,0.28) !important;
+}
+
+/* Patrol Cards */
+.card{
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.22) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 20px 44px rgba(0,0,0,0.35) !important;
+}
+
+/* Officer lines */
+.officerLine{
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.22) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset !important;
+}
+
+/* Funcode rows */
+.codeRow{
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.20) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.02) inset !important;
+}
+
+/* Utility */
+.row{ display:flex; gap:10px; }
+
+/* ========================================================= */
+/* ✅ DESKTOP TEXT/FLEX FIXES (minimal, ohne Design-Bruch)    */
+/* ========================================================= */
+
+/* 1) Flex children dürfen schrumpfen -> verhindert Überlaufen */
+.brand,
+.titleWrap,
+.panelHeader,
+.cardHeader,
+.topHeaderLeft,
+.topHeaderText,
+.topHeaderRight,
+.topActions,
+.row{
   min-width:0;
 }
 
-.cardBody{
-  min-width:0;
-}
-
-/* ========================================================= */
-/* FUNCODES – DESKTOP FIX                                    */
-/* ========================================================= */
-
-.codeList{
-  width:100%;
-}
-
+/* 2) Funcodes: Code links fix, Text rechts bricht um */
 .codeRow{
   display:flex;
   align-items:flex-start;
-  gap:14px;
-  padding:6px 8px;
-  border-radius:8px;
+  justify-content:flex-start;  /* statt space-between, damit gap stabil bleibt */
+  gap:12px;
+  width:100%;
   min-width:0;
 }
-
 .codeRow b{
   flex:0 0 auto;
   white-space:nowrap;
 }
-
 .codeRow span{
   flex:1 1 auto;
   min-width:0;
   white-space:normal;
-  overflow-wrap:break-word;
+  overflow-wrap:anywhere;
   word-break:break-word;
 }
 
-/* ========================================================= */
-/* POOL + FLEX SAFETY                                        */
-/* ========================================================= */
-
-.brand,
-.titleWrap,
-.row,
-.field,
-.field .row{
-  min-width:0;
-}
-
+/* 3) Beamten Pool Header: Label kürzen, Pill bleibt */
 .field .row > label{
   flex:1 1 auto;
   min-width:0;
@@ -345,28 +352,4 @@ body{
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-
-.field .row .pill{
-  flex:0 0 auto;
-}
-
-/* ========================================================= */
-/* SCROLLBAR                                                 */
-/* ========================================================= */
-
-::-webkit-scrollbar{
-  width:10px;
-}
-
-::-webkit-scrollbar-track{
-  background:transparent;
-}
-
-::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,0.15);
-  border-radius:8px;
-}
-
-::-webkit-scrollbar-thumb:hover{
-  background:rgba(255,255,255,0.25);
-}
+.field .row .pill{ flex:0 0 auto; }
