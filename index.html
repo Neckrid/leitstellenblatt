@@ -8,14 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- ✅ Theme (Option 3 / Premium Glass Dark) -->
+  <!-- ✅ THEME EINBINDEN -->
   <link rel="stylesheet" href="shared/theme.css"/>
 
   <style>
-    /* ================================
-       NUR SEITEN-SPEZIFISCHES LAYOUT
-       (Boxen/Buttons/Badges/Pills/Header kommen aus theme.css)
-       ================================ */
+    /* =========================================================
+       LEITSTELLENBLATT – PAGE CSS ONLY
+       (Theme.css wurde hier komplett rausgenommen)
+       ========================================================= */
 
     /* ========= APP GRID (collapsible left/right) ========= */
     .app{
@@ -30,7 +30,6 @@
     .app.leftCollapsed{ --leftW: 0px; }
     .app.rightCollapsed{ --rightW: 0px; }
 
-    /* Panels: Struktur/Positionierung bleibt hier, Look kommt aus theme.css */
     .panel{
       overflow:hidden;
       display:flex;
@@ -39,13 +38,13 @@
       min-width:0;
       position:relative;
     }
+
     .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
     .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
     .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
 
     .panelHeader{
       padding:14px 14px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -59,20 +58,12 @@
     #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
+
     .titleWrap{ line-height:1.05; min-width:0; }
     .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .content{ padding:14px; overflow:auto; min-height:0; }
-
-    .row{ display:flex; gap:10px; }
-
-    /* Field: nur Layout/Spacing – Look kommt aus theme.css */
-    .field{
-      border-radius:14px;
-      padding:10px;
-      border:1px solid rgba(255,255,255,0.10);
-    }
 
     .muted{ opacity:0.75; font-size:12px; }
 
@@ -88,16 +79,13 @@
       .grid{ grid-template-columns: 1fr; }
     }
 
-    /* Card: nur Struktur – Look kommt aus theme.css */
     .card{
       overflow:hidden;
-      border-radius:18px;
       min-width:0;
     }
 
     .cardHeader{
       padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -166,9 +154,6 @@
       justify-content:space-between;
       gap:10px;
       padding:10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.18);
       transition: border-color .15s ease, background .15s ease, transform .08s ease;
     }
     .officerLine.clickable{ cursor:pointer; }
@@ -206,9 +191,6 @@
       justify-content:space-between;
       gap:12px;
       padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
     }
     .codeRow b{ font-size:12px; white-space:nowrap; }
     .codeRow span{ font-size:12px; opacity:0.82; }
@@ -288,7 +270,7 @@
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
-    /* Edge buttons */
+    /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
     .edgeBtn{
       position:fixed;
       top: calc(var(--appTopPad) + 12px);
@@ -313,13 +295,6 @@
     #edgeRight{ right:10px; }
     .app.leftCollapsed ~ #edgeLeft{ display:flex; }
     .app.rightCollapsed ~ #edgeRight{ display:flex; }
-
-    @media (max-width: 1200px){
-      body{ overflow:auto; }
-      .app{ height:auto; grid-template-columns: 1fr; }
-      #btnToggleLeft, #btnToggleRight{ display:none; }
-      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
-    }
 
     /* ========= Collapsible "Beamter erstellen" ========= */
     .collapseCard{ padding:0; overflow:hidden; }
@@ -389,8 +364,94 @@
       transform: translateY(0);
     }
 
+    /* ========= MODAL ========= */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:1000;
+      background:
+        radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
+        radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
+        rgba(0,0,0,0.62);
+      backdrop-filter: blur(10px);
+    }
+    .modalCard{
+      width:min(520px, 100%);
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 18, 28, 0.78);
+      backdrop-filter: blur(12px);
+      border-radius:22px;
+      box-shadow: 0 18px 70px rgba(0,0,0,0.60);
+      overflow:hidden;
+    }
+    .modalHeader{
+      padding:14px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .modalTitle{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:0.5px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .modalBody{ padding:16px; }
+    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
+    .modalHint{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .modalHint .dot{ margin-top:3px; }
+    .modalFooter{
+      padding:14px 16px 16px;
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .modalCloseX{
+      width:40px; height:40px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      transition: background .2s ease, transform .08s ease;
+      flex:0 0 auto;
+    }
+    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+    .modalCloseX:active{ transform: translateY(1px); }
+
     /* Role hide */
     .hideCreateCard #createCard{ display:none !important; }
+
+    /* ========= Responsive override ========= */
+    @media (max-width: 1200px){
+      body{ overflow:auto; }
+      .app{ height:auto; grid-template-columns: 1fr; }
+      #btnToggleLeft, #btnToggleRight{ display:none; }
+      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
+    }
   </style>
 </head>
 
@@ -423,7 +484,7 @@
     </div>
   </div>
 
-  <!-- HEADER -->
+  <!-- GLOBAL HEADER -->
   <header class="topHeader" id="topHeader" style="display:none;">
     <div class="topHeaderLeft">
       <div class="badge">LSPD</div>
@@ -1097,7 +1158,7 @@
         const email = (data?.session?.user?.email || "").toLowerCase();
 
         if(email === LEITSTELLE_EMAIL){
-          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){}
+          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
         }
       }catch(e){
         console.error("presence untrack error:", e);
@@ -1201,9 +1262,13 @@
       renderCreatedPool();
     }
 
+    /* ✅ DN + Rang Pills (CSS kommt aus Theme.css) */
     function getOfficerRankPills(o){
       const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
       const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
+
+      /* Hinweis: pillDn/pillRank Klassen sind im Leitstellenblatt-CSS nicht mehr definiert,
+         falls du die weiterhin willst, pack sie bitte in theme.css (oder entferne sie hier). */
       const dnPill = `<span class="pill pillDn">${escapeHtml(dn)}</span>`;
       const rankPill = abbr ? `<span class="pill pillRank">${escapeHtml(abbr)}</span>` : "";
       return `${dnPill}${rankPill}`;
@@ -2059,7 +2124,7 @@
     }, true);
 
     /***********************
-     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP
+     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP (mit Sperre)
      ***********************/
     let returnFromTabRunning = false;
 
