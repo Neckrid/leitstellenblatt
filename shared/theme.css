@@ -1,28 +1,16 @@
-/* ============================= */
-/* LSPD GLOBAL THEME (MASTER)    */
-/* Premium Glass Dark + Layout   */
-/* ============================= */
+/* ========================================================= */
+/* LSPD GLOBAL THEME – MASTER                               */
+/* Premium Glass Dark                                        */
+/* ========================================================= */
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
+}
 
-:root{
-  /* Tokens */
-  --stroke: rgba(255,255,255,0.10);
-  --stroke2: rgba(255,255,255,0.12);
-  --muted: rgba(255,255,255,0.75);
-  --muted2: rgba(255,255,255,0.55);
-
-  --shadow: 0 20px 60px rgba(0,0,0,0.55);
-  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-
-  /* Header Layout */
-  --hdrH: 64px;
-  --appTopPad: calc(var(--hdrH) + 14px);
-
-  /* App Panel widths (can be overridden per page) */
-  --leftW: 420px;
-  --rightW: 360px;
+html,body{
+  height:100%;
 }
 
 body{
@@ -33,219 +21,163 @@ body{
   background:
     radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
     radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
-    linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
+    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.08), transparent 60%),
+    #0b0f17;
 }
 
-/* =======================================================
-   GLOBAL TOP HEADER (injected by layout.js partial)
-   ======================================================= */
+/* ========================================================= */
+/* TOKENS                                                    */
+/* ========================================================= */
+
+:root{
+  --stroke: rgba(255,255,255,0.10);
+  --stroke2: rgba(255,255,255,0.14);
+  --muted: rgba(255,255,255,0.75);
+  --muted2: rgba(255,255,255,0.55);
+
+  --shadow: 0 20px 60px rgba(0,0,0,0.55);
+  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+
+  --hdrH: 64px;
+  --appTopPad: calc(var(--hdrH) + 14px);
+}
+
+/* ========================================================= */
+/* GLOBAL HEADER                                             */
+/* ========================================================= */
 
 .topHeader{
   position:fixed;
-  left:0; right:0; top:0;
+  top:0;
+  left:0;
+  right:0;
   height:var(--hdrH);
-  z-index:900;
-
-  border-bottom: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-  backdrop-filter: blur(10px);
-
   display:flex;
   align-items:center;
-  padding: 10px 18px;
-  gap:12px;
-  overflow:hidden;
+  justify-content:space-between;
+  padding:0 20px;
+  background:rgba(15,18,28,0.75);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--stroke);
+  z-index:1000;
 }
 
-.topHeaderLeft{
+.topHeaderLeft,
+.topHeaderRight{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:16px;
   min-width:0;
-  flex:1 1 auto;
+}
+
+.badge{
+  background:linear-gradient(135deg,#00ffd0,#00a2ff);
+  color:#000;
+  font-weight:700;
+  font-size:13px;
+  padding:6px 10px;
+  border-radius:8px;
+  white-space:nowrap;
 }
 
 .topHeaderText{
   display:flex;
   flex-direction:column;
-  line-height:1.05;
   min-width:0;
 }
 
-.topHeaderTitle,
-#globalHeaderTitle{
-  font-size:14px;
+.topHeaderTitle{
+  font-size:15px;
   font-weight:700;
-  letter-spacing:0.3px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 
-.topHeaderSub,
-#globalHeaderSub{
+.topHeaderSub{
   font-size:12px;
-  color: var(--muted2);
+  color:var(--muted2);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  margin-top:1px;
 }
 
-.topHeaderRight{
-  margin-left:auto;
+.topHeaderExtra{
   display:flex;
   align-items:center;
-  gap:10px;
-  flex-wrap:nowrap;
-  justify-content:flex-end;
-  flex:0 0 auto;
+  gap:12px;
 }
 
-/* Optional: right side slots in header partial */
-#globalHeaderExtra{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:nowrap;
-}
-
-#presencePill{
-  display:inline-flex;
-}
-
-/* =======================================================
-   Badge / Pill / Dot
-   ======================================================= */
-
-.badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:7px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.05);
-  border-radius:999px;
-  font-size:12px;
-  font-weight:800;
-  letter-spacing:0.4px;
-  color: var(--muted);
-  white-space:nowrap;
-}
-
-.pill{
-  padding:6px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  border-radius:999px;
-  font-size:12px;
-  color: var(--muted);
-  white-space:nowrap;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  flex:0 0 auto;
-}
-
-/* DN/Rang Pills (used by Leitstellenblatt JS) */
-.pill.pillDn{
-  border-color: rgba(0,140,255,0.22);
-  background: rgba(0,140,255,0.08);
-  color: rgba(255,255,255,0.88);
-}
-.pill.pillRank{
-  border-color: rgba(255,70,180,0.22);
-  background: rgba(255,70,180,0.08);
-  color: rgba(255,255,255,0.88);
-}
-
-.dot{
-  width:8px; height:8px; border-radius:999px;
-  background: rgba(255,255,255,0.35);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
-  flex:0 0 auto;
-}
-.dot.on{ background: rgba(0,255,140,0.85); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
-.dot.off{ background: rgba(255,70,180,0.85); box-shadow: 0 0 0 3px rgba(255,70,180,0.12); }
-.dot.red{ background: rgba(255,60,90,0.85); box-shadow: 0 0 0 3px rgba(255,60,90,0.12); }
-.dot.warn{ background: rgba(255,200,0,0.90); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
-.dot.ok{ background: rgba(0,255,140,0.85); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
-
-/* =======================================================
-   Inputs
-   ======================================================= */
-
-label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
-
-input, select, textarea{
-  width:100%;
-  background: rgba(0,0,0,0.25);
-  border:1px solid rgba(255,255,255,0.12);
-  color:#fff;
-  border-radius:12px;
-  padding:10px 10px;
-  outline:none;
-  font-size:14px;
-}
-
-textarea{ resize:vertical; min-height:120px; }
-
-/* =======================================================
-   Buttons
-   ======================================================= */
+/* ========================================================= */
+/* BUTTONS                                                   */
+/* ========================================================= */
 
 .btn{
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
+  border:1px solid var(--stroke2);
+  background:rgba(255,255,255,0.06);
   color:#fff;
-  padding:9px 12px;
+  padding:6px 12px;
   border-radius:10px;
   cursor:pointer;
-  transition: transform .05s ease, background .15s ease, border-color .15s ease;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-  font-weight:600;
+  transition:all .18s ease;
   font-size:13px;
-  line-height:1;
-  user-select:none;
-  white-space:nowrap;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
 }
-.btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-.btn:active{ transform: translateY(1px); }
-.btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+.btn:hover{
+  background:rgba(255,255,255,0.12);
+}
 
 .btnPrimary{
-  border-color: rgba(0,255,195,0.25);
-  box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
-  background: rgba(255,255,255,0.06);
+  background:linear-gradient(135deg,#00ffd0,#00a2ff);
+  color:#000;
+  border:none;
+  font-weight:600;
 }
 
 .btnDanger{
-  border-color: rgba(255,60,90,0.28);
-  background: rgba(255,60,90,0.12);
+  background:rgba(255,70,70,0.18);
+  border:1px solid rgba(255,70,70,0.5);
 }
-.btnDanger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
 
-.btnGhost{ background: transparent; box-shadow:none; }
+.btnGhost{
+  background:transparent;
+}
 
 .btnLogoutRed{
-  border-color: rgba(255,60,90,0.28);
-  background: rgba(255,60,90,0.12);
-  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+  background:rgba(255,0,0,0.18);
+  border:1px solid rgba(255,0,0,0.4);
 }
-.btnLogoutRed:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
 
-/* Utility button variants used in your page */
-.btnWide{ padding-left:14px; padding-right:14px; }
-.btnIcon{ padding:9px 10px; min-width:42px; }
+/* ========================================================= */
+/* PILL + STATUS DOT                                         */
+/* ========================================================= */
 
-/* =======================================================
-   LOGIN OVERLAY (injected by layout.js partial)
-   ======================================================= */
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,0.05);
+  white-space:nowrap;
+}
+
+.dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#666;
+}
+
+.dot.on{ background:#00ff8a; }
+.dot.off{ background:#ff4d4d; }
+.dot.red{ background:#ff4d4d; }
+
+/* ========================================================= */
+/* LOGIN                                                     */
+/* ========================================================= */
 
 .loginOverlay{
   position:fixed;
@@ -253,641 +185,188 @@ textarea{ resize:vertical; min-height:120px; }
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
-  z-index:999;
-  background:
-    radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
-    radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
-    radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
-    rgba(0,0,0,0.55);
-  backdrop-filter: blur(10px);
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(6px);
+  z-index:2000;
 }
 
 .loginCard{
-  width:min(560px, 100%);
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(14, 18, 28, 0.70);
-  backdrop-filter: blur(12px);
-  border-radius:22px;
-  box-shadow: 0 18px 70px rgba(0,0,0,0.55);
-  overflow:hidden;
+  width:360px;
+  background:rgba(20,24,36,0.9);
+  border:1px solid var(--stroke);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  padding:22px;
 }
 
 .loginHeader{
-  padding:16px 16px 14px;
-  border-bottom:1px solid rgba(255,255,255,0.08);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
+  margin-bottom:20px;
 }
 
-.loginTitleWrap{ line-height:1.1; min-width:0; }
-.loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
-.loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.loginTitle{
+  font-size:18px;
+  font-weight:700;
+}
 
-.loginBody{ padding:16px; }
-.loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
+.loginSub{
+  font-size:12px;
+  color:var(--muted2);
+}
 
-/* =======================================================
-   APP LAYOUT (collapsible left/right) – global
-   ======================================================= */
+.loginBody label{
+  font-size:12px;
+  color:var(--muted2);
+}
+
+.loginBody input{
+  width:100%;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,0.06);
+  color:#fff;
+}
+
+.loginErr{
+  margin-top:8px;
+  font-size:12px;
+  color:#ff4d4d;
+}
+
+/* ========================================================= */
+/* PANELS                                                    */
+/* ========================================================= */
 
 .app{
-  height:100%;
   display:grid;
+  grid-template-columns: 320px 1fr 320px;
   gap:14px;
-  padding:14px;
-  padding-top: var(--appTopPad);
-  grid-template-columns: var(--leftW) 1fr var(--rightW);
-  transition: grid-template-columns .25s ease;
+  padding:var(--appTopPad) 14px 14px;
+  height:100%;
 }
-
-.app.leftCollapsed{ --leftW: 0px; }
-.app.rightCollapsed{ --rightW: 0px; }
 
 .panel{
-  overflow:hidden;
   display:flex;
   flex-direction:column;
-  min-height:0;
+  background:rgba(20,24,36,0.85);
+  border:1px solid var(--stroke);
+  border-radius:18px;
+  overflow:hidden;
+  backdrop-filter:blur(12px);
   min-width:0;
-  position:relative;
 }
-
-/* Collapsible panels fade */
-.panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-.app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
-.app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
 
 .panelHeader{
-  padding:14px 14px 12px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--stroke);
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
   min-width:0;
 }
 
-.brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-
-.titleWrap{ line-height:1.05; min-width:0; }
-.title{
-  font-size:14px;
-  font-weight:800;
-  letter-spacing:0.6px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.subtitle{
-  font-size:12px;
-  opacity:0.75;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+.panel .content{
+  padding:14px;
+  overflow:auto;
+  min-width:0;
 }
 
-.content{ padding:14px; overflow:auto; min-height:0; }
-.muted{ opacity:0.75; font-size:12px; }
+/* ========================================================= */
+/* CARDS                                                     */
+/* ========================================================= */
 
-.grid{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
-  gap:14px;
-}
-@media (max-width: 1500px){
-  .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-}
-@media (max-width: 1100px){
-  .grid{ grid-template-columns: 1fr; }
-}
-
-/* =======================================================
-   Premium Glass Boxes (global)
-   ======================================================= */
-
-.panel{
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  border-radius: 18px !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
-    rgba(10,12,18,0.62) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.04) inset,
-    0 18px 40px rgba(0,0,0,0.35) !important;
-}
-
-/* Header separators */
-.panelHeader,
-.cardHeader{
-  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
-}
-
-/* Fields */
-.field{
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 16px !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.28) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.03) inset,
-    0 14px 34px rgba(0,0,0,0.28) !important;
-}
-
-/* Patrol Cards */
 .card{
-  overflow:hidden;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--stroke);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
   min-width:0;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 18px !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.22) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.03) inset,
-    0 20px 44px rgba(0,0,0,0.35) !important;
 }
 
 .cardHeader{
-  padding:12px 12px;
   display:flex;
-  justify-content:space-between;
   align-items:center;
   gap:10px;
-  flex-wrap:wrap;
-}
-
-.cardBody{ padding:12px; }
-
-/* Officer lines */
-.officerLine{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:10px;
-  transition: border-color .15s ease, background .15s ease, transform .08s ease;
-
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 14px !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.22) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.03) inset !important;
-}
-
-.officerLine.clickable{ cursor:pointer; }
-
-.officerLine.selected{
-  border-color: rgba(0,255,195,0.35) !important;
-  background: rgba(0,255,195,0.07) !important;
-}
-
-/* Funcode rows */
-.codeRow{
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 14px !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
-    rgba(0,0,0,0.20) !important;
-  backdrop-filter: blur(8px) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.02) inset !important;
-}
-
-/* =======================================================
-   Leitstellenblatt helpers (drag, pool, patrol)
-   ======================================================= */
-
-.patrolDrag{
-  cursor:grab;
-  user-select:none;
-  padding:6px 10px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.06);
-  font-weight:900;
-  opacity:0.9;
-  line-height:1;
-}
-.patrolDrag:active{ cursor:grabbing; }
-
-.patrolName{
-  font-weight:900;
-  letter-spacing:0.4px;
-  font-size:13px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-width:180px;
-  flex: 1 1 180px;
-}
-.patrolName input{
-  padding:8px 10px;
-  border-radius:12px;
-  font-weight:800;
-  letter-spacing:0.3px;
-  width:100%;
+  margin-bottom:10px;
   min-width:0;
 }
 
-.statusSelect{
-  padding:8px 10px;
-  border-radius:12px;
-  font-weight:800;
-  letter-spacing:0.2px;
-  width:auto;
-  flex: 0 1 220px;
-  min-width:160px;
-  height:44px;
-}
-@media (max-width: 900px){
-  .statusSelect{ flex: 1 1 100%; }
-}
-
-.dropZone{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  min-height: 52px;
-}
-
-.dragHandle{
-  cursor:grab;
-  user-select:none;
-  padding:6px 10px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.06);
-  font-weight:900;
-  opacity:0.9;
-  align-self: stretch;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.dragHandle:active{ cursor:grabbing; }
-
-.sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
-.sortable-chosen{ cursor:grabbing; }
-
-/* Right info boxes */
-.rightBox h3{
-  margin:0 0 10px 0;
-  font-size:13px;
-  letter-spacing:0.6px;
-  opacity:0.9;
-}
-.codeList{ display:flex; flex-direction:column; gap:8px; }
-
-/* Header top actions area */
-.topActions{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-}
-
-/* =======================================================
-   Dock / Toggle Buttons
-   ======================================================= */
-
-.dockBtn{
-  position:absolute;
-  top:12px;
-  width:34px;
-  height:34px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  user-select:none;
-  font-weight:900;
-  transition: transform .08s ease, background .2s ease, opacity .2s ease;
-  z-index:5;
-}
-.dockBtn:hover{ background: rgba(255,255,255,0.12); }
-.dockBtn:active{ transform: translateY(1px); }
-
-.edgeBtn{
-  position:fixed;
-  top: calc(var(--appTopPad) + 12px);
-  width:36px;
-  height:42px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  user-select:none;
-  font-weight:900;
-  z-index:950;
-  transition: background .2s ease, transform .08s ease;
-}
-.edgeBtn:hover{ background: rgba(255,255,255,0.12); }
-.edgeBtn:active{ transform: translateY(1px); }
-
-.app.leftCollapsed ~ #edgeLeft{ display:flex; }
-.app.rightCollapsed ~ #edgeRight{ display:flex; }
-
-/* =======================================================
-   Collapsible "Beamter erstellen"
-   ======================================================= */
-
-.collapseCard{ padding:0; overflow:hidden; }
-
-.collapseHead{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:10px 10px;
-  cursor:pointer;
-  user-select:none;
-}
-.collapseHead .collapseTitle{
-  font-size:12px;
-  opacity:0.85;
-  font-weight:800;
-  letter-spacing:0.4px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.chev{
-  width:32px; height:32px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  transition: transform .18s ease, background .2s ease;
-  flex:0 0 auto;
-}
-.collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
-
-.collapseBody{
-  padding:0 10px 10px 10px;
-  transform-origin: top;
-  transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-  max-height: 520px;
-  opacity:1;
-  transform: translateY(0);
-}
-.collapsedUp .collapseBody{
-  max-height:0px;
-  opacity:0;
-  transform: translateY(-6px);
-  padding-bottom:0;
-}
-.collapsedUp .chev{ transform: rotate(-90deg); }
-
-.createActions{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-
-/* Hover-only actions */
-.officerLine .btnBack{
-  opacity:0;
-  pointer-events:none;
-  transform: translateY(-1px);
-}
-.officerLine:hover .btnBack{
-  opacity:1;
-  pointer-events:auto;
-  transform: translateY(0);
-}
-
-.cardHeader .btnDanger{
-  opacity:0;
-  pointer-events:none;
-  transform: translateY(-1px);
-}
-.card:hover .cardHeader .btnDanger{
-  opacity:1;
-  pointer-events:auto;
-  transform: translateY(0);
-}
-
-#btnDeleteOfficer{
-  opacity:0;
-  pointer-events:none;
-  transform: translateY(-1px);
-}
-.createActions:hover #btnDeleteOfficer.show{
-  opacity:1;
-  pointer-events:auto;
-  transform: translateY(0);
-}
-
-/* Role hide */
-.hideCreateCard #createCard{ display:none !important; }
-
-/* =======================================================
-   Toast
-   ======================================================= */
-
-.toast{
-  position:fixed;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(10,12,18,0.72);
-  backdrop-filter: blur(10px);
-  opacity:0;
-  pointer-events:none;
-  transition: opacity .2s ease, transform .2s ease;
-  font-size:13px;
-  z-index:998;
-}
-.toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
-
-/* =======================================================
-   Modal
-   ======================================================= */
-
-.modalOverlay{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-  z-index:1000;
-  background:
-    radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
-    radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
-    rgba(0,0,0,0.62);
-  backdrop-filter: blur(10px);
-}
-.modalCard{
-  width:min(520px, 100%);
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(14, 18, 28, 0.78);
-  backdrop-filter: blur(12px);
-  border-radius:22px;
-  box-shadow: 0 18px 70px rgba(0,0,0,0.60);
-  overflow:hidden;
-}
-.modalHeader{
-  padding:14px 16px 12px;
-  border-bottom:1px solid rgba(255,255,255,0.08);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-.modalTitle{
-  font-size:13px;
-  font-weight:900;
-  letter-spacing:0.5px;
-  display:flex;
-  align-items:center;
-  gap:10px;
+.cardBody{
   min-width:0;
 }
-.modalBody{ padding:16px; }
-.modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
-.modalHint{
-  margin-top:10px;
-  padding:10px 12px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.22);
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-}
-.modalHint .dot{ margin-top:3px; }
-.modalFooter{
-  padding:14px 16px 16px;
-  border-top:1px solid rgba(255,255,255,0.08);
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  flex-wrap:wrap;
-}
-.modalCloseX{
-  width:40px; height:40px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  transition: background .2s ease, transform .08s ease;
-  flex:0 0 auto;
-}
-.modalCloseX:hover{ background: rgba(255,255,255,0.10); }
-.modalCloseX:active{ transform: translateY(1px); }
 
-/* =======================================================
-   Utility
-   ======================================================= */
+/* ========================================================= */
+/* FUNCODES – DESKTOP FIX                                    */
+/* ========================================================= */
 
-.row{ display:flex; gap:10px; }
-
-@media (max-width: 1200px){
-  body{ overflow:auto; }
-  .app{ height:auto; grid-template-columns: 1fr; }
-  /* Dock buttons usually hidden in mobile by page; keep safe */
-}
-/* ============================= */
-/* TEXT-FIX: Overflow / Wrapping */
-/* (Funcodes + Pool Header)      */
-/* ============================= */
-
-/* Wichtig: Flex-Children dürfen schrumpfen */
-.brand,
-.titleWrap,
-.topHeaderLeft,
-.topHeaderText,
-.panelHeader,
-.cardHeader,
-.row{
-  min-width: 0;
+.codeList{
+  width:100%;
 }
 
-/* Panel/Box Titel sauber mit Ellipsis statt Überlaufen */
-.title,
-.subtitle,
-.topHeaderTitle,
-.topHeaderSub{
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ========= INFO BOX: Funcodes ========= */
-/* Zeilen korrekt aufteilen: Code links fix, Text rechts darf umbrechen */
 .codeRow{
   display:flex;
   align-items:flex-start;
-  justify-content:flex-start;  /* statt space-between -> verhindert komische Abstände */
-  gap:12px;
-  width:100%;
+  gap:14px;
+  padding:6px 8px;
+  border-radius:8px;
   min-width:0;
 }
 
 .codeRow b{
-  flex: 0 0 auto;
-  white-space: nowrap;
+  flex:0 0 auto;
+  white-space:nowrap;
 }
 
 .codeRow span{
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: normal;         /* darf umbrechen */
-  overflow-wrap: anywhere;     /* bricht auch lange Wörter sauber */
-  word-break: break-word;
+  flex:1 1 auto;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:break-word;
 }
 
-/* ========= Beamten Pool Header (Label + Pill) ========= */
-/* Label soll nicht rauslaufen, sondern kürzen */
+/* ========================================================= */
+/* POOL + FLEX SAFETY                                        */
+/* ========================================================= */
+
+.brand,
+.titleWrap,
+.row,
+.field,
+.field .row{
+  min-width:0;
+}
+
 .field .row > label{
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
-/* Pill soll nicht schrumpfen */
 .field .row .pill{
-  flex: 0 0 auto;
+  flex:0 0 auto;
 }
 
-/* Optional: auf sehr schmalen Screens darf das Pool-Label auch umbrechen */
-@media (max-width: 420px){
-  .field .row > label{
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
+/* ========================================================= */
+/* SCROLLBAR                                                 */
+/* ========================================================= */
+
+::-webkit-scrollbar{
+  width:10px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,0.15);
+  border-radius:8px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+  background:rgba(255,255,255,0.25);
 }
