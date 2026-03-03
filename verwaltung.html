@@ -153,7 +153,7 @@
       overflow:auto;
     }
 
-    /* Pool Toggle (Look wie Screenshot) */
+    /* Pool Toggle: immer sichtbar + snap an Pool-Kante + Pfeile < / > */
     .poolEdgeToggle{
       position:absolute;
       right:-12px;
@@ -171,46 +171,27 @@
       justify-content:center;
       cursor:pointer;
       user-select:none;
-      z-index: 60;
+      z-index: 500;
       transition: .15s;
     }
     .poolEdgeToggle:hover{
       background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.18);
     }
-    .poolEdgeToggle .chev{
-      width: 14px;
-      height: 14px;
-      position:relative;
-      transform: translateX(-1px);
+    .poolEdgeToggle .arrowTxt{
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -1px;
+      color: rgba(255,255,255,0.88);
+      transform: translateY(-1px);
     }
-    .poolEdgeToggle .chev:before,
-    .poolEdgeToggle .chev:after{
-      content:"";
-      position:absolute;
-      width:10px;
-      height:2px;
-      border-radius:2px;
-      background: rgba(255,255,255,0.85);
-      top:6px;
-      left:2px;
-    }
-    .poolEdgeToggle .chev:before{ transform: rotate(45deg); }
-    .poolEdgeToggle .chev:after{ transform: rotate(-45deg); }
-
-    /* ✅ SNAP an die Kante des eingeklappten Panels:
-       Panel fährt um (330px + 14px) raus -> Kante landet bei wrap padding (14px).
-       Button soll wie vorher "überstehen" (12px), daher left: 14px - 12px. */
     body.poolClosed .poolEdgeToggle{
       position: fixed;
       left: calc(14px - 12px);
       right: auto;
-      top: calc(64px + (100vh - 64px)/2);
-      transform: translateY(-50%);
-      z-index: 200;
-    }
-    body.poolClosed .poolEdgeToggle .chev{
-      transform: translateX(1px) rotate(180deg);
+      top: 50%;
+      transform: translateY(calc(-50% + 32px));
+      z-index: 9999;
     }
 
     .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
@@ -501,7 +482,7 @@
         </div>
 
         <div class="poolEdgeToggle" id="poolEdgeToggle" title="Officer Pool ein-/ausblenden">
-          <div class="chev"></div>
+          <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
         </div>
       </div>
 
@@ -609,6 +590,7 @@
     const btnToLeitstelle = document.getElementById("btnToLeitstelle");
 
     const poolEdgeToggle = document.getElementById("poolEdgeToggle");
+    const poolArrowTxt = document.getElementById("poolArrowTxt");
     const poolSearch = document.getElementById("poolSearch");
     const poolList = document.getElementById("poolList");
     const poolCount = document.getElementById("poolCount");
@@ -763,7 +745,6 @@
       const rankAbbrev = escapeHtml(String(getRankAbbrev(o) || ""));
       const officerIdStr = escapeHtml(idToStr(o.id));
 
-      // Remove button nur, wenn Karte in einer Dept-Liste gerendert wird
       const removeBtn = (inDept && isAdmin() && deptIdStr)
         ? `<div class="memRemoveWrap">
              <button class="memRemoveBtn" title="Aus Abteilung entfernen" data-action="remove-membership" data-dept-id="${escapeHtml(deptIdStr)}" data-officer-id="${officerIdStr}">✕</button>
@@ -791,7 +772,6 @@
       `;
     }
 
-    // membership helpers
     function hasMembership(deptIdStr, officerIdStr){
       return memberships.some(m =>
         idToStr(m.department_id) === idToStr(deptIdStr) &&
@@ -806,21 +786,38 @@
       const leaderIdStr = idToStr(d.leader_officer_id);
       const deputyIdStr = idToStr(d.deputy_leader_officer_id);
 
-      // Mitglieder aus department_members holen + nach DN sortieren
+      // Mitglieder-IDs
       const memberOfficerIds = memberships
         .filter(m => idToStr(m.department_id) === deptIdStr)
         .map(m => idToStr(m.officer_id));
 
-      const members = officers
+      // Mitglieder holen
+      const membersRaw = officers
         .filter(o => memberOfficerIds.includes(idToStr(o.id)))
-        .slice()
-        .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
+        .slice();
+
+      // ✅ Sortierung: Leiter immer oben, Stv direkt darunter, Rest nach DN
+      const members = membersRaw.sort((a,b) => {
+        const aId = idToStr(a.id);
+        const bId = idToStr(b.id);
+
+        if(leaderIdStr){
+          if(aId === leaderIdStr && bId !== leaderIdStr) return -1;
+          if(bId === leaderIdStr && aId !== leaderIdStr) return 1;
+        }
+
+        if(deputyIdStr && deputyIdStr !== leaderIdStr){
+          if(aId === deputyIdStr && bId !== deputyIdStr) return -1;
+          if(bId === deputyIdStr && aId !== deputyIdStr) return 1;
+        }
+
+        return parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b));
+      });
 
       const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
-      const deputy = deputyIdStr ? officers.find(o => idToStr(o.id) === deputyIdStr) : null;
 
-      // Optionen: alle Officer (damit Leitung/Stv nicht "verschwindet")
-      const officerOptions = officers
+      // ✅ Leitung/Stv NUR aus Mitgliedern auswählbar
+      const officerOptions = members
         .slice()
         .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)) || String(a.name||"").localeCompare(String(b.name||"")))
         .map(o => {
@@ -832,12 +829,12 @@
 
       const leaderOptions = [
         `<option value="">— keine Leitung —</option>`,
-        ...officerOptions.map(opt => opt.replace(`value="${escapeHtml(leaderIdStr)}"`, `value="${escapeHtml(leaderIdStr)}" selected`))
-      ].join("").replace('selected selected','selected'); // safety
+        ...officerOptions.map(opt => leaderIdStr ? opt.replace(`value="${escapeHtml(leaderIdStr)}"`, `value="${escapeHtml(leaderIdStr)}" selected`) : opt)
+      ].join("").replace('selected selected','selected');
 
       const deputyOptions = [
         `<option value="">— keine Stv. —</option>`,
-        ...officerOptions.map(opt => opt.replace(`value="${escapeHtml(deputyIdStr)}"`, `value="${escapeHtml(deputyIdStr)}" selected`))
+        ...officerOptions.map(opt => deputyIdStr ? opt.replace(`value="${escapeHtml(deputyIdStr)}"`, `value="${escapeHtml(deputyIdStr)}" selected`) : opt)
       ].join("").replace('selected selected','selected');
 
       return `
@@ -852,11 +849,7 @@
                     ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
                     : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
                 }
-                ${
-                  deputy
-                    ? `<span class="pill" style="padding:4px 8px;border-radius:999px;">Stv.: ${escapeHtml(deputy.name||"")}</span>`
-                    : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Stv.: —</span>`
-                }
+                <!-- ✅ Stv. Badge oben raus -->
               </div>
             </div>
 
@@ -897,7 +890,6 @@
     function renderAll(){
       detectIdTypes();
 
-      // ✅ Pool bleibt IMMER komplett (Officer verschwinden nicht mehr)
       const search = (poolSearch.value || "").trim().toLowerCase();
       let pool = officers.slice().sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
 
@@ -932,9 +924,7 @@
     function closeModal(el){ el.style.display = "none"; }
     function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
 
-    // Dept actions + membership remove
     function wireDeptActions(){
-      // delete dept
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
         btn.addEventListener("click", (e) => {
           if(!isAdmin()) return;
@@ -949,7 +939,6 @@
         });
       });
 
-      // leader select
       deptGrid.querySelectorAll("[data-action='leader-select']").forEach(sel => {
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
@@ -966,7 +955,6 @@
         });
       });
 
-      // deputy leader select
       deptGrid.querySelectorAll("[data-action='deputy-select']").forEach(sel => {
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
@@ -983,7 +971,6 @@
         });
       });
 
-      // remove membership
       deptGrid.querySelectorAll("[data-action='remove-membership']").forEach(btn => {
         btn.addEventListener("click", async (e) => {
           if(!isAdmin()) return;
@@ -994,7 +981,6 @@
           const deptId = castDeptId(deptIdStr);
           const officerId = castOfficerId(officerIdStr);
 
-          // wenn Leitung/Stv entfernt wird -> nullen
           const dept = departments.find(d => idToStr(d.id) === idToStr(deptIdStr));
           if(dept){
             const patch = {};
@@ -1036,14 +1022,12 @@
       });
 
       if(error){
-        // unique violation o.ä. still okay
         const msg = (error.message||"").toLowerCase();
         if(!msg.includes("duplicate") && !msg.includes("unique")) alert("Zuordnung fehlgeschlagen: " + niceError(error));
       }
     }
 
     async function moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr){
-      // move = delete old + insert new
       const fromDeptId = castDeptId(fromDeptIdStr);
       const toDeptId = castDeptId(toDeptIdStr);
       const officerId = castOfficerId(officerIdStr);
@@ -1057,7 +1041,6 @@
 
       const canDrag = isAdmin();
 
-      // Pool: Quelle, CLONE -> Pool bleibt immer gleich
       poolSortable = new Sortable(poolList, {
         group: { name:"officers", pull:"clone", put:false },
         animation: 140,
@@ -1069,7 +1052,6 @@
         disabled: !canDrag
       });
 
-      // Depts: Ziel, move zwischen Depts erlaubt
       deptGrid.querySelectorAll(".deptList").forEach(listEl => {
         const s = new Sortable(listEl, {
           group: { name:"officers", pull:true, put:true },
@@ -1090,13 +1072,11 @@
 
             if(!officerIdStr || !toDeptIdStr) return;
 
-            // von Pool (clone): membership hinzufügen
             if(evt.from === poolList){
               await ensureMembership(toDeptIdStr, officerIdStr);
               return;
             }
 
-            // von anderer Dept: move membership
             if(fromDeptIdStr && fromDeptIdStr !== toDeptIdStr){
               await moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr);
             }
@@ -1135,19 +1115,19 @@
         .subscribe();
     }
 
-    // ✅ Wheel -> horizontal scroll in DeptGrid
     function enableWheelHorizontalScroll(){
       deptGrid.addEventListener("wheel", (e) => {
-        // Wenn user bewusst horizontal scrollt: nichts anfassen
         if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-        // Standard vertical -> map to horizontal
         e.preventDefault();
         deptGrid.scrollLeft += e.deltaY;
       }, { passive:false });
     }
 
-    // Modals
+    function syncPoolToggleArrow(){
+      const closed = document.body.classList.contains("poolClosed");
+      if(poolArrowTxt) poolArrowTxt.textContent = closed ? ">" : "<";
+    }
+
     modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
     modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
     window.addEventListener("keydown", (e) => {
@@ -1185,10 +1165,7 @@
 
       const deptId = castDeptId(deptIdStr);
 
-      // memberships entfernen
       await sb.from("department_members").delete().match({ department_id: deptId });
-
-      // leader/stv nullen
       await sb.from("departments").update({ leader_officer_id: null, deputy_leader_officer_id: null }).eq("id", deptId);
 
       const { error } = await sb.from("departments").delete().eq("id", deptId);
@@ -1196,8 +1173,10 @@
       else { closeModal(modalDeleteDept); pendingDeleteDeptIdStr = null; }
     });
 
-    // Pool toggle
-    poolEdgeToggle.addEventListener("click", () => document.body.classList.toggle("poolClosed"));
+    poolEdgeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("poolClosed");
+      syncPoolToggleArrow();
+    });
     poolSearch.addEventListener("input", () => renderAll());
 
     btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
@@ -1248,6 +1227,7 @@
 
     (async function init(){
       enableWheelHorizontalScroll();
+      syncPoolToggleArrow();
 
       const { data } = await sb.auth.getSession();
       sessionUser = data?.session?.user || null;
