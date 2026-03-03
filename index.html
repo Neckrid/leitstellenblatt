@@ -764,31 +764,6 @@
     </div>
   </div>
 
-  <!-- GLOBAL HEADER (Match Verwaltung) -->
-  <header class="topHeader" id="topHeader" style="display:none;">
-    <div class="topHeaderLeft">
-      <div class="badge">LSPD</div>
-      <div class="topHeaderText">
-        <div class="topHeaderTitle">Leitstellenblatt</div>
-        <div class="topHeaderSub">Streifeneinteilung • Notizen • Funcodes</div>
-      </div>
-    </div>
-
-    <div class="topHeaderRight">
-      <!-- Role pill wie Verwaltungsseite -->
-      <span class="pill" title="Rolle">
-        <span class="dot on" id="roleDot"></span>
-        <span id="roleText">—</span>
-      </span>
-
-      <!-- optionaler Wechsel-Button (optisch wie Verwaltung) -->
-      <button class="btn btnGhost" id="btnGoManagement" type="button" title="Zur Verwaltung">Zur Verwaltung</button>
-
-      <!-- Logout -->
-      <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
-    </div>
-  </header>
-
   <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
     <section class="panel collapseX" id="panelLeft">
@@ -797,10 +772,14 @@
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">LSPD</div>
-          <div class="titleWrap">
-            <div class="title">POOL</div>
-            <div class="subtitle">Erstellen & Verwalten</div>
-          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="pill" title="Leitstelle Online/Offline">
+            <span class="dot off" id="connDot"></span>
+            <span id="connText">Leitstelle</span>
+          </span>
+          <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
         </div>
       </div>
 
@@ -851,7 +830,7 @@
           <div style="height:10px"></div>
 
           <div class="row">
-            <input id="inpSearch" placeholder="Suche (Name oder DN / Rang)"/>
+            <input id="inpSearch" placeholder="Suche (Name oder DN)"/>
           </div>
 
           <div style="height:10px"></div>
@@ -867,7 +846,6 @@
         <div class="brand">
           <div class="titleWrap">
             <div class="title">STREIFENEINTEILUNG</div>
-            <div class="subtitle">Ziehen & Ablegen</div>
           </div>
         </div>
 
@@ -1013,12 +991,6 @@
       { name:"K9", abbr:"K9" }
     ];
 
-    function escapeHtml(s){
-      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
-    }
-
     function getRankAbbrByName(rankName){
       const hit = RANKS.find(r => r.name === rankName);
       return hit ? hit.abbr : "Of";
@@ -1042,26 +1014,6 @@
       canDeleteOfficer: false,
       canSelectPoolForEdit: false
     };
-
-    function roleLabel(){
-      if(perms.role === "admin") return "Admin";
-      if(perms.role === "leitstelle") return "Leitstelle";
-      if(perms.role === "officer") return "Officer";
-      return "—";
-    }
-
-    function applyHeaderRole(){
-      const roleText = document.getElementById("roleText");
-      const roleDot = document.getElementById("roleDot");
-      if(roleText) roleText.textContent = roleLabel();
-
-      // Dot: admin/leitstelle = grün, officer = neutral/rosa, guest = rosa
-      if(roleDot){
-        roleDot.classList.remove("on","off");
-        if(perms.role === "admin" || perms.role === "leitstelle") roleDot.classList.add("on");
-        else roleDot.classList.add("off");
-      }
-    }
 
     function setRoleFromEmail(email){
       const e = (email || "").toLowerCase().trim();
@@ -1099,7 +1051,6 @@
         perms.canSelectPoolForEdit = false;
       }
 
-      applyHeaderRole();
       applyRoleUi();
     }
 
@@ -1107,8 +1058,6 @@
      * DOM
      ***********************/
     const app = document.getElementById("app");
-    const topHeader = document.getElementById("topHeader");
-
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
@@ -1120,6 +1069,8 @@
     const edgeLeft = document.getElementById("edgeLeft");
     const edgeRight = document.getElementById("edgeRight");
 
+    const connDot = document.getElementById("connDot");
+    const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
@@ -1153,8 +1104,6 @@
     const confirmCancel = document.getElementById("confirmCancel");
     const confirmDelete = document.getElementById("confirmDelete");
 
-    const btnGoManagement = document.getElementById("btnGoManagement");
-
     /***********************
      * HELPERS
      ***********************/
@@ -1185,7 +1134,6 @@
     function showLogin(errMsg = ""){
       loginOverlay.style.display = "flex";
       app.style.display = "none";
-      if(topHeader) topHeader.style.display = "none";
       loginErr.style.display = errMsg ? "block" : "none";
       loginErr.textContent = errMsg || "";
       setTimeout(()=> inpLoginName.focus(), 50);
@@ -1193,7 +1141,6 @@
     function hideLogin(){
       loginOverlay.style.display = "none";
       app.style.display = "grid";
-      if(topHeader) topHeader.style.display = "flex";
     }
 
     function friendlyAuthError(error){
@@ -1208,6 +1155,12 @@
         return "Zu viele Versuche. Bitte kurz warten.";
       }
       return "Login fehlgeschlagen.";
+    }
+
+    function escapeHtml(s){
+      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
     }
 
     function timeAgo(iso){
@@ -1392,6 +1345,98 @@
       saveCreateCollapsed(createCollapsed);
       applyCreateCollapsed();
     });
+
+    /***********************
+     * Leitstelle Online/Offline (Presence)
+     ***********************/
+    let presenceChannel = null;
+
+    function setLeitstelleIndicator(isOnline){
+      connDot.classList.toggle("on", !!isOnline);
+      connDot.classList.toggle("off", !isOnline);
+      connText.textContent = "Leitstelle";
+    }
+
+    function computeLeitstelleOnlineFromPresence(state){
+      try{
+        for(const key of Object.keys(state || {})){
+          const arr = state[key] || [];
+          for(const item of arr){
+            const email = (item?.email || "").toLowerCase();
+            if(email === LEITSTELLE_EMAIL) return true;
+          }
+        }
+      }catch{}
+      return false;
+    }
+
+    async function setupPresence(){
+      try{
+        if(presenceChannel){
+          try{ sb.removeChannel(presenceChannel); }catch{}
+          presenceChannel = null;
+        }
+
+        const { data } = await sb.auth.getSession();
+        const session = data?.session;
+        const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
+
+        presenceChannel = sb.channel("presence-leitstelle", { config: { presence: { key } } });
+
+        presenceChannel
+          .on("presence", { event: "sync" }, () => {
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+          })
+          .on("presence", { event: "join" }, () => {
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+          })
+          .on("presence", { event: "leave" }, () => {
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+          });
+
+        presenceChannel.subscribe(async (status) => {
+          if(status === "SUBSCRIBED"){
+            const email = (session?.user?.email || "").toLowerCase();
+            if(email === LEITSTELLE_EMAIL){
+              try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
+            }
+            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+          }
+        });
+      }catch(e){
+        console.error("presence setup error:", e);
+        setLeitstelleIndicator(false);
+      }
+    }
+
+    async function stopPresence(){
+      try{
+        if(!presenceChannel){
+          setLeitstelleIndicator(false);
+          return;
+        }
+
+        const { data } = await sb.auth.getSession();
+        const email = (data?.session?.user?.email || "").toLowerCase();
+
+        if(email === LEITSTELLE_EMAIL){
+          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
+        }
+      }catch(e){
+        console.error("presence untrack error:", e);
+      }
+
+      try{
+        if(presenceChannel){
+          try{ sb.removeChannel(presenceChannel); }catch{}
+        }
+      }catch(e){
+        console.error("remove presence error:", e);
+      }
+
+      presenceChannel = null;
+      setLeitstelleIndicator(false);
+    }
 
     /***********************
      * FUNKCODES / STATUS
@@ -1819,6 +1864,7 @@
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
       if(oRes.error) throw oRes.error;
 
+      // fallback defaults, falls alte rows keine rank Felder haben
       officers = (oRes.data || []).map(o => ({
         ...o,
         rank: o.rank || "Officer",
@@ -2181,7 +2227,9 @@
             upsertLocal(patrols, incoming);
 
             const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-            if(sortChanged) return;
+            if(sortChanged){
+              return;
+            }
 
             patchPatrolCard(incoming, before);
           });
@@ -2235,6 +2283,7 @@
       setRoleFromEmail(email);
 
       await syncRealtimeAuth();
+      await setupPresence();
       setupRealtime();
       await loadAll();
 
@@ -2276,6 +2325,7 @@
       showLogin("");
       toast("Ausgeloggt");
 
+      try { stopPresence().catch(()=>{}); } catch {}
       try { teardownRealtime(); } catch {}
       try { destroyAllSortables(); } catch {}
       try { clearOfficerSelection(); } catch {}
@@ -2320,14 +2370,6 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
-    // Link-Button (Dateiname bei dir ggf. anpassen!)
-    if(btnGoManagement){
-      btnGoManagement.addEventListener("click", ()=>{
-        // passe den Dateinamen an, falls deine Verwaltung anders heißt:
-        window.location.href = "verwaltung.html";
-      });
-    }
-
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
       if(logout){ e.preventDefault(); doLogout(); return; }
@@ -2357,6 +2399,7 @@
         try{ sb.realtime.connect(); }catch{}
 
         try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
+
         scheduleRebuildSortables();
       }catch(e){
         console.error("onReturnFromTab error:", e);
@@ -2380,6 +2423,12 @@
     window.addEventListener("pageshow", () => { onReturnFromTab(); });
 
     /***********************
+     * ✅ Single-init Guard
+     ***********************/
+    let lastInitUserId = null;
+    let loginInitRunning = false;
+
+    /***********************
      * INIT
      ***********************/
     (async function init(){
@@ -2387,6 +2436,7 @@
       applyCreateCollapsed();
       renderFuncodes();
       renderRankDropdown();
+      setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
       try{
@@ -2395,8 +2445,6 @@
 
         if(session){
           hideLogin();
-          await syncRealtimeAuth();
-          await postLoginInit();
         }else{
           showLogin("");
         }
@@ -2407,10 +2455,27 @@
 
       sb.auth.onAuthStateChange(async (evt, session) => {
         if(session){
-          await syncRealtimeAuth();
-          hideLogin();
-          await postLoginInit();
+          const uid = session.user?.id || null;
+          if(loginInitRunning) return;
+          if(uid && uid === lastInitUserId) return;
+
+          loginInitRunning = true;
+          lastInitUserId = uid;
+
+          try{
+            await syncRealtimeAuth();
+            hideLogin();
+            await postLoginInit();
+          }catch(e){
+            console.error("postLoginInit error:", e);
+            showLogin("Init-Fehler.");
+          }finally{
+            loginInitRunning = false;
+          }
         }else{
+          lastInitUserId = null;
+
+          await stopPresence();
           teardownRealtime();
           destroyAllSortables();
           clearOfficerSelection();
