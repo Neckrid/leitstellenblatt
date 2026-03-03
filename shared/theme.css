@@ -1,6 +1,6 @@
 /* ============================= */
 /* LSPD GLOBAL THEME (MASTER)    */
-/* Premium Glass Dark + Overrides */
+/* Premium Glass Dark + Layout   */
 /* ============================= */
 
 *{ box-sizing:border-box; }
@@ -19,6 +19,10 @@ html,body{ height:100%; }
   /* Header Layout */
   --hdrH: 64px;
   --appTopPad: calc(var(--hdrH) + 14px);
+
+  /* App Panel widths (can be overridden per page) */
+  --leftW: 420px;
+  --rightW: 360px;
 }
 
 body{
@@ -33,7 +37,10 @@ body{
     linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
 }
 
-/* ========= GLOBAL TOP HEADER ========= */
+/* =======================================================
+   GLOBAL TOP HEADER (injected by layout.js partial)
+   ======================================================= */
+
 .topHeader{
   position:fixed;
   left:0; right:0; top:0;
@@ -50,6 +57,7 @@ body{
   gap:12px;
   overflow:hidden;
 }
+
 .topHeaderLeft{
   display:flex;
   align-items:center;
@@ -57,13 +65,16 @@ body{
   min-width:0;
   flex:1 1 auto;
 }
+
 .topHeaderText{
   display:flex;
   flex-direction:column;
   line-height:1.05;
   min-width:0;
 }
-.topHeaderTitle{
+
+.topHeaderTitle,
+#globalHeaderTitle{
   font-size:14px;
   font-weight:700;
   letter-spacing:0.3px;
@@ -71,7 +82,9 @@ body{
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.topHeaderSub{
+
+.topHeaderSub,
+#globalHeaderSub{
   font-size:12px;
   color: var(--muted2);
   white-space:nowrap;
@@ -79,6 +92,7 @@ body{
   text-overflow:ellipsis;
   margin-top:1px;
 }
+
 .topHeaderRight{
   margin-left:auto;
   display:flex;
@@ -89,7 +103,22 @@ body{
   flex:0 0 auto;
 }
 
-/* ========= Badge / Pill / Dot ========= */
+/* Optional: right side slots in header partial */
+#globalHeaderExtra{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+}
+
+#presencePill{
+  display:inline-flex;
+}
+
+/* =======================================================
+   Badge / Pill / Dot
+   ======================================================= */
+
 .badge{
   display:inline-flex;
   align-items:center;
@@ -119,6 +148,18 @@ body{
   flex:0 0 auto;
 }
 
+/* DN/Rang Pills (used by Leitstellenblatt JS) */
+.pill.pillDn{
+  border-color: rgba(0,140,255,0.22);
+  background: rgba(0,140,255,0.08);
+  color: rgba(255,255,255,0.88);
+}
+.pill.pillRank{
+  border-color: rgba(255,70,180,0.22);
+  background: rgba(255,70,180,0.08);
+  color: rgba(255,255,255,0.88);
+}
+
 .dot{
   width:8px; height:8px; border-radius:999px;
   background: rgba(255,255,255,0.35);
@@ -131,8 +172,12 @@ body{
 .dot.warn{ background: rgba(255,200,0,0.90); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
 .dot.ok{ background: rgba(0,255,140,0.85); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
 
-/* ========= Inputs ========= */
+/* =======================================================
+   Inputs
+   ======================================================= */
+
 label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
+
 input, select, textarea{
   width:100%;
   background: rgba(0,0,0,0.25);
@@ -143,9 +188,13 @@ input, select, textarea{
   outline:none;
   font-size:14px;
 }
+
 textarea{ resize:vertical; min-height:120px; }
 
-/* ========= Buttons ========= */
+/* =======================================================
+   Buttons
+   ======================================================= */
+
 .btn{
   border:1px solid var(--stroke);
   background: rgba(255,255,255,0.06);
@@ -163,6 +212,7 @@ textarea{ resize:vertical; min-height:120px; }
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  gap:8px;
 }
 .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
 .btn:active{ transform: translateY(1px); }
@@ -173,12 +223,15 @@ textarea{ resize:vertical; min-height:120px; }
   box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
   background: rgba(255,255,255,0.06);
 }
+
 .btnDanger{
   border-color: rgba(255,60,90,0.28);
   background: rgba(255,60,90,0.12);
 }
 .btnDanger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
+
 .btnGhost{ background: transparent; box-shadow:none; }
+
 .btnLogoutRed{
   border-color: rgba(255,60,90,0.28);
   background: rgba(255,60,90,0.12);
@@ -186,7 +239,14 @@ textarea{ resize:vertical; min-height:120px; }
 }
 .btnLogoutRed:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
 
-/* ========= LOGIN OVERLAY ========= */
+/* Utility button variants used in your page */
+.btnWide{ padding-left:14px; padding-right:14px; }
+.btnIcon{ padding:9px 10px; min-width:42px; }
+
+/* =======================================================
+   LOGIN OVERLAY (injected by layout.js partial)
+   ======================================================= */
+
 .loginOverlay{
   position:fixed;
   inset:0;
@@ -202,6 +262,7 @@ textarea{ resize:vertical; min-height:120px; }
     rgba(0,0,0,0.55);
   backdrop-filter: blur(10px);
 }
+
 .loginCard{
   width:min(560px, 100%);
   border:1px solid rgba(255,255,255,0.12);
@@ -211,6 +272,7 @@ textarea{ resize:vertical; min-height:120px; }
   box-shadow: 0 18px 70px rgba(0,0,0,0.55);
   overflow:hidden;
 }
+
 .loginHeader{
   padding:16px 16px 14px;
   border-bottom:1px solid rgba(255,255,255,0.08);
@@ -219,17 +281,92 @@ textarea{ resize:vertical; min-height:120px; }
   justify-content:space-between;
   gap:12px;
 }
+
 .loginTitleWrap{ line-height:1.1; min-width:0; }
 .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
 .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
 .loginBody{ padding:16px; }
 .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
 /* =======================================================
-   PREMIUM GLASS BOXES (mit Overrides gegen page <style>)
+   APP LAYOUT (collapsible left/right) – global
    ======================================================= */
 
-/* Panels (look) */
+.app{
+  height:100%;
+  display:grid;
+  gap:14px;
+  padding:14px;
+  padding-top: var(--appTopPad);
+  grid-template-columns: var(--leftW) 1fr var(--rightW);
+  transition: grid-template-columns .25s ease;
+}
+
+.app.leftCollapsed{ --leftW: 0px; }
+.app.rightCollapsed{ --rightW: 0px; }
+
+.panel{
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  min-width:0;
+  position:relative;
+}
+
+/* Collapsible panels fade */
+.panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
+.app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+.app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
+
+.panelHeader{
+  padding:14px 14px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+
+.brand{ display:flex; gap:10px; align-items:center; min-width:0; }
+
+.titleWrap{ line-height:1.05; min-width:0; }
+.title{
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:0.6px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.subtitle{
+  font-size:12px;
+  opacity:0.75;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.content{ padding:14px; overflow:auto; min-height:0; }
+.muted{ opacity:0.75; font-size:12px; }
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap:14px;
+}
+@media (max-width: 1500px){
+  .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+}
+@media (max-width: 1100px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* =======================================================
+   Premium Glass Boxes (global)
+   ======================================================= */
+
 .panel{
   border: 1px solid rgba(255,255,255,0.12) !important;
   border-radius: 18px !important;
@@ -242,7 +379,7 @@ textarea{ resize:vertical; min-height:120px; }
     0 18px 40px rgba(0,0,0,0.35) !important;
 }
 
-/* Header Trennlinien */
+/* Header separators */
 .panelHeader,
 .cardHeader{
   border-bottom: 1px solid rgba(255,255,255,0.10) !important;
@@ -263,6 +400,8 @@ textarea{ resize:vertical; min-height:120px; }
 
 /* Patrol Cards */
 .card{
+  overflow:hidden;
+  min-width:0;
   border: 1px solid rgba(255,255,255,0.10) !important;
   border-radius: 18px !important;
   background:
@@ -274,8 +413,26 @@ textarea{ resize:vertical; min-height:120px; }
     0 20px 44px rgba(0,0,0,0.35) !important;
 }
 
+.cardHeader{
+  padding:12px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.cardBody{ padding:12px; }
+
 /* Officer lines */
 .officerLine{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px;
+  transition: border-color .15s ease, background .15s ease, transform .08s ease;
+
   border: 1px solid rgba(255,255,255,0.10) !important;
   border-radius: 14px !important;
   background:
@@ -284,6 +441,13 @@ textarea{ resize:vertical; min-height:120px; }
   backdrop-filter: blur(10px) !important;
   box-shadow:
     0 0 0 1px rgba(255,255,255,0.03) inset !important;
+}
+
+.officerLine.clickable{ cursor:pointer; }
+
+.officerLine.selected{
+  border-color: rgba(0,255,195,0.35) !important;
+  background: rgba(0,255,195,0.07) !important;
 }
 
 /* Funcode rows */
@@ -298,103 +462,10 @@ textarea{ resize:vertical; min-height:120px; }
     0 0 0 1px rgba(255,255,255,0.02) inset !important;
 }
 
-/* Utility */
-.row{ display:flex; gap:10px; }
+/* =======================================================
+   Leitstellenblatt helpers (drag, pool, patrol)
+   ======================================================= */
 
-/* =========================================================
-   GLOBAL APP LAYOUT + COMPONENTS (moved from pages)
-   ========================================================= */
-
-/* --- App grid (collapsible left/right) --- */
-.app{
-  height:100%;
-  display:grid;
-  gap:14px;
-  padding:14px;
-  padding-top: var(--appTopPad);
-  grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
-  transition: grid-template-columns .25s ease;
-}
-.app.leftCollapsed{ --leftW: 0px; }
-.app.rightCollapsed{ --rightW: 0px; }
-
-/* Panels base (layout) */
-.panel{
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-  min-width:0;
-  position:relative;
-}
-
-/* Collapse animation helpers */
-.panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-.app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
-.app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
-
-/* Panel header/content layout */
-.panelHeader{
-  padding:14px 14px 12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  min-width:0;
-}
-.content{
-  padding:14px;
-  overflow:auto;
-  min-height:0;
-}
-
-/* Brand + titles */
-.brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-.titleWrap{ line-height:1.05; min-width:0; }
-.title{
-  font-size:14px;
-  font-weight:800;
-  letter-spacing:0.6px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.subtitle{
-  font-size:12px;
-  opacity:0.75;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.muted{ opacity:0.75; font-size:12px; }
-
-/* --- Patrol grid --- */
-.grid{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
-  gap:14px;
-}
-@media (max-width: 1500px){
-  .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-}
-@media (max-width: 1100px){
-  .grid{ grid-template-columns: 1fr; }
-}
-
-/* Cards */
-.card{ overflow:hidden; min-width:0; }
-.cardHeader{
-  padding:12px 12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.cardBody{ padding:12px; }
-
-/* Patrol header controls */
 .patrolDrag{
   cursor:grab;
   user-select:none;
@@ -441,29 +512,13 @@ textarea{ resize:vertical; min-height:120px; }
   .statusSelect{ flex: 1 1 100%; }
 }
 
-/* Dropzones & officer lines */
 .dropZone{
   display:flex;
   flex-direction:column;
   gap:10px;
-  min-height:52px;
+  min-height: 52px;
 }
 
-.officerLine{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:10px;
-  transition: border-color .15s ease, background .15s ease, transform .08s ease;
-}
-.officerLine.clickable{ cursor:pointer; }
-.officerLine.selected{
-  border-color: rgba(0,255,195,0.35);
-  background: rgba(0,255,195,0.07);
-}
-
-/* Drag handle */
 .dragHandle{
   cursor:grab;
   user-select:none;
@@ -480,7 +535,10 @@ textarea{ resize:vertical; min-height:120px; }
 }
 .dragHandle:active{ cursor:grabbing; }
 
-/* Right side info boxes */
+.sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
+.sortable-chosen{ cursor:grabbing; }
+
+/* Right info boxes */
 .rightBox h3{
   margin:0 0 10px 0;
   font-size:13px;
@@ -489,7 +547,7 @@ textarea{ resize:vertical; min-height:120px; }
 }
 .codeList{ display:flex; flex-direction:column; gap:8px; }
 
-/* Actions row in header */
+/* Header top actions area */
 .topActions{
   display:flex;
   gap:8px;
@@ -498,34 +556,10 @@ textarea{ resize:vertical; min-height:120px; }
   justify-content:flex-end;
 }
 
-/* Hover-only buttons */
-.officerLine .btnBack{
-  opacity:0;
-  pointer-events:none;
-  transform: translateY(-1px);
-}
-.officerLine:hover .btnBack{
-  opacity:1;
-  pointer-events:auto;
-  transform: translateY(0);
-}
+/* =======================================================
+   Dock / Toggle Buttons
+   ======================================================= */
 
-.cardHeader .btnDanger{
-  opacity:0;
-  pointer-events:none;
-  transform: translateY(-1px);
-}
-.card:hover .cardHeader .btnDanger{
-  opacity:1;
-  pointer-events:auto;
-  transform: translateY(0);
-}
-
-/* Sortable visuals */
-.sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
-.sortable-chosen{ cursor:grabbing; }
-
-/* Dock / Edge buttons (panel toggles) */
 .dockBtn{
   position:absolute;
   top:12px;
@@ -546,8 +580,6 @@ textarea{ resize:vertical; min-height:120px; }
 }
 .dockBtn:hover{ background: rgba(255,255,255,0.12); }
 .dockBtn:active{ transform: translateY(1px); }
-#btnToggleLeft{ right:12px; }
-#btnToggleRight{ left:12px; }
 
 .edgeBtn{
   position:fixed;
@@ -569,32 +601,16 @@ textarea{ resize:vertical; min-height:120px; }
 }
 .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
 .edgeBtn:active{ transform: translateY(1px); }
-#edgeLeft{ left:10px; }
-#edgeRight{ right:10px; }
+
 .app.leftCollapsed ~ #edgeLeft{ display:flex; }
 .app.rightCollapsed ~ #edgeRight{ display:flex; }
 
-/* Toast */
-.toast{
-  position:fixed;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(10,12,18,0.72);
-  backdrop-filter: blur(10px);
-  opacity:0;
-  pointer-events:none;
-  transition: opacity .2s ease, transform .2s ease;
-  font-size:13px;
-  z-index:998;
-}
-.toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+/* =======================================================
+   Collapsible "Beamter erstellen"
+   ======================================================= */
 
-/* Collapsible "Beamter erstellen" */
 .collapseCard{ padding:0; overflow:hidden; }
+
 .collapseHead{
   display:flex;
   align-items:center;
@@ -626,11 +642,12 @@ textarea{ resize:vertical; min-height:120px; }
   flex:0 0 auto;
 }
 .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
+
 .collapseBody{
   padding:0 10px 10px 10px;
   transform-origin: top;
   transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-  max-height:520px;
+  max-height: 520px;
   opacity:1;
   transform: translateY(0);
 }
@@ -649,7 +666,29 @@ textarea{ resize:vertical; min-height:120px; }
   gap:10px;
 }
 
-/* Hover delete button in createActions */
+/* Hover-only actions */
+.officerLine .btnBack{
+  opacity:0;
+  pointer-events:none;
+  transform: translateY(-1px);
+}
+.officerLine:hover .btnBack{
+  opacity:1;
+  pointer-events:auto;
+  transform: translateY(0);
+}
+
+.cardHeader .btnDanger{
+  opacity:0;
+  pointer-events:none;
+  transform: translateY(-1px);
+}
+.card:hover .cardHeader .btnDanger{
+  opacity:1;
+  pointer-events:auto;
+  transform: translateY(0);
+}
+
 #btnDeleteOfficer{
   opacity:0;
   pointer-events:none;
@@ -661,7 +700,35 @@ textarea{ resize:vertical; min-height:120px; }
   transform: translateY(0);
 }
 
-/* Modal */
+/* Role hide */
+.hideCreateCard #createCard{ display:none !important; }
+
+/* =======================================================
+   Toast
+   ======================================================= */
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(10,12,18,0.72);
+  backdrop-filter: blur(10px);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .2s ease, transform .2s ease;
+  font-size:13px;
+  z-index:998;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+
+/* =======================================================
+   Modal
+   ======================================================= */
+
 .modalOverlay{
   position:fixed;
   inset:0;
@@ -739,12 +806,14 @@ textarea{ resize:vertical; min-height:120px; }
 .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
 .modalCloseX:active{ transform: translateY(1px); }
 
-/* Role hide */
-.hideCreateCard #createCard{ display:none !important; }
+/* =======================================================
+   Utility
+   ======================================================= */
 
-/* Responsive behavior */
+.row{ display:flex; gap:10px; }
+
 @media (max-width: 1200px){
   body{ overflow:auto; }
   .app{ height:auto; grid-template-columns: 1fr; }
-  #btnToggleLeft, #btnToggleRight{ display:none; }
+  /* Dock buttons usually hidden in mobile by page; keep safe */
 }
