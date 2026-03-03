@@ -62,12 +62,39 @@
     .loginBody{ padding:16px; }
     .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
+    /* ========= GLOBAL TOP HEADER ========= */
+    .topHeader{
+      position:fixed;
+      left:14px;
+      right:14px;
+      top:14px;
+      height:58px;
+      z-index:900;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(14, 18, 28, 0.55);
+      backdrop-filter: blur(10px);
+      border-radius:18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      display:flex;
+      align-items:center;
+      padding:10px 12px;
+      gap:12px;
+    }
+    .topHeader .topRight{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
     /* ========= APP GRID (collapsible left/right) ========= */
     .app{
       height:100%;
       display:grid;
       gap:14px;
       padding:14px;
+      padding-top: 86px; /* Platz für Header */
       grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
       transition: grid-template-columns .25s ease;
     }
@@ -101,8 +128,6 @@
       gap:10px;
       min-width:0;
     }
-    #panelLeft .panelHeader{ padding-right:56px; }
-    #panelRight .panelHeader{ padding-left:56px; }
     #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
@@ -226,6 +251,7 @@
     }
     @media (max-width: 1100px){
       .grid{ grid-template-columns: 1fr; }
+      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
     }
 
     .card{
@@ -457,7 +483,8 @@
 
     @media (max-width: 1200px){
       body{ overflow:auto; }
-      .app{ height:auto; grid-template-columns: 1fr; }
+      .topHeader{ left:10px; right:10px; top:10px; }
+      .app{ height:auto; grid-template-columns: 1fr; padding-top: 78px; }
       #btnToggleLeft, #btnToggleRight{ display:none; }
       .edgeBtn{ top:10px; }
       #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
@@ -500,7 +527,7 @@
       padding:0 10px 10px 10px;
       transform-origin: top;
       transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-      max-height: 520px; /* etwas höher wegen Rang */
+      max-height: 520px;
       opacity:1;
       transform: translateY(0);
     }
@@ -643,6 +670,21 @@
     </div>
   </div>
 
+  <!-- GLOBAL HEADER -->
+  <header class="topHeader" id="topHeader" style="display:none;">
+    <div class="brand">
+      <div class="badge">LSPD</div>
+    </div>
+
+    <div class="topRight">
+      <span class="pill" title="Leitstelle Online/Offline">
+        <span class="dot off" id="connDot"></span>
+        <span id="connText">Leitstelle</span>
+      </span>
+      <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
+    </div>
+  </header>
+
   <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
     <section class="panel collapseX" id="panelLeft">
@@ -651,14 +693,6 @@
       <div class="panelHeader">
         <div class="brand">
           <div class="badge">LSPD</div>
-        </div>
-
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span class="pill" title="Leitstelle Online/Offline">
-            <span class="dot off" id="connDot"></span>
-            <span id="connText">Leitstelle</span>
-          </span>
-          <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
         </div>
       </div>
 
@@ -709,7 +743,7 @@
           <div style="height:10px"></div>
 
           <div class="row">
-            <input id="inpSearch" placeholder="Suche (Name oder DN)"/>
+            <input id="inpSearch" placeholder="Suche (Name oder DN / Rang)"/>
           </div>
 
           <div style="height:10px"></div>
@@ -870,6 +904,12 @@
       { name:"K9", abbr:"K9" }
     ];
 
+    function escapeHtml(s){
+      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
     function getRankAbbrByName(rankName){
       const hit = RANKS.find(r => r.name === rankName);
       return hit ? hit.abbr : "Of";
@@ -937,6 +977,8 @@
      * DOM
      ***********************/
     const app = document.getElementById("app");
+    const topHeader = document.getElementById("topHeader");
+
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
@@ -1013,6 +1055,7 @@
     function showLogin(errMsg = ""){
       loginOverlay.style.display = "flex";
       app.style.display = "none";
+      if(topHeader) topHeader.style.display = "none";
       loginErr.style.display = errMsg ? "block" : "none";
       loginErr.textContent = errMsg || "";
       setTimeout(()=> inpLoginName.focus(), 50);
@@ -1020,6 +1063,7 @@
     function hideLogin(){
       loginOverlay.style.display = "none";
       app.style.display = "grid";
+      if(topHeader) topHeader.style.display = "flex";
     }
 
     function friendlyAuthError(error){
@@ -1034,12 +1078,6 @@
         return "Zu viele Versuche. Bitte kurz warten.";
       }
       return "Login fehlgeschlagen.";
-    }
-
-    function escapeHtml(s){
-      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
     }
 
     function timeAgo(iso){
@@ -1743,7 +1781,6 @@
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
       if(oRes.error) throw oRes.error;
 
-      // fallback defaults, falls alte rows keine rank Felder haben
       officers = (oRes.data || []).map(o => ({
         ...o,
         rank: o.rank || "Officer",
