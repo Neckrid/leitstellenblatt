@@ -127,7 +127,6 @@
     body.poolClosed .poolPanel{
       transform: translateX(calc(-330px - 14px));
       opacity: 0;
-      /* WICHTIG: nicht pointer-events:none, sonst kann der Toggle nie wieder geklickt werden */
     }
 
     .panelHeader{
@@ -154,7 +153,7 @@
       overflow:auto;
     }
 
-    /* Pool Toggle - Look wie Screenshot */
+    /* Pool Toggle (Look wie Screenshot) */
     .poolEdgeToggle{
       position:absolute;
       right:-12px;
@@ -172,15 +171,13 @@
       justify-content:center;
       cursor:pointer;
       user-select:none;
-      z-index: 50;
+      z-index: 60;
       transition: .15s;
     }
     .poolEdgeToggle:hover{
       background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.18);
     }
-
-    /* Chevron (links/rechts) */
     .poolEdgeToggle .chev{
       width: 14px;
       height: 14px;
@@ -201,16 +198,17 @@
     .poolEdgeToggle .chev:before{ transform: rotate(45deg); }
     .poolEdgeToggle .chev:after{ transform: rotate(-45deg); }
 
-    /* Wenn Pool zu: Toggle als fixed Button am linken Bildschirmrand (damit wieder öffnen möglich ist) */
+    /* ✅ SNAP an die Kante des eingeklappten Panels:
+       Panel fährt um (330px + 14px) raus -> Kante landet bei wrap padding (14px).
+       Button soll wie vorher "überstehen" (12px), daher left: 14px - 12px. */
     body.poolClosed .poolEdgeToggle{
       position: fixed;
-      left: 10px;
+      left: calc(14px - 12px);
       right: auto;
       top: calc(64px + (100vh - 64px)/2);
       transform: translateY(-50%);
       z-index: 200;
     }
-    /* Pfeilrichtung drehen wenn geschlossen */
     body.poolClosed .poolEdgeToggle .chev{
       transform: translateX(1px) rotate(180deg);
     }
@@ -241,12 +239,13 @@
       justify-content:space-between;
       gap:10px;
       user-select:none;
+      position:relative;
     }
     .officer:hover{
       border-color: rgba(0,255,195,0.20);
       box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 30px rgba(0,0,0,0.32);
     }
-    .oLeft{ display:flex; align-items:center; gap:10px; min-width:0; }
+    .oLeft{ display:flex; align-items:center; gap:10px; min-width:0; width:100%; }
     .handle{
       width:28px; height:28px;
       border-radius: 10px;
@@ -268,7 +267,7 @@
     .bars i{ top:5px; }
     .bars:after{ bottom:0; }
 
-    .oText{ min-width:0; }
+    .oText{ min-width:0; flex:1 1 auto; }
     .oName{
       font-weight:800;
       font-size:13px;
@@ -297,6 +296,33 @@
     .tag.dn{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
     .tag.rank{ border-color: rgba(0,140,255,0.22); background: rgba(0,140,255,0.10); }
     .tag.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
+    .tag.deputy{ border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
+
+    /* Remove membership button (nur in Dept, nur Admin, nur Hover) */
+    .memRemoveWrap{
+      opacity:0;
+      pointer-events:none;
+      transition:.15s;
+      flex:0 0 auto;
+    }
+    .officer:hover .memRemoveWrap{ opacity:1; pointer-events:auto; }
+    .memRemoveBtn{
+      width:34px; height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,60,90,0.28);
+      background: rgba(255,60,90,0.12);
+      color:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:.15s;
+      user-select:none;
+    }
+    .memRemoveBtn:hover{
+      background: rgba(255,60,90,0.18);
+      border-color: rgba(255,60,90,0.40);
+    }
 
     .deptGrid{
       height:100%;
@@ -338,7 +364,6 @@
       align-items:center;
       flex-wrap:wrap;
     }
-
     .deptActions{ display:flex; gap:8px; align-items:center; }
     .dept .delWrap{ opacity:0; pointer-events:none; transition:.15s; }
     .dept:hover .delWrap{ opacity:1; pointer-events:auto; }
@@ -558,7 +583,7 @@
       <div class="modalBody">
         <div class="modalHint">
           Willst du die Abteilung <span class="dangerText" id="delDeptName">—</span> wirklich löschen?<br/>
-          Officer werden automatisch in den Pool verschoben.
+          Memberships werden entfernt (Officer bleiben im Pool).
         </div>
       </div>
       <div class="modalFoot">
@@ -575,7 +600,6 @@
      ***********************************************************************/
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-
     const sb = supabase.createClient(SB_URL, SB_KEY);
 
     // UI
@@ -616,6 +640,7 @@
     let userRole = "none";
     let departments = [];
     let officers = [];
+    let memberships = []; // department_members
     let rtChannel = null;
 
     let pendingDeleteDeptIdStr = null;
@@ -670,7 +695,6 @@
       btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
     }
 
-    // ✅ Rollen ohne profiles Tabelle (fix für 404)
     async function detectRole(user){
       const email = (user?.email || "").toLowerCase();
       if(email === "admin@gta.local") return "admin";
@@ -688,7 +712,7 @@
       return msg;
     }
 
-    // Ränge exakt wie vorgegeben (Fallback falls rank_abbr leer ist)
+    // Fallback rank map (nur falls rank_abbr leer)
     const RANK_MAP = new Map([
       ["chief of police","CoP"],
       ["deputy chief","DC"],
@@ -713,8 +737,6 @@
     function getDienstnummer(o){
       return o.badge_number ?? o.dienstnummer ?? o.badge ?? o.callsign_number ?? "";
     }
-
-    // ✅ Nimmt jetzt PRIMÄR officers.rank_abbr aus Supabase
     function getRankAbbrev(o){
       const fromTable = (o.rank_abbr ?? "").toString().trim();
       if(fromTable) return fromTable;
@@ -727,12 +749,26 @@
       return RANK_MAP.get(n.toLowerCase()) || "";
     }
 
-    function officerCardHTML(o, isLeader=false){
+    function parseDN(v){
+      const s = String(v ?? "").trim();
+      const n = parseInt(s.replace(/[^\d]/g,""), 10);
+      return Number.isFinite(n) ? n : Infinity;
+    }
+
+    function officerCardHTML(o, opts={}){
+      const { inDept=false, deptIdStr=null, isLeader=false, isDeputy=false } = opts;
+
       const name = escapeHtml(o.name || "Unbekannt");
-      const dnRaw = String(getDienstnummer(o) || "");
-      const dn = escapeHtml(dnRaw);
+      const dn = escapeHtml(String(getDienstnummer(o) || ""));
       const rankAbbrev = escapeHtml(String(getRankAbbrev(o) || ""));
       const officerIdStr = escapeHtml(idToStr(o.id));
+
+      // Remove button nur, wenn Karte in einer Dept-Liste gerendert wird
+      const removeBtn = (inDept && isAdmin() && deptIdStr)
+        ? `<div class="memRemoveWrap">
+             <button class="memRemoveBtn" title="Aus Abteilung entfernen" data-action="remove-membership" data-dept-id="${escapeHtml(deptIdStr)}" data-officer-id="${officerIdStr}">✕</button>
+           </div>`
+        : ``;
 
       return `
         <div class="officer" data-officer-id="${officerIdStr}">
@@ -745,12 +781,22 @@
                   ${dn ? `<span class="tag dn">DN ${dn}</span>` : ``}
                   ${rankAbbrev ? `<span class="tag rank">${rankAbbrev}</span>` : ``}
                   ${isLeader ? `<span class="tag lead">Leitung</span>` : ``}
+                  ${isDeputy ? `<span class="tag deputy">Stv.</span>` : ``}
                 </span>
               </div>
             </div>
+            ${removeBtn}
           </div>
         </div>
       `;
+    }
+
+    // membership helpers
+    function hasMembership(deptIdStr, officerIdStr){
+      return memberships.some(m =>
+        idToStr(m.department_id) === idToStr(deptIdStr) &&
+        idToStr(m.officer_id) === idToStr(officerIdStr)
+      );
     }
 
     function deptHTML(d){
@@ -758,22 +804,41 @@
       const name = escapeHtml(d.name || "Abteilung");
 
       const leaderIdStr = idToStr(d.leader_officer_id);
+      const deputyIdStr = idToStr(d.deputy_leader_officer_id);
 
-      // ✅ Mitglieder nach DN sortieren
+      // Mitglieder aus department_members holen + nach DN sortieren
+      const memberOfficerIds = memberships
+        .filter(m => idToStr(m.department_id) === deptIdStr)
+        .map(m => idToStr(m.officer_id));
+
       const members = officers
-        .filter(o => idToStr(o.department_id) === deptIdStr)
+        .filter(o => memberOfficerIds.includes(idToStr(o.id)))
         .slice()
         .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
 
       const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
+      const deputy = deputyIdStr ? officers.find(o => idToStr(o.id) === deputyIdStr) : null;
+
+      // Optionen: alle Officer (damit Leitung/Stv nicht "verschwindet")
+      const officerOptions = officers
+        .slice()
+        .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)) || String(a.name||"").localeCompare(String(b.name||"")))
+        .map(o => {
+          const oid = idToStr(o.id);
+          const dn = getDienstnummer(o);
+          const label = `${o.name || ""}${dn ? " (DN " + dn + ")" : ""}`;
+          return `<option value="${escapeHtml(oid)}">${escapeHtml(label)}</option>`;
+        });
 
       const leaderOptions = [
         `<option value="">— keine Leitung —</option>`,
-        ...members.map(o => {
-          const oid = idToStr(o.id);
-          return `<option value="${escapeHtml(oid)}" ${oid === leaderIdStr ? "selected" : ""}>${escapeHtml(o.name || "")}</option>`;
-        })
-      ].join("");
+        ...officerOptions.map(opt => opt.replace(`value="${escapeHtml(leaderIdStr)}"`, `value="${escapeHtml(leaderIdStr)}" selected`))
+      ].join("").replace('selected selected','selected'); // safety
+
+      const deputyOptions = [
+        `<option value="">— keine Stv. —</option>`,
+        ...officerOptions.map(opt => opt.replace(`value="${escapeHtml(deputyIdStr)}"`, `value="${escapeHtml(deputyIdStr)}" selected`))
+      ].join("").replace('selected selected','selected');
 
       return `
         <div class="dept" data-dept-id="${escapeHtml(deptIdStr)}">
@@ -786,6 +851,11 @@
                   leader
                     ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
                     : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
+                }
+                ${
+                  deputy
+                    ? `<span class="pill" style="padding:4px 8px;border-radius:999px;">Stv.: ${escapeHtml(deputy.name||"")}</span>`
+                    : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Stv.: —</span>`
                 }
               </div>
             </div>
@@ -801,34 +871,35 @@
 
           <div class="deptBody">
             ${isAdmin() ? `
-              <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-                <select data-action="leader-select" title="Leitung festlegen">
+              <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-direction:column;">
+                <select data-action="leader-select" title="Leitung festlegen" style="width:100%;">
                   ${leaderOptions}
+                </select>
+                <select data-action="deputy-select" title="Stv. Leitung festlegen" style="width:100%;">
+                  ${deputyOptions}
                 </select>
               </div>
             ` : ``}
 
             <div class="deptList" data-dept-id="${escapeHtml(deptIdStr)}">
-              ${members.map(o => officerCardHTML(o, leaderIdStr && idToStr(o.id) === leaderIdStr)).join("")}
+              ${members.map(o => officerCardHTML(o, {
+                inDept:true,
+                deptIdStr,
+                isLeader: leaderIdStr && idToStr(o.id) === leaderIdStr,
+                isDeputy: deputyIdStr && idToStr(o.id) === deputyIdStr
+              })).join("")}
             </div>
           </div>
         </div>
       `;
     }
 
-    function parseDN(v){
-      const s = String(v ?? "").trim();
-      const n = parseInt(s.replace(/[^\d]/g,""), 10);
-      return Number.isFinite(n) ? n : Infinity;
-    }
-
     function renderAll(){
       detectIdTypes();
 
+      // ✅ Pool bleibt IMMER komplett (Officer verschwinden nicht mehr)
       const search = (poolSearch.value || "").trim().toLowerCase();
-
-      let pool = officers.filter(o => !o.department_id);
-      pool.sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
+      let pool = officers.slice().sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)));
 
       if(search){
         pool = pool.filter(o => {
@@ -839,8 +910,11 @@
         });
       }
 
-      poolList.innerHTML = pool.map(o => officerCardHTML(o, false)).join("") || `<div class="pill" style="display:inline-flex;">Keine Treffer</div>`;
-      poolCount.textContent = String(officers.filter(o => !o.department_id).length);
+      poolList.innerHTML =
+        pool.map(o => officerCardHTML(o, { inDept:false })).join("") ||
+        `<div class="pill" style="display:inline-flex;">Keine Treffer</div>`;
+
+      poolCount.textContent = String(officers.length);
 
       const sortedDepts = [...departments].sort((a,b) => (a.sort||0) - (b.sort||0) || (a.name||"").localeCompare(b.name||""));
       deptGrid.innerHTML = sortedDepts.map(d => deptHTML(d)).join("");
@@ -850,7 +924,17 @@
       initSortable();
     }
 
+    function openModal(el){
+      el.style.display = "flex";
+      const inp = el.querySelector("input");
+      if(inp) setTimeout(() => inp.focus(), 50);
+    }
+    function closeModal(el){ el.style.display = "none"; }
+    function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
+
+    // Dept actions + membership remove
     function wireDeptActions(){
+      // delete dept
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
         btn.addEventListener("click", (e) => {
           if(!isAdmin()) return;
@@ -865,6 +949,7 @@
         });
       });
 
+      // leader select
       deptGrid.querySelectorAll("[data-action='leader-select']").forEach(sel => {
         sel.addEventListener("change", async (e) => {
           if(!isAdmin()) return;
@@ -880,6 +965,53 @@
           if(error) alert("Leitung setzen fehlgeschlagen: " + niceError(error));
         });
       });
+
+      // deputy leader select
+      deptGrid.querySelectorAll("[data-action='deputy-select']").forEach(sel => {
+        sel.addEventListener("change", async (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptIdStr = deptEl?.dataset?.deptId;
+          if(!deptIdStr) return;
+
+          const deptId = castDeptId(deptIdStr);
+          const deputyIdStr = e.currentTarget.value || "";
+          const deputyId = deputyIdStr ? castOfficerId(deputyIdStr) : null;
+
+          const { error } = await sb.from("departments").update({ deputy_leader_officer_id: deputyId }).eq("id", deptId);
+          if(error) alert("Stv. Leitung setzen fehlgeschlagen: " + niceError(error));
+        });
+      });
+
+      // remove membership
+      deptGrid.querySelectorAll("[data-action='remove-membership']").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          if(!isAdmin()) return;
+          const deptIdStr = e.currentTarget.dataset.deptId;
+          const officerIdStr = e.currentTarget.dataset.officerId;
+          if(!deptIdStr || !officerIdStr) return;
+
+          const deptId = castDeptId(deptIdStr);
+          const officerId = castOfficerId(officerIdStr);
+
+          // wenn Leitung/Stv entfernt wird -> nullen
+          const dept = departments.find(d => idToStr(d.id) === idToStr(deptIdStr));
+          if(dept){
+            const patch = {};
+            if(idToStr(dept.leader_officer_id) === idToStr(officerIdStr)) patch.leader_officer_id = null;
+            if(idToStr(dept.deputy_leader_officer_id) === idToStr(officerIdStr)) patch.deputy_leader_officer_id = null;
+            if(Object.keys(patch).length){
+              await sb.from("departments").update(patch).eq("id", deptId);
+            }
+          }
+
+          const { error } = await sb.from("department_members")
+            .delete()
+            .match({ department_id: deptId, officer_id: officerId });
+
+          if(error) alert("Entfernen fehlgeschlagen: " + niceError(error));
+        });
+      });
     }
 
     let poolSortable = null;
@@ -892,50 +1024,84 @@
       poolSortable = null;
     }
 
+    async function ensureMembership(deptIdStr, officerIdStr){
+      const deptId = castDeptId(deptIdStr);
+      const officerId = castOfficerId(officerIdStr);
+
+      if(hasMembership(deptIdStr, officerIdStr)) return;
+
+      const { error } = await sb.from("department_members").insert({
+        department_id: deptId,
+        officer_id: officerId
+      });
+
+      if(error){
+        // unique violation o.ä. still okay
+        const msg = (error.message||"").toLowerCase();
+        if(!msg.includes("duplicate") && !msg.includes("unique")) alert("Zuordnung fehlgeschlagen: " + niceError(error));
+      }
+    }
+
+    async function moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr){
+      // move = delete old + insert new
+      const fromDeptId = castDeptId(fromDeptIdStr);
+      const toDeptId = castDeptId(toDeptIdStr);
+      const officerId = castOfficerId(officerIdStr);
+
+      await sb.from("department_members").delete().match({ department_id: fromDeptId, officer_id: officerId });
+      await ensureMembership(toDeptIdStr, officerIdStr);
+    }
+
     function initSortable(){
       destroySortable();
 
       const canDrag = isAdmin();
-      const common = {
-        group: "officers",
+
+      // Pool: Quelle, CLONE -> Pool bleibt immer gleich
+      poolSortable = new Sortable(poolList, {
+        group: { name:"officers", pull:"clone", put:false },
         animation: 140,
         ghostClass: "ghost",
         chosenClass: "chosen",
         dragClass: "dragging",
         handle: ".handle",
         sort: false,
-        disabled: !canDrag,
-        onEnd: async (evt) => {
-          if(!canDrag) return;
+        disabled: !canDrag
+      });
 
-          const officerIdStr = evt.item?.dataset?.officerId;
-          if(!officerIdStr) return;
+      // Depts: Ziel, move zwischen Depts erlaubt
+      deptGrid.querySelectorAll(".deptList").forEach(listEl => {
+        const s = new Sortable(listEl, {
+          group: { name:"officers", pull:true, put:true },
+          animation: 140,
+          ghostClass: "ghost",
+          chosenClass: "chosen",
+          dragClass: "dragging",
+          handle: ".handle",
+          sort: false,
+          disabled: !canDrag,
 
-          const toList = evt.to;
-          const toIsPool = toList?.id === "poolList";
-          const toDeptIdStr = toIsPool ? null : (toList?.dataset?.deptId || null);
+          onAdd: async (evt) => {
+            if(!canDrag) return;
 
-          const officerId = castOfficerId(officerIdStr);
-          const toDeptId = toDeptIdStr ? castDeptId(toDeptIdStr) : null;
-
-          const { error } = await sb.from("officers").update({ department_id: toDeptId }).eq("id", officerId);
-          if(error){
-            alert("Zuweisung fehlgeschlagen: " + niceError(error));
-          }else{
+            const officerIdStr = evt.item?.dataset?.officerId;
+            const toDeptIdStr = evt.to?.dataset?.deptId;
             const fromDeptIdStr = evt.from?.dataset?.deptId || null;
-            if(fromDeptIdStr){
-              const dept = departments.find(d => idToStr(d.id) === idToStr(fromDeptIdStr));
-              if(dept && idToStr(dept.leader_officer_id) === idToStr(officerIdStr)){
-                await sb.from("departments").update({ leader_officer_id: null }).eq("id", castDeptId(fromDeptIdStr));
-              }
+
+            if(!officerIdStr || !toDeptIdStr) return;
+
+            // von Pool (clone): membership hinzufügen
+            if(evt.from === poolList){
+              await ensureMembership(toDeptIdStr, officerIdStr);
+              return;
+            }
+
+            // von anderer Dept: move membership
+            if(fromDeptIdStr && fromDeptIdStr !== toDeptIdStr){
+              await moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr);
             }
           }
-        }
-      };
-
-      poolSortable = new Sortable(poolList, { ...common });
-      deptGrid.querySelectorAll(".deptList").forEach(listEl => {
-        const s = new Sortable(listEl, common);
+        });
         deptSortables.push(s);
       });
     }
@@ -949,6 +1115,10 @@
       if(d2.error){ alert("Officers laden fehlgeschlagen: " + niceError(d2.error)); officers = []; }
       else officers = d2.data || [];
 
+      const d3 = await sb.from("department_members").select("*");
+      if(d3.error){ alert("Members laden fehlgeschlagen: " + niceError(d3.error)); memberships = []; }
+      else memberships = d3.data || [];
+
       renderAll();
     }
 
@@ -961,17 +1131,23 @@
       rtChannel
         .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => loadData())
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => loadData())
+        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => loadData())
         .subscribe();
     }
 
-    function openModal(el){
-      el.style.display = "flex";
-      const inp = el.querySelector("input");
-      if(inp) setTimeout(() => inp.focus(), 50);
-    }
-    function closeModal(el){ el.style.display = "none"; }
-    function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
+    // ✅ Wheel -> horizontal scroll in DeptGrid
+    function enableWheelHorizontalScroll(){
+      deptGrid.addEventListener("wheel", (e) => {
+        // Wenn user bewusst horizontal scrollt: nichts anfassen
+        if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
+        // Standard vertical -> map to horizontal
+        e.preventDefault();
+        deptGrid.scrollLeft += e.deltaY;
+      }, { passive:false });
+    }
+
+    // Modals
     modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
     modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
     window.addEventListener("keydown", (e) => {
@@ -1009,18 +1185,18 @@
 
       const deptId = castDeptId(deptIdStr);
 
-      const members = officers.filter(o => idToStr(o.department_id) === idToStr(deptIdStr));
-      if(members.length){
-        const updates = members.map(o => sb.from("officers").update({ department_id: null }).eq("id", castOfficerId(o.id)));
-        await Promise.allSettled(updates);
-      }
+      // memberships entfernen
+      await sb.from("department_members").delete().match({ department_id: deptId });
 
-      await sb.from("departments").update({ leader_officer_id: null }).eq("id", deptId);
+      // leader/stv nullen
+      await sb.from("departments").update({ leader_officer_id: null, deputy_leader_officer_id: null }).eq("id", deptId);
+
       const { error } = await sb.from("departments").delete().eq("id", deptId);
       if(error) alert("Löschen fehlgeschlagen: " + niceError(error));
       else { closeModal(modalDeleteDept); pendingDeleteDeptIdStr = null; }
     });
 
+    // Pool toggle
     poolEdgeToggle.addEventListener("click", () => document.body.classList.toggle("poolClosed"));
     poolSearch.addEventListener("input", () => renderAll());
 
@@ -1071,6 +1247,8 @@
     loginPass.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
 
     (async function init(){
+      enableWheelHorizontalScroll();
+
       const { data } = await sb.auth.getSession();
       sessionUser = data?.session?.user || null;
 
