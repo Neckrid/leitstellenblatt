@@ -500,7 +500,7 @@
       padding:0 10px 10px 10px;
       transform-origin: top;
       transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-      max-height: 420px;
+      max-height: 520px; /* etwas höher wegen Rang */
       opacity:1;
       transform: translateY(0);
     }
@@ -679,6 +679,10 @@
             <label>Dienstnummer</label>
             <input id="inpDienstnr" placeholder="z.B. 4711"/>
 
+            <div style="height:10px"></div>
+            <label>Rang</label>
+            <select id="selRank"></select>
+
             <div style="height:12px"></div>
 
             <div class="createActions">
@@ -843,6 +847,42 @@
     }
 
     /***********************
+     * RANKS
+     ***********************/
+    const RANKS = [
+      { name:"Chief of Police", abbr:"CoP" },
+      { name:"Deputy Chief", abbr:"DC" },
+      { name:"Assistant Chief", abbr:"AC" },
+      { name:"Commander", abbr:"Cmd" },
+      { name:"Trial Commander", abbr:"Tr.Cmd" },
+      { name:"Captain", abbr:"Cap" },
+      { name:"Senior Lieutenant", abbr:"SrLt" },
+      { name:"Lieutenant", abbr:"Lt" },
+      { name:"Master Sergeant", abbr:"MSgt" },
+      { name:"Staff Sergeant", abbr:"StSgt" },
+      { name:"Sergeant", abbr:"Sgt" },
+      { name:"Senior Corporal", abbr:"SrCorp" },
+      { name:"Corporal", abbr:"Corp" },
+      { name:"Senior Officer", abbr:"SrOf" },
+      { name:"Officer", abbr:"Of" },
+      { name:"Junior Officer", abbr:"JrOf" },
+      { name:"Rookie", abbr:"Rk" },
+      { name:"K9", abbr:"K9" }
+    ];
+
+    function getRankAbbrByName(rankName){
+      const hit = RANKS.find(r => r.name === rankName);
+      return hit ? hit.abbr : "Of";
+    }
+
+    function renderRankDropdown(){
+      const sel = document.getElementById("selRank");
+      if(!sel) return;
+      sel.innerHTML = RANKS.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join("");
+      sel.value = "Officer";
+    }
+
+    /***********************
      * ROLE / PERMISSIONS
      ***********************/
     const perms = {
@@ -877,7 +917,6 @@
         perms.canDeleteOfficer = true;
         perms.canSelectPoolForEdit = true;
       }else if(e){
-        // Default: Leitstelle (wie bei dir gewünscht)
         perms.role = "leitstelle";
         perms.canCreateOfficer = true;
         perms.canEditOfficer = true;
@@ -915,6 +954,7 @@
 
     const inpName = document.getElementById("inpName");
     const inpDienstnr = document.getElementById("inpDienstnr");
+    const selRank = document.getElementById("selRank");
     const btnCreateOfficer = document.getElementById("btnCreateOfficer");
     const btnRemember = document.getElementById("btnRemember");
     const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
@@ -1070,8 +1110,6 @@
      ***********************/
     let isDragging = false;
     let pendingRender = false;
-
-    // while dragging, buffer realtime mutations to prevent DOM/state desync
     let rtQueue = [];
 
     function applyQueuedRealtime(){
@@ -1260,7 +1298,6 @@
         const { data } = await sb.auth.getSession();
         const email = (data?.session?.user?.email || "").toLowerCase();
 
-        // untrack kann nach Tab-Sleep hängen -> timeout (ignorieren)
         if(email === LEITSTELLE_EMAIL){
           try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
         }
@@ -1328,7 +1365,9 @@
       if(!q) return true;
       const name = (officer.name ?? "").toString().toLowerCase();
       const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
-      return name.includes(q) || dn.includes(q);
+      const rk = (officer.rank ?? "").toString().toLowerCase();
+      const ra = (officer.rank_abbr ?? "").toString().toLowerCase();
+      return name.includes(q) || dn.includes(q) || rk.includes(q) || ra.includes(q);
     }
 
     function clearOfficerSelection(){
@@ -1346,6 +1385,11 @@
       inpName.value = o.name ?? "";
       inpDienstnr.value = (o.dienstnummer ?? "").toString();
 
+      const rName = o.rank || "Officer";
+      if(selRank){
+        selRank.value = RANKS.some(r => r.name === rName) ? rName : "Officer";
+      }
+
       meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
       setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
 
@@ -1357,6 +1401,13 @@
 
       updateCreateControls();
       renderCreatedPool();
+    }
+
+    function getOfficerRankPills(o){
+      const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
+      const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
+      const rankPill = abbr ? `<span class="pill">${escapeHtml(abbr)}</span>` : "";
+      return `<span class="pill">${escapeHtml(dn)}</span>${rankPill}`;
     }
 
     function renderCreatedPool(){
@@ -1381,7 +1432,6 @@
 
       createdList.innerHTML = pool.map(o => {
         const isOn = o.status === "10-1";
-        const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
         const selected = (selectedOfficerId === o.id && canClickSelect) ? "selected" : "";
         const clickableClass = canClickSelect ? "clickable" : "";
 
@@ -1400,7 +1450,7 @@
                 </div>
 
                 <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  <span class="pill">${escapeHtml(dn)}</span>
+                  ${getOfficerRankPills(o)}
                 </div>
 
                 <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
@@ -1444,7 +1494,6 @@
         .map(el => Number(el.getAttribute("data-patrol-card")))
         .filter(n => Number.isFinite(n));
 
-      // optimistic state
       ids.forEach((id, idx)=>{
         const p = patrols.find(x => x.id === id);
         if(p) p.sort_index = idx + 1;
@@ -1458,7 +1507,7 @@
         return;
       }
       toast("Streifen-Reihenfolge gespeichert");
-      schedulePostMoveResync(); // ✅ catch-up for multi-user races
+      schedulePostMoveResync();
     }
 
     function destroyAllSortables(){
@@ -1468,7 +1517,6 @@
       sortables = [];
     }
 
-    // ✅ stabiler Rebuild (Tabwechsel etc.)
     let rebuildTimer = null;
     function scheduleRebuildSortables(){
       if(rebuildTimer) clearTimeout(rebuildTimer);
@@ -1527,7 +1575,6 @@
         const status = p.funcode || "Auf Streife";
 
         const lines = list.length ? list.map(o => {
-          const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
           return `
             <div class="officerLine" data-officer-id="${o.id}">
               <div style="display:flex; gap:10px; align-items:center; min-width:0;">
@@ -1536,7 +1583,7 @@
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span class="dot ${o.status === "10-1" ? "on":"off"}"></span>
                     <strong>${escapeHtml(o.name)}</strong>
-                    <span class="pill">${escapeHtml(dn)}</span>
+                    ${getOfficerRankPills(o)}
                   </div>
                 </div>
               </div>
@@ -1596,7 +1643,6 @@
           queuePatrolRename(id, inp.value);
         });
 
-        // wichtig: KEIN render bei input!
         inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
         inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
       });
@@ -1657,7 +1703,6 @@
               const toRaw = evt.to.getAttribute("data-patrol-id");
               const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
 
-              // ✅ MULTI-USER FIX: decide change by DOM zones, NOT by possibly stale officers[] state
               const fromRaw = evt.from.getAttribute("data-patrol-id");
               const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
               const changedZone = (fromPatrolId !== toPatrolId);
@@ -1697,7 +1742,13 @@
 
       const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
       if(oRes.error) throw oRes.error;
-      officers = oRes.data || [];
+
+      // fallback defaults, falls alte rows keine rank Felder haben
+      officers = (oRes.data || []).map(o => ({
+        ...o,
+        rank: o.rank || "Officer",
+        rank_abbr: o.rank_abbr || getRankAbbrByName(o.rank || "Officer")
+      }));
 
       const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
       if(nRes.error) throw nRes.error;
@@ -1713,7 +1764,7 @@
       return officers.find(o => o.name === name);
     }
 
-    async function upsertOfficer({name, dienstnummer, patrol_id, status, forceId=null}){
+    async function upsertOfficer({name, dienstnummer, patrol_id, status, rank, rank_abbr, forceId=null}){
       const existing = forceId ? officers.find(o => o.id === forceId) : findOfficerIdentity(name, dienstnummer);
 
       const payload = {
@@ -1721,6 +1772,8 @@
         dienstnummer: (dienstnummer ?? "").trim() || null,
         patrol_id: (patrol_id === "" || patrol_id == null) ? null : Number(patrol_id),
         status,
+        rank: (rank ?? "Officer").toString(),
+        rank_abbr: (rank_abbr ?? getRankAbbrByName(rank ?? "Officer")).toString(),
         last_seen: new Date().toISOString()
       };
 
@@ -1748,6 +1801,9 @@
 
       const name = inpName.value.trim();
       const dienstnummer = inpDienstnr.value.trim();
+      const rankName = (selRank?.value || "Officer").toString();
+      const rankAbbr = getRankAbbrByName(rankName);
+
       if(!name) return toast("Name ausfüllen");
       if(!dienstnummer) return toast("Dienstnummer ausfüllen");
 
@@ -1762,6 +1818,8 @@
           name, dienstnummer,
           patrol_id: cur.patrol_id,
           status: cur.status,
+          rank: rankName,
+          rank_abbr: rankAbbr,
           forceId: selectedOfficerId
         });
         toast("Beamter gespeichert");
@@ -1770,7 +1828,7 @@
       }
 
       if(!perms.canCreateOfficer){ toast("Keine Berechtigung zum Erstellen"); return; }
-      await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2" });
+      await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2", rank: rankName, rank_abbr: rankAbbr });
       toast("Beamter gespeichert");
     }
 
@@ -1806,8 +1864,6 @@
       upsertLocal(officers, res.data);
       renderAll();
       toast(toPatrolId == null ? "In Pool" : "Auf Streife");
-
-      // ✅ MULTI-USER CATCH-UP
       schedulePostMoveResync();
     }
 
@@ -1938,6 +1994,7 @@
       await deleteOfficer(id);
       inpName.value = "";
       inpDienstnr.value = "";
+      if(selRank) selRank.value = "Officer";
       clearOfficerSelection();
     });
 
@@ -2004,7 +2061,13 @@
               officers = officers.filter(o => o.id !== id);
               if(selectedOfficerId === id) selectedOfficerId = null;
             }else{
-              upsertLocal(officers, payload.new);
+              const row = payload.new || {};
+              const patched = {
+                ...row,
+                rank: row.rank || "Officer",
+                rank_abbr: row.rank_abbr || getRankAbbrByName(row.rank || "Officer")
+              };
+              upsertLocal(officers, patched);
             }
           });
         })
@@ -2044,13 +2107,10 @@
 
             const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
             if(sortChanged){
-              return; // renderAll after fn anyway
+              return;
             }
 
-            const patched = patchPatrolCard(incoming, before);
-            if(!patched){
-              // renderAll will handle
-            }
+            patchPatrolCard(incoming, before);
           });
         })
         .subscribe(async (status) => {
@@ -2130,7 +2190,6 @@
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if(error) throw error;
 
-        // NICHT manuell initialisieren – onAuthStateChange übernimmt das
         toast("Eingeloggt");
       }catch(e){
         console.error(e);
@@ -2141,20 +2200,16 @@
       }
     }
 
-    // ✅ Logout robust: niemals an Presence/Realtime hängen
     async function doLogout(){
-      // UI sofort “ausloggen”
       showLogin("");
       toast("Ausgeloggt");
 
-      // best-effort cleanup (nicht blockierend)
       try { stopPresence().catch(()=>{}); } catch {}
       try { teardownRealtime(); } catch {}
       try { destroyAllSortables(); } catch {}
       try { clearOfficerSelection(); } catch {}
       try { setRoleFromEmail(""); } catch {}
 
-      // wichtig: signOut
       try{
         const { error } = await sb.auth.signOut();
         if(error) console.error("signOut error:", error);
@@ -2171,6 +2226,7 @@
     btnRemember.addEventListener("click", ()=>{
       inpName.value = "";
       inpDienstnr.value = "";
+      if(selRank) selRank.value = "Officer";
       meHint.textContent = "Eingaben gelöscht";
       setTimeout(()=> meHint.textContent = "", 1500);
       clearOfficerSelection();
@@ -2193,7 +2249,6 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
-    // Delegation
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
       if(logout){ e.preventDefault(); doLogout(); return; }
@@ -2222,7 +2277,6 @@
         await syncRealtimeAuth();
         try{ sb.realtime.connect(); }catch{}
 
-        // Mini-resync (state wieder sauber)
         try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
 
         scheduleRebuildSortables();
@@ -2248,7 +2302,7 @@
     window.addEventListener("pageshow", () => { onReturnFromTab(); });
 
     /***********************
-     * ✅ Single-init Guard (verhindert doppelte postLoginInit)
+     * ✅ Single-init Guard
      ***********************/
     let lastInitUserId = null;
     let loginInitRunning = false;
@@ -2260,6 +2314,7 @@
       applyUi();
       applyCreateCollapsed();
       renderFuncodes();
+      renderRankDropdown();
       setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
@@ -2268,7 +2323,6 @@
         const session = data?.session;
 
         if(session){
-          // NICHT postLoginInit hier (onAuthStateChange macht das)
           hideLogin();
         }else{
           showLogin("");
@@ -2293,7 +2347,6 @@
             await postLoginInit();
           }catch(e){
             console.error("postLoginInit error:", e);
-            // fallback: login anzeigen, falls init komplett scheitert
             showLogin("Init-Fehler.");
           }finally{
             loginInitRunning = false;
