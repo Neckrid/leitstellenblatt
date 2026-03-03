@@ -8,13 +8,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- ✅ THEME EINBINDEN -->
+  <!-- ✅ Theme einbinden -->r
   <link rel="stylesheet" href="shared/theme.css"/>
 
   <style>
     /* =========================================================
        LEITSTELLENBLATT – PAGE CSS ONLY
-       (Theme.css wurde hier komplett rausgenommen)
+       (Theme.css ist Master für Look & Feel)
        ========================================================= */
 
     /* ========= APP GRID (collapsible left/right) ========= */
@@ -79,10 +79,7 @@
       .grid{ grid-template-columns: 1fr; }
     }
 
-    .card{
-      overflow:hidden;
-      min-width:0;
-    }
+    .card{ overflow:hidden; min-width:0; }
 
     .cardHeader{
       padding:12px 12px;
@@ -270,7 +267,6 @@
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
-    /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
     .edgeBtn{
       position:fixed;
       top: calc(var(--appTopPad) + 12px);
@@ -352,7 +348,6 @@
       gap:10px;
     }
 
-    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
     #btnDeleteOfficer{
       opacity:0;
       pointer-events:none;
@@ -445,7 +440,6 @@
     /* Role hide */
     .hideCreateCard #createCard{ display:none !important; }
 
-    /* ========= Responsive override ========= */
     @media (max-width: 1200px){
       body{ overflow:auto; }
       .app{ height:auto; grid-template-columns: 1fr; }
@@ -676,7 +670,7 @@
      * CONFIG
      ***********************/
     const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 10 } }
@@ -965,7 +959,7 @@
     }
 
     /***********************
-     * ✅ Drag Guard + ✅ Realtime Queue (MULTI-USER FIX)
+     * ✅ Drag Guard + ✅ Realtime Queue
      ***********************/
     let isDragging = false;
     let pendingRender = false;
@@ -1000,7 +994,7 @@
     }
 
     /***********************
-     * ✅ Post-Move Catch-up (MULTI-USER FIX)
+     * ✅ Post-Move Catch-up
      ***********************/
     let postMoveResyncTimer = null;
     function schedulePostMoveResync(){
@@ -1262,13 +1256,10 @@
       renderCreatedPool();
     }
 
-    /* ✅ DN + Rang Pills (CSS kommt aus Theme.css) */
+    /* DN/Rang Pills (Styles kommen aus theme.css) */
     function getOfficerRankPills(o){
       const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
       const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
-
-      /* Hinweis: pillDn/pillRank Klassen sind im Leitstellenblatt-CSS nicht mehr definiert,
-         falls du die weiterhin willst, pack sie bitte in theme.css (oder entferne sie hier). */
       const dnPill = `<span class="pill pillDn">${escapeHtml(dn)}</span>`;
       const rankPill = abbr ? `<span class="pill pillRank">${escapeHtml(abbr)}</span>` : "";
       return `${dnPill}${rankPill}`;
@@ -1862,7 +1853,7 @@
     });
 
     /***********************
-     * REALTIME (robust + Catch-up)
+     * REALTIME (✅ FIX: setAuth BEFORE subscribe)
      ***********************/
     let rtChannels = [];
     let rtResubTimer = null;
@@ -1880,7 +1871,7 @@
       const wait = Math.min(rtBackoffMs, 8000);
       rtResubTimer = setTimeout(() => {
         teardownRealtime();
-        setupRealtime();
+        setupRealtime().catch(e => console.error("setupRealtime (resub) failed:", e));
       }, wait);
       rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
     }
@@ -1912,9 +1903,12 @@
       return true;
     }
 
-    function setupRealtime(){
+    async function setupRealtime(){
       try{ sb.realtime.connect(); }catch{}
       teardownRealtime();
+
+      // ✅ ABSOLUT KRITISCH: Auth VOR subscribe setzen
+      await syncRealtimeAuth();
 
       const chOfficers = sb.channel("rt-officers")
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
@@ -1934,13 +1928,12 @@
             }
           });
         })
-        .subscribe(async (status) => {
+        .subscribe((status) => {
           if(status === "SUBSCRIBED"){
             resetBackoff();
-            await syncRealtimeAuth();
             if(rtNeedsResync){
               rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              loadAll().catch(e => console.error("resync loadAll failed:", e));
             }
           }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
@@ -1969,20 +1962,17 @@
             upsertLocal(patrols, incoming);
 
             const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-            if(sortChanged){
-              return;
-            }
+            if(sortChanged) return;
 
             patchPatrolCard(incoming, before);
           });
         })
-        .subscribe(async (status) => {
+        .subscribe((status) => {
           if(status === "SUBSCRIBED"){
             resetBackoff();
-            await syncRealtimeAuth();
             if(rtNeedsResync){
               rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              loadAll().catch(e => console.error("resync loadAll failed:", e));
             }
           }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
@@ -1998,13 +1988,12 @@
             }
           });
         })
-        .subscribe(async (status) => {
+        .subscribe((status) => {
           if(status === "SUBSCRIBED"){
             resetBackoff();
-            await syncRealtimeAuth();
             if(rtNeedsResync){
               rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              loadAll().catch(e => console.error("resync loadAll failed:", e));
             }
           }
           if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
@@ -2026,7 +2015,7 @@
 
       await syncRealtimeAuth();
       await setupPresence();
-      setupRealtime();
+      await setupRealtime();   // ✅ FIX: await
       await loadAll();
 
       scheduleRebuildSortables();
@@ -2124,7 +2113,7 @@
     }, true);
 
     /***********************
-     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP (mit Sperre)
+     * TAB/FOKUS FIX + CATCHUP
      ***********************/
     let returnFromTabRunning = false;
 
@@ -2140,8 +2129,12 @@
         await syncRealtimeAuth();
         try{ sb.realtime.connect(); }catch{}
 
-        try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
+        // ✅ falls Channels weg waren: schnell neu setzen
+        if(!rtChannels.length){
+          await setupRealtime();
+        }
 
+        try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
         scheduleRebuildSortables();
       }catch(e){
         console.error("onReturnFromTab error:", e);
@@ -2165,7 +2158,7 @@
     window.addEventListener("pageshow", () => { onReturnFromTab(); });
 
     /***********************
-     * ✅ Single-init Guard
+     * Single-init Guard
      ***********************/
     let lastInitUserId = null;
     let loginInitRunning = false;
@@ -2196,6 +2189,11 @@
       }
 
       sb.auth.onAuthStateChange(async (evt, session) => {
+        // ✅ SUPER WICHTIG: Token refresh -> realtime JWT updaten
+        if(evt === "TOKEN_REFRESHED" && session){
+          await syncRealtimeAuth();
+        }
+
         if(session){
           const uid = session.user?.id || null;
           if(loginInitRunning) return;
