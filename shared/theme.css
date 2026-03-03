@@ -1,256 +1,68 @@
 /* ============================= */
-/* LSPD GLOBAL THEME (MASTER)    */
-/* Vorbild: Leitstellenblatt     */
+/* PANELS / BOXES → wie Header   */
 /* ============================= */
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-
+/* Optional: einheitliche Glass-Fläche als Variable */
 :root{
-  /* Verwaltung/Leitstellenblatt Tokens */
-  --stroke: rgba(255,255,255,0.10);
-  --shadow: 0 20px 60px rgba(0,0,0,0.55);
-  --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-  --muted: rgba(255,255,255,0.75);
-  --muted2: rgba(255,255,255,0.55);
-
-  /* Header Layout */
-  --hdrH: 64px;
-  --appTopPad: calc(var(--hdrH) + 14px);
+  --glassA: rgba(255,255,255,0.08);
+  --glassB: rgba(255,255,255,0.03);
+  --boxBg: rgba(10, 12, 18, 0.58);      /* dunkler Grund */
+  --boxBg2: rgba(10, 12, 18, 0.42);     /* fürs innen */
 }
 
-body{
-  margin:0;
-  font-family: Arial, Helvetica, sans-serif;
-  color:#fff;
-  overflow:hidden;
+/* Hauptboxen (links/center/right) */
+.panel{
+  border:1px solid var(--stroke);
   background:
-    radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
-    radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-    radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
-    linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
-}
-
-/* ========= GLOBAL TOP HEADER ========= */
-.topHeader{
-  position:fixed;
-  left:0; right:0; top:0;
-  height:var(--hdrH);
-  z-index:900;
-
-  border-bottom: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    linear-gradient(180deg, var(--glassA), var(--glassB)),
+    rgba(10,12,18,0.62);
   backdrop-filter: blur(10px);
-
-  display:flex;
-  align-items:center;
-  padding: 10px 18px;
-  gap:12px;
-  overflow:hidden;
-}
-.topHeaderLeft{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  min-width:0;
-  flex:1 1 auto;
-}
-.topHeaderText{
-  display:flex;
-  flex-direction:column;
-  line-height:1.05;
-  min-width:0;
-}
-.topHeaderTitle{
-  font-size:14px;
-  font-weight:700;
-  letter-spacing:0.3px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.topHeaderSub{
-  font-size:12px;
-  color: var(--muted2);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  margin-top:1px;
-}
-.topHeaderRight{
-  margin-left:auto;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:nowrap;
-  justify-content:flex-end;
-  flex:0 0 auto;
-}
-.topHeaderExtra{
-  display:flex;
-  gap:10px;
-  align-items:center;
+  border-radius:18px;
+  box-shadow: var(--shadow2);
 }
 
-/* ========= Badge / Pill / Dot (wie Leitstellenblatt) ========= */
-.badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:7px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.05);
-  border-radius:999px;
-  font-size:12px;
-  font-weight:800;
-  letter-spacing:0.4px;
-  color: var(--muted);
-  white-space:nowrap;
-}
-
-.pill{
-  padding:6px 10px;
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  border-radius:999px;
-  font-size:12px;
-  color: var(--muted);
-  white-space:nowrap;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  flex:0 0 auto;
-}
-
-.dot{
-  width:8px; height:8px; border-radius:999px;
-  background: rgba(255,255,255,0.35);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
-  flex:0 0 auto;
-}
-.dot.on{
-  background: rgba(0,255,140,0.85);
-  box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
-}
-.dot.off{
-  background: rgba(255,70,180,0.85);
-  box-shadow: 0 0 0 3px rgba(255,70,180,0.12);
-}
-.dot.red{
-  background: rgba(255,60,90,0.85);
-  box-shadow: 0 0 0 3px rgba(255,60,90,0.12);
-}
-.dot.warn{
-  background: rgba(255,200,0,0.9);
-  box-shadow: 0 0 0 3px rgba(255,200,0,0.12);
-}
-.dot.ok{
-  background: rgba(0,255,140,0.85);
-  box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
-}
-
-/* ========= Inputs (wie Leitstellenblatt) ========= */
-label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
-input, select, textarea{
-  width:100%;
-  background: rgba(0,0,0,0.25);
-  border:1px solid rgba(255,255,255,0.12);
-  color:#fff;
-  border-radius:12px;
-  padding:10px 10px;
-  outline:none;
-  font-size:14px;
-}
-textarea{ resize:vertical; min-height:120px; }
-
-/* ========= Buttons (wie Leitstellenblatt) ========= */
-.btn{
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  color:#fff;
-  padding:9px 12px;
-  border-radius:10px;
-  cursor:pointer;
-  transition: transform .05s ease, background .15s ease, border-color .15s ease;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-  font-weight:600;
-  font-size:13px;
-  line-height:1;
-  user-select:none;
-  white-space:nowrap;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-.btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-.btn:active{ transform: translateY(1px); }
-.btn:disabled{ opacity:0.45; cursor:not-allowed; }
-
-.btnPrimary{
-  border-color: rgba(0,255,195,0.25);
-  box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
-  background: rgba(255,255,255,0.06);
-}
-.btnDanger{
-  border-color: rgba(255,60,90,0.28);
-  background: rgba(255,60,90,0.12);
-}
-.btnDanger:hover{
-  background: rgba(255,60,90,0.18);
-  border-color: rgba(255,60,90,0.40);
-}
-.btnGhost{
-  background: transparent;
-  box-shadow:none;
-}
-.btnLogoutRed{
-  border-color: rgba(255,60,90,0.28);
-  background: rgba(255,60,90,0.12);
-  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-}
-.btnLogoutRed:hover{
-  background: rgba(255,60,90,0.18);
-  border-color: rgba(255,60,90,0.40);
-}
-
-/* ========= LOGIN OVERLAY (identisch) ========= */
-.loginOverlay{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-  z-index:999;
+/* Sub-Boxen / Felder innerhalb */
+.field{
+  border:1px solid rgba(255,255,255,0.10);
   background:
-    radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
-    radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
-    radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
-    rgba(0,0,0,0.55);
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  border-radius:16px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+}
+
+/* Karten (Streifen) */
+.card{
+  border:1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.20);
+  backdrop-filter: blur(10px);
+  border-radius:18px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.32);
+}
+
+/* Kleine Reihenboxen (Funcodes etc.) */
+.codeRow{
+  border:1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+}
+
+/* Officer Zeilen (Pool + Streife) – mehr “Glass” wie Header */
+.officerLine{
+  border:1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    rgba(0,0,0,0.20);
   backdrop-filter: blur(10px);
 }
-.loginCard{
-  width:min(560px, 100%);
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(14, 18, 28, 0.70);
-  backdrop-filter: blur(12px);
-  border-radius:22px;
-  box-shadow: 0 18px 70px rgba(0,0,0,0.55);
-  overflow:hidden;
-}
-.loginHeader{
-  padding:16px 16px 14px;
-  border-bottom:1px solid rgba(255,255,255,0.08);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-.loginTitleWrap{ line-height:1.1; min-width:0; }
-.loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
-.loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.loginBody{ padding:16px; }
-.loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-/* Utility */
-.row{ display:flex; gap:10px; }
+/* Optional: Header-Trennlinie in Box-Headers etwas stärker */
+.panelHeader,
+.cardHeader{
+  border-bottom:1px solid rgba(255,255,255,0.10);
+}
