@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>LSPD Leitstelle – Verwaltung</title>
+
+  <!-- Supabase + Sortable (wie Leitstellenblatt) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <style>
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      color:#fff;
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
+        radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.07), transparent 62%),
+        radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.08), transparent 60%),
+        linear-gradient(180deg, #070A12 0%, #04050B 60%, #020309 100%);
+    }
+
+    :root{
+      --glass: rgba(255,255,255,0.06);
+      --glass2: rgba(255,255,255,0.09);
+      --stroke: rgba(255,255,255,0.10);
+      --stroke2: rgba(0,255,195,0.18);
+      --shadow: 0 20px 60px rgba(0,0,0,0.55);
+      --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+      --accent: rgba(0,255,195,0.85);
+      --danger: rgba(255,60,90,0.85);
+      --warn: rgba(255,200,0,0.9);
+      --ok: rgba(0,255,140,0.85);
+      --muted: rgba(255,255,255,0.75);
+      --muted2: rgba(255,255,255,0.55);
+    }
+
+    /* Topbar */
+    .topbar{
+      height:64px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      backdrop-filter: blur(10px);
+    }
+    .brand{
+      display:flex; gap:12px; align-items:center;
+      user-select:none;
+    }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      font-size:12px;
+      color: var(--muted);
+    }
+    .brandTitle{
+      font-weight:700;
+      letter-spacing:0.3px;
+      font-size:14px;
+    }
+    .brandSub{
+      font-size:12px; color: var(--muted2);
+      margin-top:1px;
+    }
+    .rightTop{
+      display:flex; gap:10px; align-items:center;
+    }
+    .btn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      padding:9px 12px;
+      border-radius: 10px;
+      cursor:pointer;
+      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      font-weight:600;
+      font-size:13px;
+      line-height:1;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ border-color: rgba(0,255,195,0.25); box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30); }
+    .btn.danger{ border-color: rgba(255,60,90,0.28); background: rgba(255,60,90,0.12); }
+    .btn.danger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
+    .btn.ghost{ box-shadow:none; }
+
+    .badge{
+      display:flex; align-items:center; gap:8px;
+      padding:7px 10px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,0.35);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+    }
+    .dot.ok{ background: var(--ok); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
+    .dot.warn{ background: var(--warn); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
+
+    /* Layout */
+    .wrap{
+      height: calc(100vh - 64px);
+      display:grid;
+      grid-template-columns: 330px 1fr;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045));
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+      min-height:0;
+    }
+    .panelHeader{
+      padding: 12px 12px 10px 12px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .panelTitle{
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:0.3px;
+    }
+    .panelBody{
+      padding: 12px;
+      height: calc(100% - 46px);
+      overflow:auto;
+    }
+
+    /* Officer cards */
+    .officer{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      border-radius: 14px;
+      padding: 10px 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      user-select:none;
+    }
+    .officer:hover{
+      border-color: rgba(0,255,195,0.20);
+      box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 30px rgba(0,0,0,0.32);
+    }
+    .oLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .handle{
+      width:28px; height:28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0.85;
+      cursor: grab;
+      flex: 0 0 auto;
+    }
+    .bars{
+      width:14px; height:12px; position:relative;
+    }
+    .bars:before,.bars:after,.bars i{
+      content:"";
+      position:absolute; left:0; right:0;
+      height:2px; border-radius: 2px;
+      background: rgba(255,255,255,0.70);
+    }
+    .bars:before{ top:0; }
+    .bars i{ top:5px; }
+    .bars:after{ bottom:0; }
+
+    .oText{ min-width:0; }
+    .oName{
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .oMeta{
+      margin-top:3px;
+      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+      font-size:11px;
+      color: var(--muted2);
+    }
+    .chip{
+      padding:3px 7px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.80);
+      font-weight:700;
+      font-size:11px;
+    }
+    .chip.rank{ border-color: rgba(0,140,255,0.22); background: rgba(0,140,255,0.10); }
+    .chip.badge{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
+    .chip.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
+
+    /* Main departments grid */
+    .deptGrid{
+      height:100%;
+      display:flex;
+      gap: 12px;
+      overflow:auto;
+      padding: 12px;
+    }
+    .dept{
+      min-width: 320px;
+      max-width: 360px;
+      flex: 0 0 auto;
+
+      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+      min-height: 140px;
+      display:flex;
+      flex-direction:column;
+    }
+    .deptHead{
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .deptName{
+      font-weight:900;
+      letter-spacing:0.2px;
+      font-size:13px;
+    }
+    .deptSub{
+      margin-top:4px;
+      font-size:11px;
+      color: var(--muted2);
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .deptActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .iconBtn{
+      width:34px; height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:.15s;
+      user-select:none;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+    .iconBtn.danger{
+      border-color: rgba(255,60,90,0.28);
+      background: rgba(255,60,90,0.12);
+    }
+    .iconBtn.danger:hover{
+      background: rgba(255,60,90,0.18);
+      border-color: rgba(255,60,90,0.40);
+    }
+    .deptBody{
+      padding: 12px;
+      overflow:auto;
+      min-height:0;
+      flex: 1 1 auto;
+    }
+    .dropHint{
+      font-size:11px;
+      color: rgba(255,255,255,0.55);
+      border: 1px dashed rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* Create department (admin only) */
+    .createBox{
+      padding: 12px;
+      border-top: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.18);
+    }
+    .row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    input, select{
+      width:100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      border-radius: 12px;
+      padding: 10px 10px;
+      outline:none;
+      font-size:13px;
+    }
+    input::placeholder{ color: rgba(255,255,255,0.45); }
+    option{ color:#000; }
+
+    /* Login overlay (falls keine Session) */
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      z-index: 999;
+      padding: 16px;
+    }
+    .loginCard{
+      width: 420px;
+      max-width: 100%;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.045));
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .loginTitle{
+      font-weight:900;
+      letter-spacing:0.3px;
+      margin-bottom:10px;
+    }
+    .loginSub{
+      color: rgba(255,255,255,0.60);
+      font-size:12px;
+      margin-bottom: 12px;
+    }
+    .msg{
+      margin-top:10px;
+      font-size:12px;
+      color: rgba(255,255,255,0.75);
+    }
+    .msg.err{ color: rgba(255,120,140,0.95); }
+    .small{
+      font-size: 11px;
+      color: rgba(255,255,255,0.55);
+      margin-top: 10px;
+      line-height: 1.35;
+    }
+
+    /* Sortable states */
+    .ghost{
+      opacity: .35;
+      filter: saturate(0.85);
+    }
+    .chosen{
+      box-shadow: 0 0 0 1px rgba(0,255,195,0.18) inset, 0 18px 40px rgba(0,0,0,0.45);
+      transform: rotate(0.2deg);
+    }
+    .dragging{
+      cursor: grabbing !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="pill">LSPD</div>
+      <div>
+        <div class="brandTitle">Verwaltung</div>
+        <div class="brandSub">Abteilungen • Leitung • Mitglieder</div>
+      </div>
+    </div>
+
+    <div class="rightTop">
+      <div class="badge" id="roleBadge">
+        <span class="dot warn" id="roleDot"></span>
+        <span id="roleText">Nicht angemeldet</span>
+      </div>
+      <button class="btn ghost primary" id="btnToLeitstelle">Zur Leitstelle</button>
+      <button class="btn danger" id="btnLogout" style="display:none;">Logout</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- LEFT: Pool (keine Abteilung) -->
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Officer Pool (keine Abteilung)</div>
+        <div class="pill" id="poolCount">0</div>
+      </div>
+      <div class="panelBody" id="poolList">
+        <!-- officers render here -->
+      </div>
+    </div>
+
+    <!-- RIGHT: Departments -->
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Abteilungen</div>
+        <div class="pill" id="deptCount">0</div>
+      </div>
+
+      <div class="panelBody" style="padding:0; height: calc(100% - 46px);">
+        <div class="deptGrid" id="deptGrid">
+          <!-- departments render here -->
+        </div>
+
+        <!-- Create department (admin only) -->
+        <div class="createBox" id="createBox" style="display:none;">
+          <div class="row">
+            <input id="deptNameInput" placeholder="Neue Abteilung (Name)"/>
+            <button class="btn primary" id="btnCreateDept" style="white-space:nowrap;">+ Abteilung</button>
+          </div>
+          <div class="small">
+            Admins können Abteilungen erstellen/löschen und Officer per Drag & Drop zuweisen.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Overlay (nur falls keine Session) -->
+  <div class="overlay" id="loginOverlay" style="display:none;">
+    <div class="loginCard">
+      <div class="loginTitle">Login</div>
+      <div class="loginSub">Bitte mit deinem Supabase-Account anmelden.</div>
+
+      <div class="row" style="margin-bottom:10px;">
+        <input id="loginName" placeholder="Name (z.B. admin)"/>
+      </div>
+      <div class="row" style="margin-bottom:12px;">
+        <input id="loginPass" type="password" placeholder="Passwort"/>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" id="btnLogin" style="width:100%;">Einloggen</button>
+      </div>
+
+      <div class="msg" id="loginMsg"></div>
+      <div class="small">
+        E-Mail-Format: <b>name@gta.local</b> (case-insensitive).<br/>
+        (Wenn du bereits im Leitstellenblatt eingeloggt bist, sollte es hier automatisch durchgehen.)
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************************************************************
+     * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
+     ***********************************************************************/
+    const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
+    const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    /***********************************************************************
+     * Erwartete Tabellen (minimal):
+     *
+     * departments:
+     *  - id uuid (pk, default gen_random_uuid())
+     *  - name text (not null)
+     *  - leader_officer_id uuid (nullable)
+     *  - sort int (default 0)
+     *  - created_at timestamptz (default now())
+     *
+     * officers (bestehende Tabelle aus Leitstellenblatt – hier genutzt):
+     *  - id uuid (pk)
+     *  - name text
+     *  - badge_number text (oder dienstnummer)
+     *  - rank_short text (z.B. "Sgt") optional
+     *  - rank_name text (z.B. "Sergeant") optional
+     *  - department_id uuid (nullable)  <-- für Zuordnung
+     *
+     * Optional für Rollen (empfohlen):
+     * profiles:
+     *  - id uuid (pk = auth.users.id)
+     *  - role text ('admin' | 'leitstelle' | 'officer')
+     *
+     * Fallback ohne profiles: admin wird erkannt, wenn email == "admin@gta.local".
+     ***********************************************************************/
+
+    // UI refs
+    const roleBadge = document.getElementById("roleBadge");
+    const roleDot = document.getElementById("roleDot");
+    const roleText = document.getElementById("roleText");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnToLeitstelle = document.getElementById("btnToLeitstelle");
+
+    const poolList = document.getElementById("poolList");
+    const poolCount = document.getElementById("poolCount");
+
+    const deptGrid = document.getElementById("deptGrid");
+    const deptCount = document.getElementById("deptCount");
+
+    const createBox = document.getElementById("createBox");
+    const deptNameInput = document.getElementById("deptNameInput");
+    const btnCreateDept = document.getElementById("btnCreateDept");
+
+    const loginOverlay = document.getElementById("loginOverlay");
+    const btnLogin = document.getElementById("btnLogin");
+    const loginName = document.getElementById("loginName");
+    const loginPass = document.getElementById("loginPass");
+    const loginMsg = document.getElementById("loginMsg");
+
+    // State
+    let sessionUser = null;
+    let userRole = "none"; // 'admin' | 'leitstelle' | 'officer' | 'none'
+    let departments = [];
+    let officers = [];
+
+    let rtChannel = null;
+
+    // Helpers
+    const escapeHtml = (s="") => String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+    function setRoleUI(){
+      btnLogout.style.display = sessionUser ? "inline-flex" : "none";
+
+      if(!sessionUser){
+        roleText.textContent = "Nicht angemeldet";
+        roleDot.className = "dot warn";
+        createBox.style.display = "none";
+        return;
+      }
+
+      const label = (userRole === "admin") ? "Admin" :
+                    (userRole === "leitstelle") ? "Leitstelle" :
+                    (userRole === "officer") ? "Officer" : "User";
+
+      roleText.textContent = `${label} • ${sessionUser.email}`;
+      roleDot.className = (userRole === "admin") ? "dot ok" : "dot";
+      createBox.style.display = (userRole === "admin") ? "block" : "none";
+    }
+
+    function isAdmin(){ return userRole === "admin"; }
+
+    async function detectRole(user){
+      // 1) try profiles.role
+      try{
+        const { data, error } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
+        if(!error && data && data.role) return String(data.role).toLowerCase();
+      }catch(e){ /* ignore */ }
+
+      // 2) fallback by email
+      const email = (user.email || "").toLowerCase();
+      if(email === "admin@gta.local") return "admin";
+      if(email === "leitstelle@gta.local") return "leitstelle";
+      // alles andere: officer
+      return "officer";
+    }
+
+    function officerCardHTML(o, isLeader=false){
+      const name = escapeHtml(o.name || "Unbekannt");
+      const badge = escapeHtml(o.badge_number || o.dienstnummer || "");
+      const rankShort = escapeHtml(o.rank_short || "");
+      const rankName = escapeHtml(o.rank_name || "");
+      return `
+        <div class="officer" data-officer-id="${o.id}">
+          <div class="oLeft">
+            <div class="handle" title="Ziehen" ${isAdmin() ? "" : "style='opacity:.35;cursor:not-allowed;'"}>
+              <div class="bars"><i></i></div>
+            </div>
+            <div class="oText">
+              <div class="oName">${name}</div>
+              <div class="oMeta">
+                ${badge ? `<span class="chip badge">#${badge}</span>` : ``}
+                ${rankShort ? `<span class="chip rank">${rankShort}${rankName ? ` • ${rankName}` : ""}</span>` : (rankName ? `<span class="chip rank">${rankName}</span>` : ``)}
+                ${isLeader ? `<span class="chip lead">Leitung</span>` : ``}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function deptHTML(d){
+      const name = escapeHtml(d.name || "Abteilung");
+      const leaderId = d.leader_officer_id || null;
+      const members = officers.filter(o => o.department_id === d.id);
+      const leader = leaderId ? officers.find(o => o.id === leaderId) : null;
+
+      // leader select options: only members + none
+      const leaderOptions = [
+        `<option value="">— keine Leitung —</option>`,
+        ...members.map(o => `<option value="${o.id}" ${o.id === leaderId ? "selected" : ""}>${escapeHtml(o.name || "")}</option>`)
+      ].join("");
+
+      return `
+        <div class="dept" data-dept-id="${d.id}">
+          <div class="deptHead">
+            <div style="min-width:0;">
+              <div class="deptName" title="${name}">${name}</div>
+              <div class="deptSub">
+                <span class="pill" style="padding:4px 8px;border-radius:999px;">Mitglieder: ${members.length}</span>
+                ${leader ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>` : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`}
+              </div>
+            </div>
+
+            <div class="deptActions">
+              ${isAdmin() ? `
+                <button class="iconBtn danger" title="Abteilung löschen" data-action="delete-dept">✕</button>
+              ` : ``}
+            </div>
+          </div>
+
+          <div class="deptBody">
+            ${isAdmin() ? `
+              <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                <select data-action="leader-select" title="Leitung festlegen">
+                  ${leaderOptions}
+                </select>
+              </div>
+            ` : ``}
+
+            <div class="dropHint">Drag & Drop: Officer hier reinziehen (nur Admin).</div>
+
+            <div class="deptList" data-list="dept" data-dept-id="${d.id}">
+              ${members.map(o => officerCardHTML(o, leaderId && o.id === leaderId)).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll(){
+      // Pool officers = department_id null
+      const pool = officers.filter(o => !o.department_id);
+      poolList.innerHTML = pool.map(o => officerCardHTML(o, false)).join("") || `<div class="dropHint">Keine Officer ohne Abteilung.</div>`;
+      poolCount.textContent = String(pool.length);
+
+      // Departments sorted
+      const sorted = [...departments].sort((a,b) => (a.sort||0) - (b.sort||0) || (a.name||"").localeCompare(b.name||""));
+      deptGrid.innerHTML = sorted.map(d => deptHTML(d)).join("");
+      deptCount.textContent = String(sorted.length);
+
+      wireDeptActions();
+      initSortable();
+    }
+
+    function wireDeptActions(){
+      // delete dept
+      deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptId = deptEl?.dataset?.deptId;
+          const dept = departments.find(x => x.id === deptId);
+          if(!deptId || !dept) return;
+
+          const ok = confirm(`Abteilung wirklich löschen?\n\n${dept.name}\n\n(Officer werden in den Pool verschoben)`);
+          if(!ok) return;
+
+          // move officers out of dept first
+          const members = officers.filter(o => o.department_id === deptId);
+          if(members.length){
+            const updates = members.map(o => sb.from("officers").update({ department_id: null }).eq("id", o.id));
+            await Promise.allSettled(updates);
+          }
+
+          // clear leader if set
+          await sb.from("departments").update({ leader_officer_id: null }).eq("id", deptId);
+
+          // delete dept
+          const { error } = await sb.from("departments").delete().eq("id", deptId);
+          if(error) alert("Löschen fehlgeschlagen: " + error.message);
+        });
+      });
+
+      // leader select
+      deptGrid.querySelectorAll("[data-action='leader-select']").forEach(sel => {
+        sel.addEventListener("change", async (e) => {
+          if(!isAdmin()) return;
+          const deptEl = e.currentTarget.closest(".dept");
+          const deptId = deptEl?.dataset?.deptId;
+          if(!deptId) return;
+          const leaderId = e.currentTarget.value || null;
+
+          const { error } = await sb.from("departments").update({ leader_officer_id: leaderId }).eq("id", deptId);
+          if(error) alert("Leitung setzen fehlgeschlagen: " + error.message);
+        });
+      });
+    }
+
+    let poolSortable = null;
+    let deptSortables = [];
+    function destroySortable(){
+      try{ poolSortable?.destroy(); }catch(_){}
+      deptSortables.forEach(s => { try{s.destroy();}catch(_){ } });
+      deptSortables = [];
+      poolSortable = null;
+    }
+
+    function initSortable(){
+      destroySortable();
+
+      const canDrag = isAdmin();
+      const common = {
+        group: "officers",
+        animation: 140,
+        ghostClass: "ghost",
+        chosenClass: "chosen",
+        dragClass: "dragging",
+        handle: ".handle",
+        sort: false, // wir sortieren innerhalb nicht zwingend
+        disabled: !canDrag,
+        onEnd: async (evt) => {
+          if(!canDrag) return;
+
+          const officerId = evt.item?.dataset?.officerId;
+          if(!officerId) return;
+
+          const toList = evt.to;
+          const toIsPool = toList?.id === "poolList";
+          const toDeptId = toIsPool ? null : (toList?.dataset?.deptId || null);
+
+          // update officer.department_id
+          const { error } = await sb.from("officers").update({ department_id: toDeptId }).eq("id", officerId);
+          if(error){
+            alert("Zuweisung fehlgeschlagen: " + error.message);
+          }else{
+            // wenn officer aus Leitung rausgezogen wurde: ggf. leader reset
+            if(evt.from?.dataset?.deptId){
+              const fromDeptId = evt.from.dataset.deptId;
+              const dept = departments.find(d => d.id === fromDeptId);
+              if(dept && dept.leader_officer_id === officerId){
+                await sb.from("departments").update({ leader_officer_id: null }).eq("id", fromDeptId);
+              }
+            }
+          }
+        }
+      };
+
+      // Pool list: wir nutzen poolList als Container -> aber dort liegt HTML direkt.
+      // Damit Sortable sauber arbeitet, stellen wir sicher, dass drop targets auch in Pool funktionieren:
+      poolSortable = new Sortable(poolList, {
+        ...common,
+        id: "pool",
+      });
+
+      // Department lists
+      deptGrid.querySelectorAll(".deptList").forEach(listEl => {
+        const s = new Sortable(listEl, common);
+        deptSortables.push(s);
+      });
+    }
+
+    async function loadData(){
+      // Departments
+      {
+        const { data, error } = await sb.from("departments").select("*");
+        if(error){
+          console.error(error);
+          alert("Departments laden fehlgeschlagen: " + error.message);
+        }else{
+          departments = data || [];
+        }
+      }
+
+      // Officers
+      {
+        const { data, error } = await sb.from("officers").select("*");
+        if(error){
+          console.error(error);
+          alert("Officers laden fehlgeschlagen: " + error.message);
+        }else{
+          officers = data || [];
+        }
+      }
+
+      renderAll();
+    }
+
+    function setupRealtime(){
+      if(rtChannel){
+        try{ sb.removeChannel(rtChannel); }catch(_){}
+        rtChannel = null;
+      }
+
+      rtChannel = sb.channel("verwaltung-rt");
+
+      rtChannel
+        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => loadData())
+        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => loadData())
+        .subscribe((status) => {
+          // optional: console.log("RT status", status);
+        });
+    }
+
+    // Admin create dept
+    btnCreateDept.addEventListener("click", async () => {
+      if(!isAdmin()) return;
+      const name = (deptNameInput.value || "").trim();
+      if(!name) return;
+
+      // sort: max+1
+      const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
+      const { error } = await sb.from("departments").insert({ name, sort: maxSort + 1 });
+      if(error){
+        alert("Erstellen fehlgeschlagen: " + error.message);
+      }else{
+        deptNameInput.value = "";
+      }
+    });
+    deptNameInput.addEventListener("keydown", (e) => {
+      if(e.key === "Enter") btnCreateDept.click();
+    });
+
+    // Nav + logout
+    btnToLeitstelle.addEventListener("click", () => {
+      // falls du eine andere Datei/Route nutzt, hier anpassen:
+      window.location.href = "index.html";
+    });
+
+    btnLogout.addEventListener("click", async () => {
+      await sb.auth.signOut();
+      sessionUser = null;
+      userRole = "none";
+      setRoleUI();
+      loginOverlay.style.display = "flex";
+      destroySortable();
+    });
+
+    // Login
+    function normalizeNameToEmail(name){
+      const n = (name || "").trim().toLowerCase();
+      return n ? `${n}@gta.local` : "";
+    }
+
+    async function doLogin(){
+      loginMsg.textContent = "";
+      loginMsg.className = "msg";
+
+      const email = normalizeNameToEmail(loginName.value);
+      const password = loginPass.value || "";
+      if(!email || !password){
+        loginMsg.textContent = "Bitte Name und Passwort eingeben.";
+        loginMsg.className = "msg err";
+        return;
+      }
+
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error){
+        loginMsg.textContent = "Falscher Name/Passwort";
+        loginMsg.className = "msg err";
+        return;
+      }
+
+      sessionUser = data.user;
+      userRole = await detectRole(sessionUser);
+      setRoleUI();
+      loginOverlay.style.display = "none";
+      await loadData();
+      setupRealtime();
+    }
+
+    btnLogin.addEventListener("click", doLogin);
+    loginPass.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
+
+    // Boot
+    (async function init(){
+      const { data } = await sb.auth.getSession();
+      sessionUser = data?.session?.user || null;
+
+      if(!sessionUser){
+        setRoleUI();
+        loginOverlay.style.display = "flex";
+        return;
+      }
+
+      userRole = await detectRole(sessionUser);
+      setRoleUI();
+
+      await loadData();
+      setupRealtime();
+
+      // keep UI in sync if auth changes in other tab
+      sb.auth.onAuthStateChange(async (_event, session) => {
+        sessionUser = session?.user || null;
+        userRole = sessionUser ? await detectRole(sessionUser) : "none";
+        setRoleUI();
+
+        if(sessionUser){
+          loginOverlay.style.display = "none";
+          await loadData();
+          setupRealtime();
+        }else{
+          loginOverlay.style.display = "flex";
+          destroySortable();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
