@@ -25,9 +25,9 @@
 
     :root{
       --hdrTop: 12px;
-      --hdrH: 54px; /* Header-Höhe wie im Screenshot (slim) */
+      --hdrH: 58px;           /* wie Verwaltungsheader (leicht höher, “sauber”) */
       --hdrPadX: 14px;
-      --appTopPad: calc(var(--hdrTop) + var(--hdrH) + 12px); /* Platz unter Header */
+      --appTopPad: calc(var(--hdrTop) + var(--hdrH) + 12px);
     }
 
     /* ========= LOGIN OVERLAY ========= */
@@ -69,7 +69,7 @@
     .loginBody{ padding:16px; }
     .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-    /* ========= GLOBAL TOP HEADER (wie Screenshot) ========= */
+    /* ========= GLOBAL TOP HEADER (EXAKT wie Verwaltungsseite – Größen/Spacing) ========= */
     .topHeader{
       position:fixed;
       left:var(--hdrPadX);
@@ -80,17 +80,18 @@
       border:1px solid rgba(255,255,255,0.10);
       background: rgba(14, 18, 28, 0.55);
       backdrop-filter: blur(10px);
-      border-radius:16px;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.40);
+      border-radius:18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
       display:flex;
       align-items:center;
-      padding:10px 12px;
-      gap:12px;
+      padding:12px 14px;
+      gap:14px;
+      overflow:hidden;
     }
     .topHeaderLeft{
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:12px;
       min-width:0;
       flex:1 1 auto;
     }
@@ -101,16 +102,16 @@
       min-width:0;
     }
     .topHeaderTitle{
-      font-size:14px;
+      font-size:15px;
       font-weight:900;
-      letter-spacing:0.4px;
+      letter-spacing:0.3px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
     .topHeaderSub{
       font-size:11px;
-      opacity:0.75;
+      opacity:0.72;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -121,7 +122,7 @@
       display:flex;
       align-items:center;
       gap:10px;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;
       justify-content:flex-end;
       flex:0 0 auto;
     }
@@ -132,7 +133,7 @@
       display:grid;
       gap:14px;
       padding:14px;
-      padding-top: var(--appTopPad); /* Platz für Header */
+      padding-top: var(--appTopPad);
       grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
       transition: grid-template-columns .25s ease;
     }
@@ -168,8 +169,7 @@
     }
     /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
     #panelLeft .panelHeader{ padding-right:64px; }
-    #panelRight .panelHeader{ padding-left:72px; } /* <- damit DockBtn rechts nichts überdeckt */
-
+    #panelRight .panelHeader{ padding-left:72px; }
     #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
     .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
@@ -497,10 +497,10 @@
     #btnToggleLeft{ right:12px; }
     #btnToggleRight{ left:12px; }
 
-    /* ✅ Edge buttons: gleiche Höhe wie DockBtn (NICHT hinter Header) */
+    /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
     .edgeBtn{
       position:fixed;
-      top: calc(var(--appTopPad) + 12px); /* <- gleiche Höhe wie DockBtn im ausgeklappten Panel */
+      top: calc(var(--appTopPad) + 12px);
       width:36px;
       height:42px;
       border-radius:14px;
@@ -513,7 +513,7 @@
       cursor:pointer;
       user-select:none;
       font-weight:900;
-      z-index:950; /* über Panels, aber unter Toast/Modal */
+      z-index:950;
       transition: background .2s ease, transform .08s ease;
     }
     .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
@@ -527,7 +527,7 @@
       body{ overflow:auto; }
       :root{
         --hdrTop: 10px;
-        --hdrH: 54px;
+        --hdrH: 58px;
         --hdrPadX: 10px;
         --appTopPad: calc(var(--hdrTop) + var(--hdrH) + 10px);
       }
@@ -716,7 +716,7 @@
     </div>
   </div>
 
-  <!-- GLOBAL HEADER (Größe wie Screenshot) -->
+  <!-- GLOBAL HEADER (Match Verwaltung) -->
   <header class="topHeader" id="topHeader" style="display:none;">
     <div class="topHeaderLeft">
       <div class="badge">LSPD</div>
@@ -727,10 +727,16 @@
     </div>
 
     <div class="topHeaderRight">
-      <span class="pill" title="Leitstelle Online/Offline">
-        <span class="dot off" id="connDot"></span>
-        <span id="connText">Leitstelle</span>
+      <!-- Role pill wie Verwaltungsseite -->
+      <span class="pill" title="Rolle">
+        <span class="dot on" id="roleDot"></span>
+        <span id="roleText">—</span>
       </span>
+
+      <!-- optionaler Wechsel-Button (optisch wie Verwaltung) -->
+      <button class="btn btnGhost" id="btnGoManagement" type="button" title="Zur Verwaltung">Zur Verwaltung</button>
+
+      <!-- Logout -->
       <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
     </div>
   </header>
@@ -989,6 +995,26 @@
       canSelectPoolForEdit: false
     };
 
+    function roleLabel(){
+      if(perms.role === "admin") return "Admin";
+      if(perms.role === "leitstelle") return "Leitstelle";
+      if(perms.role === "officer") return "Officer";
+      return "—";
+    }
+
+    function applyHeaderRole(){
+      const roleText = document.getElementById("roleText");
+      const roleDot = document.getElementById("roleDot");
+      if(roleText) roleText.textContent = roleLabel();
+
+      // Dot: admin/leitstelle = grün, officer = neutral/rosa, guest = rosa
+      if(roleDot){
+        roleDot.classList.remove("on","off");
+        if(perms.role === "admin" || perms.role === "leitstelle") roleDot.classList.add("on");
+        else roleDot.classList.add("off");
+      }
+    }
+
     function setRoleFromEmail(email){
       const e = (email || "").toLowerCase().trim();
       perms.email = e;
@@ -1025,6 +1051,7 @@
         perms.canSelectPoolForEdit = false;
       }
 
+      applyHeaderRole();
       applyRoleUi();
     }
 
@@ -1045,8 +1072,6 @@
     const edgeLeft = document.getElementById("edgeLeft");
     const edgeRight = document.getElementById("edgeRight");
 
-    const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText");
     const toastEl = document.getElementById("toast");
 
     const inpName = document.getElementById("inpName");
@@ -1079,6 +1104,8 @@
     const confirmClose = document.getElementById("confirmClose");
     const confirmCancel = document.getElementById("confirmCancel");
     const confirmDelete = document.getElementById("confirmDelete");
+
+    const btnGoManagement = document.getElementById("btnGoManagement");
 
     /***********************
      * HELPERS
@@ -1317,98 +1344,6 @@
       saveCreateCollapsed(createCollapsed);
       applyCreateCollapsed();
     });
-
-    /***********************
-     * Leitstelle Online/Offline (Presence)
-     ***********************/
-    let presenceChannel = null;
-
-    function setLeitstelleIndicator(isOnline){
-      connDot.classList.toggle("on", !!isOnline);
-      connDot.classList.toggle("off", !isOnline);
-      connText.textContent = "Leitstelle";
-    }
-
-    function computeLeitstelleOnlineFromPresence(state){
-      try{
-        for(const key of Object.keys(state || {})){
-          const arr = state[key] || [];
-          for(const item of arr){
-            const email = (item?.email || "").toLowerCase();
-            if(email === LEITSTELLE_EMAIL) return true;
-          }
-        }
-      }catch{}
-      return false;
-    }
-
-    async function setupPresence(){
-      try{
-        if(presenceChannel){
-          try{ sb.removeChannel(presenceChannel); }catch{}
-          presenceChannel = null;
-        }
-
-        const { data } = await sb.auth.getSession();
-        const session = data?.session;
-        const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
-
-        presenceChannel = sb.channel("presence-leitstelle", { config: { presence: { key } } });
-
-        presenceChannel
-          .on("presence", { event: "sync" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          })
-          .on("presence", { event: "join" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          })
-          .on("presence", { event: "leave" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          });
-
-        presenceChannel.subscribe(async (status) => {
-          if(status === "SUBSCRIBED"){
-            const email = (session?.user?.email || "").toLowerCase();
-            if(email === LEITSTELLE_EMAIL){
-              try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
-            }
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          }
-        });
-      }catch(e){
-        console.error("presence setup error:", e);
-        setLeitstelleIndicator(false);
-      }
-    }
-
-    async function stopPresence(){
-      try{
-        if(!presenceChannel){
-          setLeitstelleIndicator(false);
-          return;
-        }
-
-        const { data } = await sb.auth.getSession();
-        const email = (data?.session?.user?.email || "").toLowerCase();
-
-        if(email === LEITSTELLE_EMAIL){
-          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
-        }
-      }catch(e){
-        console.error("presence untrack error:", e);
-      }
-
-      try{
-        if(presenceChannel){
-          try{ sb.removeChannel(presenceChannel); }catch{}
-        }
-      }catch(e){
-        console.error("remove presence error:", e);
-      }
-
-      presenceChannel = null;
-      setLeitstelleIndicator(false);
-    }
 
     /***********************
      * FUNKCODES / STATUS
@@ -2198,9 +2133,7 @@
             upsertLocal(patrols, incoming);
 
             const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-            if(sortChanged){
-              return;
-            }
+            if(sortChanged) return;
 
             patchPatrolCard(incoming, before);
           });
@@ -2254,7 +2187,6 @@
       setRoleFromEmail(email);
 
       await syncRealtimeAuth();
-      await setupPresence();
       setupRealtime();
       await loadAll();
 
@@ -2296,7 +2228,6 @@
       showLogin("");
       toast("Ausgeloggt");
 
-      try { stopPresence().catch(()=>{}); } catch {}
       try { teardownRealtime(); } catch {}
       try { destroyAllSortables(); } catch {}
       try { clearOfficerSelection(); } catch {}
@@ -2341,6 +2272,14 @@
     inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
     btnLogin.addEventListener("click", doLogin);
 
+    // Link-Button (Dateiname bei dir ggf. anpassen!)
+    if(btnGoManagement){
+      btnGoManagement.addEventListener("click", ()=>{
+        // passe den Dateinamen an, falls deine Verwaltung anders heißt:
+        window.location.href = "verwaltung.html";
+      });
+    }
+
     document.addEventListener("click", (e) => {
       const logout = e.target.closest("#btnLogout");
       if(logout){ e.preventDefault(); doLogout(); return; }
@@ -2370,7 +2309,6 @@
         try{ sb.realtime.connect(); }catch{}
 
         try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
-
         scheduleRebuildSortables();
       }catch(e){
         console.error("onReturnFromTab error:", e);
@@ -2401,7 +2339,6 @@
       applyCreateCollapsed();
       renderFuncodes();
       renderRankDropdown();
-      setLeitstelleIndicator(false);
       setRoleFromEmail("");
 
       try{
@@ -2426,7 +2363,6 @@
           hideLogin();
           await postLoginInit();
         }else{
-          await stopPresence();
           teardownRealtime();
           destroyAllSortables();
           clearOfficerSelection();
