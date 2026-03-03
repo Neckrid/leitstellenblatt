@@ -8,390 +8,731 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- ✅ Theme (Option 3 / Premium Glass Dark) -->
-  <link rel="stylesheet" href="theme.css"/>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    color:#fff;
+    overflow:hidden;
+    background:
+      radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
+      radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
+      radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
+      linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
+  }
 
-  <style>
-    /* ================================
-       NUR SEITEN-SPEZIFISCHES LAYOUT
-       (Boxen/Buttons/Badges/Pills/Header kommen aus theme.css)
-       ================================ */
+  :root{
+    /* ===== Verwaltung-Token (für identische Proportionen) ===== */
+    --stroke: rgba(255,255,255,0.10);
+    --shadow: 0 20px 60px rgba(0,0,0,0.55);
+    --shadow2: 0 14px 36px rgba(0,0,0,0.45);
+    --muted: rgba(255,255,255,0.75);
+    --muted2: rgba(255,255,255,0.55);
 
-    /* ========= APP GRID (collapsible left/right) ========= */
-    .app{
-      height:100%;
-      display:grid;
-      gap:14px;
-      padding:14px;
-      padding-top: var(--appTopPad);
-      grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
-      transition: grid-template-columns .25s ease;
-    }
-    .app.leftCollapsed{ --leftW: 0px; }
-    .app.rightCollapsed{ --rightW: 0px; }
+    /* ===== Header Layout (wie Verwaltung: 64px) ===== */
+    --hdrTop: 0px;
+    --hdrH: 64px;                 /* ✅ identisch Verwaltung topbar height */
+    --hdrPadX: 0px;
+    --appTopPad: calc(var(--hdrH) + 14px); /* ✅ wie wrapPad 14px */
+  }
 
-    /* Panels: Struktur/Positionierung bleibt hier, Look kommt aus theme.css */
-    .panel{
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      min-width:0;
-      position:relative;
-    }
-    .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-    .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
-    .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
+  /* ========= LOGIN OVERLAY ========= */
+  .loginOverlay{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:999;
+    background:
+      radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
+      radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
+      radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
+      rgba(0,0,0,0.55);
+    backdrop-filter: blur(10px);
+  }
+  .loginCard{
+    width:min(560px, 100%);
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(14, 18, 28, 0.70);
+    backdrop-filter: blur(12px);
+    border-radius:22px;
+    box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+    overflow:hidden;
+  }
+  .loginHeader{
+    padding:16px 16px 14px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .loginTitleWrap{ line-height:1.1; min-width:0; }
+  .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
+  .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .loginBody{ padding:16px; }
+  .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
 
-    .panelHeader{
-      padding:14px 14px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      min-width:0;
-    }
+  /* ========= GLOBAL TOP HEADER (✅ sichtbar + identisch zur Verwaltungsseite Topbar) ========= */
+  .topHeader{
+    position:fixed;
+    left:0;
+    right:0;
+    top:0;
+    height:var(--hdrH);
+    z-index:900;
 
-    /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
-    #panelLeft .panelHeader{ padding-right:64px; }
-    #panelRight .panelHeader{ padding-left:72px; }
-    #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
+    border-bottom: 1px solid var(--stroke);
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    backdrop-filter: blur(10px);
 
-    .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-    .titleWrap{ line-height:1.05; min-width:0; }
-    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    display:flex;
+    align-items:center;
+    padding: 10px 18px;
+    gap:12px;
+    overflow:hidden;
+  }
+  .topHeaderLeft{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+    flex:1 1 auto;
+  }
+  .topHeaderText{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+    min-width:0;
+  }
+  .topHeaderTitle{
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .topHeaderSub{
+    font-size:12px;
+    color: var(--muted2);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    margin-top:1px;
+  }
+  .topHeaderRight{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:nowrap;
+    justify-content:flex-end;
+    flex:0 0 auto;
+  }
 
-    .content{ padding:14px; overflow:auto; min-height:0; }
+  /* ========= APP GRID (collapsible left/right) ========= */
+  .app{
+    height:100%;
+    display:grid;
+    gap:14px;
+    padding:14px;
+    padding-top: var(--appTopPad);
+    grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
+    transition: grid-template-columns .25s ease;
+  }
+  .app.leftCollapsed{ --leftW: 0px; }
+  .app.rightCollapsed{ --rightW: 0px; }
 
-    .row{ display:flex; gap:10px; }
+  .panel{
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(14, 18, 28, 0.55);
+    backdrop-filter: blur(10px);
+    border-radius:18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    min-width:0;
+    position:relative;
+  }
 
-    /* Field: nur Layout/Spacing – Look kommt aus theme.css */
-    .field{
-      border-radius:14px;
-      padding:10px;
-      border:1px solid rgba(255,255,255,0.10);
-    }
+  .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
+  .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+  .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
 
-    .muted{ opacity:0.75; font-size:12px; }
+  .panelHeader{
+    padding:14px 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    min-width:0;
+  }
+  /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
+  #panelLeft .panelHeader{ padding-right:64px; }
+  #panelRight .panelHeader{ padding-left:72px; }
+  #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(260px, 1fr));
-      gap:14px;
-    }
-    @media (max-width: 1500px){
-      .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-    }
-    @media (max-width: 1100px){
-      .grid{ grid-template-columns: 1fr; }
-    }
+  .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
 
-    /* Card: nur Struktur – Look kommt aus theme.css */
-    .card{
-      overflow:hidden;
-      border-radius:18px;
-      min-width:0;
-    }
+  /* ✅ Badge wie Verwaltung (kleine Capsule) */
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 10px;
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.05);
+    border-radius:999px;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:0.4px;
+    color: var(--muted);
+    white-space:nowrap;
+  }
 
-    .cardHeader{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
+  .titleWrap{ line-height:1.05; min-width:0; }
+  .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    .patrolDrag{
-      cursor:grab;
-      user-select:none;
-      padding:6px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      font-weight:900;
-      opacity:0.9;
-      line-height:1;
-    }
-    .patrolDrag:active{ cursor:grabbing; }
+  .content{ padding:14px; overflow:auto; min-height:0; }
 
-    .patrolName{
-      font-weight:900;
-      letter-spacing:0.4px;
-      font-size:13px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:180px;
-      flex: 1 1 180px;
-    }
-    .patrolName input{
-      padding:8px 10px;
-      border-radius:12px;
-      font-weight:800;
-      letter-spacing:0.3px;
-      width:100%;
-      min-width:0;
-    }
+  .row{ display:flex; gap:10px; }
+  .field{
+    background: rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:14px;
+    padding:10px;
+  }
+  label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
+  input, select, textarea{
+    width:100%;
+    background: rgba(0,0,0,0.25);
+    border:1px solid rgba(255,255,255,0.12);
+    color:#fff;
+    border-radius:12px;
+    padding:10px 10px;
+    outline:none;
+    font-size:14px;
+  }
+  textarea{ resize:vertical; min-height:120px; }
 
-    .statusSelect{
-      padding:8px 10px;
-      border-radius:12px;
-      font-weight:800;
-      letter-spacing:0.2px;
-      width:auto;
-      flex: 0 1 220px;
-      min-width:160px;
-      height:44px;
-    }
-    @media (max-width: 900px){
-      .statusSelect{ flex: 1 1 100%; }
-    }
+  /* ✅ Buttons wie Verwaltung */
+  .btn{
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.06);
+    color:#fff;
+    padding:9px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    transition: transform .05s ease, background .15s ease, border-color .15s ease;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+    font-weight:600;
+    font-size:13px;
+    line-height:1;
+    user-select:none;
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
 
-    .cardBody{ padding:12px; }
+  .btnPrimary{
+    border-color: rgba(0,255,195,0.25);
+    box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
+    background: rgba(255,255,255,0.06);
+  }
+  .btnDanger{
+    border-color: rgba(255,60,90,0.28);
+    background: rgba(255,60,90,0.12);
+  }
+  .btnDanger:hover{
+    background: rgba(255,60,90,0.18);
+    border-color: rgba(255,60,90,0.40);
+  }
+  .btnGhost{
+    background: transparent;
+    box-shadow:none;
+  }
 
-    .dropZone{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      min-height: 52px;
-    }
+  .btnLogoutRed{
+    border-color: rgba(255,60,90,0.28);
+    background: rgba(255,60,90,0.12);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+  }
+  .btnLogoutRed:hover{
+    background: rgba(255,60,90,0.18);
+    border-color: rgba(255,60,90,0.40);
+  }
 
-    .officerLine{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.18);
-      transition: border-color .15s ease, background .15s ease, transform .08s ease;
-    }
-    .officerLine.clickable{ cursor:pointer; }
-    .officerLine.selected{
-      border-color: rgba(0,255,195,0.35);
-      background: rgba(0,255,195,0.07);
-    }
+  .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
+  .btnIcon{ width:44px; height:44px; padding:0; font-size:18px; line-height:1; }
 
-    .dragHandle{
-      cursor:grab;
-      user-select:none;
-      padding:6px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      font-weight:900;
-      opacity:0.9;
-      align-self: stretch;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .dragHandle:active{ cursor:grabbing; }
+  /* ✅ Pills wie Verwaltung */
+  .pill{
+    padding:6px 10px;
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,0.06);
+    border-radius:999px;
+    font-size:12px;
+    color: var(--muted);
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    flex:0 0 auto;
+  }
 
-    .rightBox h3{
-      margin:0 0 10px 0;
-      font-size:13px;
-      letter-spacing:0.6px;
-      opacity:0.9;
-    }
-    .codeList{ display:flex; flex-direction:column; gap:8px; }
-    .codeRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-    }
-    .codeRow b{ font-size:12px; white-space:nowrap; }
-    .codeRow span{ font-size:12px; opacity:0.82; }
+  /* ✅ NEW: Dienstnummer = grün */
+  .pill.pillDn{
+    border-color: rgba(0,255,140,0.35);
+    background: rgba(0,255,140,0.10);
+    color: rgba(220,255,240,0.92);
+    box-shadow: 0 0 0 1px rgba(0,255,140,0.10) inset;
+  }
 
-    .topActions{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+  /* ✅ NEW: Rang = blau */
+  .pill.pillRank{
+    border-color: rgba(0,140,255,0.35);
+    background: rgba(0,140,255,0.10);
+    color: rgba(220,240,255,0.92);
+    box-shadow: 0 0 0 1px rgba(0,140,255,0.10) inset;
+  }
 
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(10,12,18,0.72);
-      backdrop-filter: blur(10px);
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .2s ease, transform .2s ease;
-      font-size:13px;
-      z-index:998;
-    }
-    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+  /* ✅ Dot wie Verwaltung */
+  .dot{
+    width:8px; height:8px; border-radius:999px;
+    background: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+    flex:0 0 auto;
+  }
+  .dot.on{
+    background: rgba(0,255,140,0.85);
+    box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
+  }
+  .dot.off{
+    background: rgba(255,70,180,0.85);
+    box-shadow: 0 0 0 3px rgba(255,70,180,0.12);
+  }
+  .dot.red{
+    background: rgba(255,60,90,0.85);
+    box-shadow: 0 0 0 3px rgba(255,60,90,0.12);
+  }
 
-    .officerLine .btnBack{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .officerLine:hover .btnBack{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
+  .muted{ opacity:0.75; font-size:12px; }
 
-    .cardHeader .btnDanger{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .card:hover .cardHeader .btnDanger{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(260px, 1fr));
+    gap:14px;
+  }
+  @media (max-width: 1500px){
+    .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  }
+  @media (max-width: 1100px){
+    .grid{ grid-template-columns: 1fr; }
+  }
 
-    .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
-    .sortable-chosen{ cursor:grabbing; }
+  .card{
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.05);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+    min-width:0;
+  }
 
-    /* ========= Dock / Toggle Buttons ========= */
-    .dockBtn{
-      position:absolute;
-      top:12px;
-      width:34px;
-      height:34px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      font-weight:900;
-      transition: transform .08s ease, background .2s ease, opacity .2s ease;
-      z-index:5;
-    }
-    .dockBtn:hover{ background: rgba(255,255,255,0.12); }
-    .dockBtn:active{ transform: translateY(1px); }
-    #btnToggleLeft{ right:12px; }
-    #btnToggleRight{ left:12px; }
+  .cardHeader{
+    padding:12px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
 
-    /* Edge buttons */
-    .edgeBtn{
-      position:fixed;
-      top: calc(var(--appTopPad) + 12px);
-      width:36px;
-      height:42px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      font-weight:900;
-      z-index:950;
-      transition: background .2s ease, transform .08s ease;
-    }
-    .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
-    .edgeBtn:active{ transform: translateY(1px); }
-    #edgeLeft{ left:10px; }
-    #edgeRight{ right:10px; }
-    .app.leftCollapsed ~ #edgeLeft{ display:flex; }
-    .app.rightCollapsed ~ #edgeRight{ display:flex; }
+  .patrolDrag{
+    cursor:grab;
+    user-select:none;
+    padding:6px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+    font-weight:900;
+    opacity:0.9;
+    line-height:1;
+  }
+  .patrolDrag:active{ cursor:grabbing; }
 
-    @media (max-width: 1200px){
-      body{ overflow:auto; }
-      .app{ height:auto; grid-template-columns: 1fr; }
-      #btnToggleLeft, #btnToggleRight{ display:none; }
-      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
-    }
+  .patrolName{
+    font-weight:900;
+    letter-spacing:0.4px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:180px;
+    flex: 1 1 180px;
+  }
+  .patrolName input{
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    letter-spacing:0.3px;
+    width:100%;
+    min-width:0;
+  }
 
-    /* ========= Collapsible "Beamter erstellen" ========= */
-    .collapseCard{ padding:0; overflow:hidden; }
-    .collapseHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 10px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .collapseHead .collapseTitle{
-      font-size:12px;
-      opacity:0.85;
-      font-weight:800;
-      letter-spacing:0.4px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .chev{
-      width:32px; height:32px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      transition: transform .18s ease, background .2s ease;
-      flex:0 0 auto;
-    }
-    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
-    .collapseBody{
-      padding:0 10px 10px 10px;
-      transform-origin: top;
-      transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-      max-height: 520px;
-      opacity:1;
-      transform: translateY(0);
-    }
-    .collapsedUp .collapseBody{
-      max-height:0px;
-      opacity:0;
-      transform: translateY(-6px);
-      padding-bottom:0;
-    }
-    .collapsedUp .chev{ transform: rotate(-90deg); }
+  .statusSelect{
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    letter-spacing:0.2px;
+    width:auto;
+    flex: 0 1 220px;
+    min-width:160px;
+    height:44px;
+  }
+  @media (max-width: 900px){
+    .statusSelect{ flex: 1 1 100%; }
+  }
 
-    .createActions{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
+  .cardBody{ padding:12px; }
 
-    /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
-    #btnDeleteOfficer{
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-1px);
-    }
-    .createActions:hover #btnDeleteOfficer.show{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
+  .dropZone{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height: 52px;
+  }
 
-    /* Role hide */
-    .hideCreateCard #createCard{ display:none !important; }
-  </style>
+  .officerLine{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.18);
+    transition: border-color .15s ease, background .15s ease, transform .08s ease;
+  }
+  .officerLine.clickable{ cursor:pointer; }
+  .officerLine.selected{
+    border-color: rgba(0,255,195,0.35);
+    background: rgba(0,255,195,0.07);
+  }
+
+  .dragHandle{
+    cursor:grab;
+    user-select:none;
+    padding:6px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+    font-weight:900;
+    opacity:0.9;
+    align-self: stretch;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dragHandle:active{ cursor:grabbing; }
+
+  .rightBox h3{
+    margin:0 0 10px 0;
+    font-size:13px;
+    letter-spacing:0.6px;
+    opacity:0.9;
+  }
+  .codeList{ display:flex; flex-direction:column; gap:8px; }
+  .codeRow{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.04);
+  }
+  .codeRow b{ font-size:12px; white-space:nowrap; }
+  .codeRow span{ font-size:12px; opacity:0.82; }
+
+  .topActions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(10,12,18,0.72);
+    backdrop-filter: blur(10px);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    font-size:13px;
+    z-index:998;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+
+  .officerLine .btnBack{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .officerLine:hover .btnBack{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
+
+  .cardHeader .btnDanger{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .card:hover .cardHeader .btnDanger{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
+
+  .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
+  .sortable-chosen{ cursor:grabbing; }
+
+  /* ========= Dock / Toggle Buttons ========= */
+  .dockBtn{
+    position:absolute;
+    top:12px;
+    width:34px;
+    height:34px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    transition: transform .08s ease, background .2s ease, opacity .2s ease;
+    z-index:5;
+  }
+  .dockBtn:hover{ background: rgba(255,255,255,0.12); }
+  .dockBtn:active{ transform: translateY(1px); }
+  #btnToggleLeft{ right:12px; }
+  #btnToggleRight{ left:12px; }
+
+  /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
+  .edgeBtn{
+    position:fixed;
+    top: calc(var(--appTopPad) + 12px);
+    width:36px;
+    height:42px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    z-index:950;
+    transition: background .2s ease, transform .08s ease;
+  }
+  .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
+  .edgeBtn:active{ transform: translateY(1px); }
+  #edgeLeft{ left:10px; }
+  #edgeRight{ right:10px; }
+  .app.leftCollapsed ~ #edgeLeft{ display:flex; }
+  .app.rightCollapsed ~ #edgeRight{ display:flex; }
+
+  @media (max-width: 1200px){
+    body{ overflow:auto; }
+    :root{
+      --hdrTop: 0px;
+      --hdrH: 64px;
+      --hdrPadX: 0px;
+      --appTopPad: calc(var(--hdrH) + 10px);
+    }
+    .app{ height:auto; grid-template-columns: 1fr; }
+    #btnToggleLeft, #btnToggleRight{ display:none; }
+    #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
+  }
+
+  /* ========= Collapsible "Beamter erstellen" ========= */
+  .collapseCard{ padding:0; overflow:hidden; }
+  .collapseHead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .collapseHead .collapseTitle{
+    font-size:12px;
+    opacity:0.85;
+    font-weight:800;
+    letter-spacing:0.4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .chev{
+    width:32px; height:32px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    transition: transform .18s ease, background .2s ease;
+    flex:0 0 auto;
+  }
+  .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
+  .collapseBody{
+    padding:0 10px 10px 10px;
+    transform-origin: top;
+    transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
+    max-height: 520px;
+    opacity:1;
+    transform: translateY(0);
+  }
+  .collapsedUp .collapseBody{
+    max-height:0px;
+    opacity:0;
+    transform: translateY(-6px);
+    padding-bottom:0;
+  }
+  .collapsedUp .chev{ transform: rotate(-90deg); }
+
+  .createActions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
+  #btnDeleteOfficer{
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(-1px);
+  }
+  .createActions:hover #btnDeleteOfficer.show{
+    opacity:1;
+    pointer-events:auto;
+    transform: translateY(0);
+  }
+
+  /* ========= MODAL ========= */
+  .modalOverlay{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:1000;
+    background:
+      radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
+      radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
+      rgba(0,0,0,0.62);
+    backdrop-filter: blur(10px);
+  }
+  .modalCard{
+    width:min(520px, 100%);
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(14, 18, 28, 0.78);
+    backdrop-filter: blur(12px);
+    border-radius:22px;
+    box-shadow: 0 18px 70px rgba(0,0,0,0.60);
+    overflow:hidden;
+  }
+  .modalHeader{
+    padding:14px 16px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .modalTitle{
+    font-size:13px;
+    font-weight:900;
+    letter-spacing:0.5px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .modalBody{ padding:16px; }
+  .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
+  .modalHint{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.22);
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .modalHint .dot{ margin-top:3px; }
+  .modalFooter{
+    padding:14px 16px 16px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+  .modalCloseX{
+    width:40px; height:40px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    transition: background .2s ease, transform .08s ease;
+    flex:0 0 auto;
+  }
+  .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+  .modalCloseX:active{ transform: translateY(1px); }
+
+  /* Role hide */
+  .hideCreateCard #createCard{ display:none !important; }
+</style>
 </head>
 
 <body>
@@ -423,7 +764,7 @@
     </div>
   </div>
 
-  <!-- HEADER -->
+  <!-- ✅ FIX: GLOBAL HEADER war nur CSS – jetzt ist er auch im HTML -->
   <header class="topHeader" id="topHeader" style="display:none;">
     <div class="topHeaderLeft">
       <div class="badge">LSPD</div>
@@ -436,6 +777,7 @@
     <div class="topHeaderRight">
       <span class="pill" title="Leitstelle Online/Offline">
         <span class="dot off" id="connDot"></span>
+        <!-- ✅ FIX: Name vom Online-Symbol ist immer “Leitstelle” -->
         <span id="connText">Leitstelle</span>
       </span>
       <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
@@ -732,7 +1074,7 @@
      * DOM
      ***********************/
     const app = document.getElementById("app");
-    const topHeader = document.getElementById("topHeader");
+    const topHeader = document.getElementById("topHeader"); // ✅ FIX: global header toggle
     const loginOverlay = document.getElementById("loginOverlay");
     const inpLoginName = document.getElementById("inpLoginName");
     const inpLoginPw = document.getElementById("inpLoginPw");
@@ -809,7 +1151,7 @@
     function showLogin(errMsg = ""){
       loginOverlay.style.display = "flex";
       app.style.display = "none";
-      topHeader.style.display = "none";
+      topHeader.style.display = "none";   // ✅ FIX: header ausblenden im Login
       loginErr.style.display = errMsg ? "block" : "none";
       loginErr.textContent = errMsg || "";
       setTimeout(()=> inpLoginName.focus(), 50);
@@ -817,7 +1159,7 @@
     function hideLogin(){
       loginOverlay.style.display = "none";
       app.style.display = "grid";
-      topHeader.style.display = "flex";
+      topHeader.style.display = "flex";  // ✅ FIX: header einblenden wenn App sichtbar
     }
 
     function friendlyAuthError(error){
@@ -1031,6 +1373,7 @@
     function setLeitstelleIndicator(isOnline){
       connDot.classList.toggle("on", !!isOnline);
       connDot.classList.toggle("off", !isOnline);
+      // ✅ FIX: Text niemals “admin”, immer “Leitstelle”
       connText.textContent = "Leitstelle";
     }
 
@@ -1097,7 +1440,7 @@
         const email = (data?.session?.user?.email || "").toLowerCase();
 
         if(email === LEITSTELLE_EMAIL){
-          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){}
+          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
         }
       }catch(e){
         console.error("presence untrack error:", e);
@@ -1201,11 +1544,14 @@
       renderCreatedPool();
     }
 
+    /* ✅ UPDATED: DN = grün, Rang = blau */
     function getOfficerRankPills(o){
       const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
       const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
+
       const dnPill = `<span class="pill pillDn">${escapeHtml(dn)}</span>`;
       const rankPill = abbr ? `<span class="pill pillRank">${escapeHtml(abbr)}</span>` : "";
+
       return `${dnPill}${rankPill}`;
     }
 
@@ -2059,7 +2405,7 @@
     }, true);
 
     /***********************
-     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP
+     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP (mit Sperre)
      ***********************/
     let returnFromTabRunning = false;
 
