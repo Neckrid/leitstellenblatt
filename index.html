@@ -5,785 +5,472 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LSPD Leitstelle – Leitstellenblatt</title>
 
+  <link rel="stylesheet" href="shared/theme.css"/>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-<style>
-  *{ box-sizing:border-box; }
-  html,body{ height:100%; }
-  body{
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    color:#fff;
-    overflow:hidden;
-    background:
-      radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
-      radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-      radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
-      linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
-  }
+  <script src="shared/layout.js"></script>
 
-  :root{
-    /* ===== Verwaltung-Token (für identische Proportionen) ===== */
-    --stroke: rgba(255,255,255,0.10);
-    --shadow: 0 20px 60px rgba(0,0,0,0.55);
-    --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-    --muted: rgba(255,255,255,0.75);
-    --muted2: rgba(255,255,255,0.55);
+  <!-- Dein seiten-spezifisches CSS bleibt hier (ohne Login/Header/Body BG) -->
+  <style>
+    /* ======= DEIN ORIGINAL CSS (gekürzt: Hintergrund/Login/Header kommen aus theme.css) ======= */
 
-    /* ===== Header Layout (wie Verwaltung: 64px) ===== */
-    --hdrTop: 0px;
-    --hdrH: 64px;                 /* ✅ identisch Verwaltung topbar height */
-    --hdrPadX: 0px;
-    --appTopPad: calc(var(--hdrH) + 14px); /* ✅ wie wrapPad 14px */
-  }
-
-  /* ========= LOGIN OVERLAY ========= */
-  .loginOverlay{
-    position:fixed;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:18px;
-    z-index:999;
-    background:
-      radial-gradient(900px 600px at 18% 22%, rgba(0,255,195,0.12), transparent 60%),
-      radial-gradient(800px 520px at 82% 72%, rgba(255,70,180,0.10), transparent 62%),
-      radial-gradient(700px 480px at 70% 18%, rgba(0,140,255,0.10), transparent 60%),
-      rgba(0,0,0,0.55);
-    backdrop-filter: blur(10px);
-  }
-  .loginCard{
-    width:min(560px, 100%);
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(14, 18, 28, 0.70);
-    backdrop-filter: blur(12px);
-    border-radius:22px;
-    box-shadow: 0 18px 70px rgba(0,0,0,0.55);
-    overflow:hidden;
-  }
-  .loginHeader{
-    padding:16px 16px 14px;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-  }
-  .loginTitleWrap{ line-height:1.1; min-width:0; }
-  .loginTitle{ font-size:14px; font-weight:900; letter-spacing:0.6px; }
-  .loginSub{ font-size:12px; opacity:0.78; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .loginBody{ padding:16px; }
-  .loginErr{ font-size:12px; color: rgba(255,120,120,0.95); margin-top:10px; display:none; }
-
-  /* ========= GLOBAL TOP HEADER (✅ sichtbar + identisch zur Verwaltungsseite Topbar) ========= */
-  .topHeader{
-    position:fixed;
-    left:0;
-    right:0;
-    top:0;
-    height:var(--hdrH);
-    z-index:900;
-
-    border-bottom: 1px solid var(--stroke);
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-    backdrop-filter: blur(10px);
-
-    display:flex;
-    align-items:center;
-    padding: 10px 18px;
-    gap:12px;
-    overflow:hidden;
-  }
-  .topHeaderLeft{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    min-width:0;
-    flex:1 1 auto;
-  }
-  .topHeaderText{
-    display:flex;
-    flex-direction:column;
-    line-height:1.05;
-    min-width:0;
-  }
-  .topHeaderTitle{
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:0.3px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .topHeaderSub{
-    font-size:12px;
-    color: var(--muted2);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    margin-top:1px;
-  }
-  .topHeaderRight{
-    margin-left:auto;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:nowrap;
-    justify-content:flex-end;
-    flex:0 0 auto;
-  }
-
-  /* ========= APP GRID (collapsible left/right) ========= */
-  .app{
-    height:100%;
-    display:grid;
-    gap:14px;
-    padding:14px;
-    padding-top: var(--appTopPad);
-    grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
-    transition: grid-template-columns .25s ease;
-  }
-  .app.leftCollapsed{ --leftW: 0px; }
-  .app.rightCollapsed{ --rightW: 0px; }
-
-  .panel{
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(14, 18, 28, 0.55);
-    backdrop-filter: blur(10px);
-    border-radius:18px;
-    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-    min-width:0;
-    position:relative;
-  }
-
-  .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
-  .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
-  .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
-
-  .panelHeader{
-    padding:14px 14px 12px;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    min-width:0;
-  }
-  /* ✅ Platz schaffen, damit Dock-Buttons NICHT über Text/Icon liegen */
-  #panelLeft .panelHeader{ padding-right:64px; }
-  #panelRight .panelHeader{ padding-left:72px; }
-  #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
-
-  .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
-
-  /* ✅ Badge wie Verwaltung (kleine Capsule) */
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:7px 10px;
-    border:1px solid var(--stroke);
-    background: rgba(255,255,255,0.05);
-    border-radius:999px;
-    font-size:12px;
-    font-weight:800;
-    letter-spacing:0.4px;
-    color: var(--muted);
-    white-space:nowrap;
-  }
-
-  .titleWrap{ line-height:1.05; min-width:0; }
-  .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-  .content{ padding:14px; overflow:auto; min-height:0; }
-
-  .row{ display:flex; gap:10px; }
-  .field{
-    background: rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.10);
-    border-radius:14px;
-    padding:10px;
-  }
-  label{ font-size:12px; opacity:0.75; display:block; margin-bottom:6px; }
-  input, select, textarea{
-    width:100%;
-    background: rgba(0,0,0,0.25);
-    border:1px solid rgba(255,255,255,0.12);
-    color:#fff;
-    border-radius:12px;
-    padding:10px 10px;
-    outline:none;
-    font-size:14px;
-  }
-  textarea{ resize:vertical; min-height:120px; }
-
-  /* ✅ Buttons wie Verwaltung */
-  .btn{
-    border:1px solid var(--stroke);
-    background: rgba(255,255,255,0.06);
-    color:#fff;
-    padding:9px 12px;
-    border-radius:10px;
-    cursor:pointer;
-    transition: transform .05s ease, background .15s ease, border-color .15s ease;
-    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-    font-weight:600;
-    font-size:13px;
-    line-height:1;
-    user-select:none;
-    white-space:nowrap;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-  .btn:active{ transform: translateY(1px); }
-  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
-
-  .btnPrimary{
-    border-color: rgba(0,255,195,0.25);
-    box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
-    background: rgba(255,255,255,0.06);
-  }
-  .btnDanger{
-    border-color: rgba(255,60,90,0.28);
-    background: rgba(255,60,90,0.12);
-  }
-  .btnDanger:hover{
-    background: rgba(255,60,90,0.18);
-    border-color: rgba(255,60,90,0.40);
-  }
-  .btnGhost{
-    background: transparent;
-    box-shadow:none;
-  }
-
-  .btnLogoutRed{
-    border-color: rgba(255,60,90,0.28);
-    background: rgba(255,60,90,0.12);
-    box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-  }
-  .btnLogoutRed:hover{
-    background: rgba(255,60,90,0.18);
-    border-color: rgba(255,60,90,0.40);
-  }
-
-  .btnWide{ padding-left:18px; padding-right:18px; min-width:160px; }
-  .btnIcon{ width:44px; height:44px; padding:0; font-size:18px; line-height:1; }
-
-  /* ✅ Pills wie Verwaltung */
-  .pill{
-    padding:6px 10px;
-    border:1px solid var(--stroke);
-    background: rgba(255,255,255,0.06);
-    border-radius:999px;
-    font-size:12px;
-    color: var(--muted);
-    white-space:nowrap;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    flex:0 0 auto;
-  }
-
-  /* ✅ NEW: Dienstnummer = grün */
-  .pill.pillDn{
-    border-color: rgba(0,255,140,0.35);
-    background: rgba(0,255,140,0.10);
-    color: rgba(220,255,240,0.92);
-    box-shadow: 0 0 0 1px rgba(0,255,140,0.10) inset;
-  }
-
-  /* ✅ NEW: Rang = blau */
-  .pill.pillRank{
-    border-color: rgba(0,140,255,0.35);
-    background: rgba(0,140,255,0.10);
-    color: rgba(220,240,255,0.92);
-    box-shadow: 0 0 0 1px rgba(0,140,255,0.10) inset;
-  }
-
-  /* ✅ Dot wie Verwaltung */
-  .dot{
-    width:8px; height:8px; border-radius:999px;
-    background: rgba(255,255,255,0.35);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
-    flex:0 0 auto;
-  }
-  .dot.on{
-    background: rgba(0,255,140,0.85);
-    box-shadow: 0 0 0 3px rgba(0,255,140,0.12);
-  }
-  .dot.off{
-    background: rgba(255,70,180,0.85);
-    box-shadow: 0 0 0 3px rgba(255,70,180,0.12);
-  }
-  .dot.red{
-    background: rgba(255,60,90,0.85);
-    box-shadow: 0 0 0 3px rgba(255,60,90,0.12);
-  }
-
-  .muted{ opacity:0.75; font-size:12px; }
-
-  .grid{
-    display:grid;
-    grid-template-columns: repeat(3, minmax(260px, 1fr));
-    gap:14px;
-  }
-  @media (max-width: 1500px){
-    .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-  }
-  @media (max-width: 1100px){
-    .grid{ grid-template-columns: 1fr; }
-  }
-
-  .card{
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.05);
-    border-radius:18px;
-    overflow:hidden;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.25);
-    min-width:0;
-  }
-
-  .cardHeader{
-    padding:12px 12px;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-
-  .patrolDrag{
-    cursor:grab;
-    user-select:none;
-    padding:6px 10px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.06);
-    font-weight:900;
-    opacity:0.9;
-    line-height:1;
-  }
-  .patrolDrag:active{ cursor:grabbing; }
-
-  .patrolName{
-    font-weight:900;
-    letter-spacing:0.4px;
-    font-size:13px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    min-width:180px;
-    flex: 1 1 180px;
-  }
-  .patrolName input{
-    padding:8px 10px;
-    border-radius:12px;
-    font-weight:800;
-    letter-spacing:0.3px;
-    width:100%;
-    min-width:0;
-  }
-
-  .statusSelect{
-    padding:8px 10px;
-    border-radius:12px;
-    font-weight:800;
-    letter-spacing:0.2px;
-    width:auto;
-    flex: 0 1 220px;
-    min-width:160px;
-    height:44px;
-  }
-  @media (max-width: 900px){
-    .statusSelect{ flex: 1 1 100%; }
-  }
-
-  .cardBody{ padding:12px; }
-
-  .dropZone{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    min-height: 52px;
-  }
-
-  .officerLine{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.18);
-    transition: border-color .15s ease, background .15s ease, transform .08s ease;
-  }
-  .officerLine.clickable{ cursor:pointer; }
-  .officerLine.selected{
-    border-color: rgba(0,255,195,0.35);
-    background: rgba(0,255,195,0.07);
-  }
-
-  .dragHandle{
-    cursor:grab;
-    user-select:none;
-    padding:6px 10px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.06);
-    font-weight:900;
-    opacity:0.9;
-    align-self: stretch;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .dragHandle:active{ cursor:grabbing; }
-
-  .rightBox h3{
-    margin:0 0 10px 0;
-    font-size:13px;
-    letter-spacing:0.6px;
-    opacity:0.9;
-  }
-  .codeList{ display:flex; flex-direction:column; gap:8px; }
-  .codeRow{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:12px;
-    padding:10px 10px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.04);
-  }
-  .codeRow b{ font-size:12px; white-space:nowrap; }
-  .codeRow span{ font-size:12px; opacity:0.82; }
-
-  .topActions{
-    display:flex;
-    gap:8px;
-    align-items:center;
-    flex-wrap:wrap;
-    justify-content:flex-end;
-  }
-
-  .toast{
-    position:fixed;
-    left:50%;
-    bottom:18px;
-    transform:translateX(-50%);
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(10,12,18,0.72);
-    backdrop-filter: blur(10px);
-    opacity:0;
-    pointer-events:none;
-    transition: opacity .2s ease, transform .2s ease;
-    font-size:13px;
-    z-index:998;
-  }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
-
-  .officerLine .btnBack{
-    opacity:0;
-    pointer-events:none;
-    transform: translateY(-1px);
-  }
-  .officerLine:hover .btnBack{
-    opacity:1;
-    pointer-events:auto;
-    transform: translateY(0);
-  }
-
-  .cardHeader .btnDanger{
-    opacity:0;
-    pointer-events:none;
-    transform: translateY(-1px);
-  }
-  .card:hover .cardHeader .btnDanger{
-    opacity:1;
-    pointer-events:auto;
-    transform: translateY(0);
-  }
-
-  .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
-  .sortable-chosen{ cursor:grabbing; }
-
-  /* ========= Dock / Toggle Buttons ========= */
-  .dockBtn{
-    position:absolute;
-    top:12px;
-    width:34px;
-    height:34px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(10px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    font-weight:900;
-    transition: transform .08s ease, background .2s ease, opacity .2s ease;
-    z-index:5;
-  }
-  .dockBtn:hover{ background: rgba(255,255,255,0.12); }
-  .dockBtn:active{ transform: translateY(1px); }
-  #btnToggleLeft{ right:12px; }
-  #btnToggleRight{ left:12px; }
-
-  /* ✅ Edge buttons: gleiche Höhe wie DockBtn (nicht hinter Header) */
-  .edgeBtn{
-    position:fixed;
-    top: calc(var(--appTopPad) + 12px);
-    width:36px;
-    height:42px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(10px);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    font-weight:900;
-    z-index:950;
-    transition: background .2s ease, transform .08s ease;
-  }
-  .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
-  .edgeBtn:active{ transform: translateY(1px); }
-  #edgeLeft{ left:10px; }
-  #edgeRight{ right:10px; }
-  .app.leftCollapsed ~ #edgeLeft{ display:flex; }
-  .app.rightCollapsed ~ #edgeRight{ display:flex; }
-
-  @media (max-width: 1200px){
-    body{ overflow:auto; }
-    :root{
-      --hdrTop: 0px;
-      --hdrH: 64px;
-      --hdrPadX: 0px;
-      --appTopPad: calc(var(--hdrH) + 10px);
+    /* ========= APP GRID (collapsible left/right) ========= */
+    .app{
+      height:100%;
+      display:grid;
+      gap:14px;
+      padding:14px;
+      padding-top: var(--appTopPad);
+      grid-template-columns: var(--leftW, 420px) 1fr var(--rightW, 360px);
+      transition: grid-template-columns .25s ease;
     }
-    .app{ height:auto; grid-template-columns: 1fr; }
-    #btnToggleLeft, #btnToggleRight{ display:none; }
-    #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
-  }
+    .app.leftCollapsed{ --leftW: 0px; }
+    .app.rightCollapsed{ --rightW: 0px; }
 
-  /* ========= Collapsible "Beamter erstellen" ========= */
-  .collapseCard{ padding:0; overflow:hidden; }
-  .collapseHead{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px 10px;
-    cursor:pointer;
-    user-select:none;
-  }
-  .collapseHead .collapseTitle{
-    font-size:12px;
-    opacity:0.85;
-    font-weight:800;
-    letter-spacing:0.4px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .chev{
-    width:32px; height:32px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:900;
-    transition: transform .18s ease, background .2s ease;
-    flex:0 0 auto;
-  }
-  .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
-  .collapseBody{
-    padding:0 10px 10px 10px;
-    transform-origin: top;
-    transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
-    max-height: 520px;
-    opacity:1;
-    transform: translateY(0);
-  }
-  .collapsedUp .collapseBody{
-    max-height:0px;
-    opacity:0;
-    transform: translateY(-6px);
-    padding-bottom:0;
-  }
-  .collapsedUp .chev{ transform: rotate(-90deg); }
+    .panel{
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(14, 18, 28, 0.55);
+      backdrop-filter: blur(10px);
+      border-radius:18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      min-width:0;
+      position:relative;
+    }
 
-  .createActions{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
+    .panel.collapseX{ transition: opacity .18s ease, transform .25s ease; }
+    .app.leftCollapsed #panelLeft{ opacity:0; transform: translateX(-10px); pointer-events:none; }
+    .app.rightCollapsed #panelRight{ opacity:0; transform: translateX(10px); pointer-events:none; }
 
-  /* Mülleimer: nur Admin + selected, sichtbar erst bei hover */
-  #btnDeleteOfficer{
-    opacity:0;
-    pointer-events:none;
-    transform: translateY(-1px);
-  }
-  .createActions:hover #btnDeleteOfficer.show{
-    opacity:1;
-    pointer-events:auto;
-    transform: translateY(0);
-  }
+    .panelHeader{
+      padding:14px 14px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-width:0;
+    }
+    #panelLeft .panelHeader{ padding-right:64px; }
+    #panelRight .panelHeader{ padding-left:72px; }
+    #panelCenter .panelHeader{ padding-left:60px; padding-right:60px; }
 
-  /* ========= MODAL ========= */
-  .modalOverlay{
-    position:fixed;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    padding:18px;
-    z-index:1000;
-    background:
-      radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
-      radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
-      rgba(0,0,0,0.62);
-    backdrop-filter: blur(10px);
-  }
-  .modalCard{
-    width:min(520px, 100%);
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(14, 18, 28, 0.78);
-    backdrop-filter: blur(12px);
-    border-radius:22px;
-    box-shadow: 0 18px 70px rgba(0,0,0,0.60);
-    overflow:hidden;
-  }
-  .modalHeader{
-    padding:14px 16px 12px;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-  }
-  .modalTitle{
-    font-size:13px;
-    font-weight:900;
-    letter-spacing:0.5px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width:0;
-  }
-  .modalBody{ padding:16px; }
-  .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
-  .modalHint{
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:16px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.22);
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-  }
-  .modalHint .dot{ margin-top:3px; }
-  .modalFooter{
-    padding:14px 16px 16px;
-    border-top:1px solid rgba(255,255,255,0.08);
-    display:flex;
-    gap:10px;
-    justify-content:flex-end;
-    flex-wrap:wrap;
-  }
-  .modalCloseX{
-    width:40px; height:40px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:900;
-    transition: background .2s ease, transform .08s ease;
-    flex:0 0 auto;
-  }
-  .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
-  .modalCloseX:active{ transform: translateY(1px); }
+    .brand{ display:flex; gap:10px; align-items:center; min-width:0; }
+    .titleWrap{ line-height:1.05; min-width:0; }
+    .title{ font-size:14px; font-weight:800; letter-spacing:0.6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .subtitle{ font-size:12px; opacity:0.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .content{ padding:14px; overflow:auto; min-height:0; }
 
-  /* Role hide */
-  .hideCreateCard #createCard{ display:none !important; }
-</style>
+    .field{
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      padding:10px;
+    }
+
+    .muted{ opacity:0.75; font-size:12px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(260px, 1fr));
+      gap:14px;
+    }
+    @media (max-width: 1500px){
+      .grid{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+    }
+    @media (max-width: 1100px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+      min-width:0;
+    }
+
+    .cardHeader{
+      padding:12px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .patrolDrag{
+      cursor:grab;
+      user-select:none;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      font-weight:900;
+      opacity:0.9;
+      line-height:1;
+    }
+    .patrolDrag:active{ cursor:grabbing; }
+
+    .patrolName{
+      font-weight:900;
+      letter-spacing:0.4px;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:180px;
+      flex: 1 1 180px;
+    }
+    .patrolName input{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:800;
+      letter-spacing:0.3px;
+      width:100%;
+      min-width:0;
+    }
+
+    .statusSelect{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:800;
+      letter-spacing:0.2px;
+      width:auto;
+      flex: 0 1 220px;
+      min-width:160px;
+      height:44px;
+    }
+    @media (max-width: 900px){
+      .statusSelect{ flex: 1 1 100%; }
+    }
+
+    .cardBody{ padding:12px; }
+
+    .dropZone{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height: 52px;
+    }
+
+    .officerLine{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      transition: border-color .15s ease, background .15s ease, transform .08s ease;
+    }
+    .officerLine.clickable{ cursor:pointer; }
+    .officerLine.selected{
+      border-color: rgba(0,255,195,0.35);
+      background: rgba(0,255,195,0.07);
+    }
+
+    .dragHandle{
+      cursor:grab;
+      user-select:none;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      font-weight:900;
+      opacity:0.9;
+      align-self: stretch;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .dragHandle:active{ cursor:grabbing; }
+
+    .rightBox h3{
+      margin:0 0 10px 0;
+      font-size:13px;
+      letter-spacing:0.6px;
+      opacity:0.9;
+    }
+    .codeList{ display:flex; flex-direction:column; gap:8px; }
+    .codeRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+    .codeRow b{ font-size:12px; white-space:nowrap; }
+    .codeRow span{ font-size:12px; opacity:0.82; }
+
+    .topActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(10,12,18,0.72);
+      backdrop-filter: blur(10px);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      font-size:13px;
+      z-index:998;
+    }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-2px); }
+
+    .officerLine .btnBack{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .officerLine:hover .btnBack{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    .cardHeader .btnDanger{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .card:hover .cardHeader .btnDanger{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    .sortable-ghost{ opacity:0.35; filter: saturate(0.8); }
+    .sortable-chosen{ cursor:grabbing; }
+
+    /* Dock Buttons */
+    .dockBtn{
+      position:absolute;
+      top:12px;
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:900;
+      transition: transform .08s ease, background .2s ease, opacity .2s ease;
+      z-index:5;
+    }
+    .dockBtn:hover{ background: rgba(255,255,255,0.12); }
+    .dockBtn:active{ transform: translateY(1px); }
+    #btnToggleLeft{ right:12px; }
+    #btnToggleRight{ left:12px; }
+
+    .edgeBtn{
+      position:fixed;
+      top: calc(var(--appTopPad) + 12px);
+      width:36px;
+      height:42px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:900;
+      z-index:950;
+      transition: background .2s ease, transform .08s ease;
+    }
+    .edgeBtn:hover{ background: rgba(255,255,255,0.12); }
+    .edgeBtn:active{ transform: translateY(1px); }
+    #edgeLeft{ left:10px; }
+    #edgeRight{ right:10px; }
+    .app.leftCollapsed ~ #edgeLeft{ display:flex; }
+    .app.rightCollapsed ~ #edgeRight{ display:flex; }
+
+    @media (max-width: 1200px){
+      body{ overflow:auto; }
+      :root{ --appTopPad: calc(var(--hdrH) + 10px); }
+      .app{ height:auto; grid-template-columns: 1fr; }
+      #btnToggleLeft, #btnToggleRight{ display:none; }
+      #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
+    }
+
+    /* Collapsible Create Card */
+    .collapseCard{ padding:0; overflow:hidden; }
+    .collapseHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 10px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .collapseHead .collapseTitle{
+      font-size:12px;
+      opacity:0.85;
+      font-weight:800;
+      letter-spacing:0.4px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chev{
+      width:32px; height:32px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      transition: transform .18s ease, background .2s ease;
+      flex:0 0 auto;
+    }
+    .collapseHead:hover .chev{ background: rgba(255,255,255,0.10); }
+    .collapseBody{
+      padding:0 10px 10px 10px;
+      transform-origin: top;
+      transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
+      max-height: 520px;
+      opacity:1;
+      transform: translateY(0);
+    }
+    .collapsedUp .collapseBody{
+      max-height:0px;
+      opacity:0;
+      transform: translateY(-6px);
+      padding-bottom:0;
+    }
+    .collapsedUp .chev{ transform: rotate(-90deg); }
+
+    .createActions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    #btnDeleteOfficer{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-1px);
+    }
+    .createActions:hover #btnDeleteOfficer.show{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:1000;
+      background:
+        radial-gradient(900px 600px at 18% 22%, rgba(255,70,180,0.10), transparent 60%),
+        radial-gradient(800px 520px at 82% 72%, rgba(0,255,195,0.10), transparent 62%),
+        rgba(0,0,0,0.62);
+      backdrop-filter: blur(10px);
+    }
+    .modalCard{
+      width:min(520px, 100%);
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 18, 28, 0.78);
+      backdrop-filter: blur(12px);
+      border-radius:22px;
+      box-shadow: 0 18px 70px rgba(0,0,0,0.60);
+      overflow:hidden;
+    }
+    .modalHeader{
+      padding:14px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .modalTitle{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:0.5px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .modalBody{ padding:16px; }
+    .modalBody p{ margin:0; opacity:0.88; line-height:1.45; font-size:13px; }
+    .modalHint{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .modalHint .dot{ margin-top:3px; }
+    .modalFooter{
+      padding:14px 16px 16px;
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .modalCloseX{
+      width:40px; height:40px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      transition: background .2s ease, transform .08s ease;
+      flex:0 0 auto;
+    }
+    .modalCloseX:hover{ background: rgba(255,255,255,0.10); }
+    .modalCloseX:active{ transform: translateY(1px); }
+
+    .hideCreateCard #createCard{ display:none !important; }
+  </style>
 </head>
 
 <body>
-  <!-- LOGIN -->
-  <div class="loginOverlay" id="loginOverlay" style="display:none;">
-    <div class="loginCard">
-      <div class="loginHeader">
-        <div class="brand">
-          <div class="badge">LSPD</div>
-          <div class="loginTitleWrap">
-            <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Bitte anmelden</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="loginBody">
-        <label>Name</label>
-        <input id="inpLoginName" placeholder="Name" autocomplete="username" />
-        <div style="height:10px"></div>
-        <label>Passwort</label>
-        <input id="inpLoginPw" type="password" placeholder="Passwort" autocomplete="current-password" />
-        <div class="loginErr" id="loginErr">—</div>
-        <div style="height:12px"></div>
-        <div class="row">
-          <button class="btn btnPrimary" id="btnLogin" type="button">Login</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ FIX: GLOBAL HEADER war nur CSS – jetzt ist er auch im HTML -->
-  <header class="topHeader" id="topHeader" style="display:none;">
-    <div class="topHeaderLeft">
-      <div class="badge">LSPD</div>
-      <div class="topHeaderText">
-        <div class="topHeaderTitle">LSPD Leitstelle</div>
-        <div class="topHeaderSub">Leitstellenblatt</div>
-      </div>
-    </div>
-
-    <div class="topHeaderRight">
-      <span class="pill" title="Leitstelle Online/Offline">
-        <span class="dot off" id="connDot"></span>
-        <!-- ✅ FIX: Name vom Online-Symbol ist immer “Leitstelle” -->
-        <span id="connText">Leitstelle</span>
-      </span>
-      <button class="btn btnGhost btnLogoutRed" id="btnLogout" type="button" title="Logout">Logout</button>
-    </div>
-  </header>
-
   <div class="app" id="app" style="display:none;">
     <!-- LEFT -->
     <section class="panel collapseX" id="panelLeft">
@@ -825,7 +512,7 @@
             <div class="createActions">
               <button class="btn btnPrimary" id="btnCreateOfficer" type="button">Beamter speichern</button>
               <button class="btn btnGhost" id="btnRemember" type="button">Eingaben löschen</button>
-              <button class="btn btnDanger btnIcon" id="btnDeleteOfficer" type="button" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
+              <button class="btn btnDanger" id="btnDeleteOfficer" type="button" title="Beamten löschen" aria-label="Beamten löschen">🗑️</button>
             </div>
 
             <div style="height:10px"></div>
@@ -869,7 +556,7 @@
           <span class="pill" title="Gesamtzahl Beamte im Dienst (10-1)">
             <span class="dot on"></span><span id="onDutyCount">0</span>
           </span>
-          <button class="btn btnWide" id="btnAddPatrol" type="button">+ Streife</button>
+          <button class="btn" id="btnAddPatrol" type="button">+ Streife</button>
         </div>
       </div>
 
@@ -953,1561 +640,1555 @@
   </div>
 
   <script>
-    /***********************
-     * CONFIG
-     ***********************/
-    const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    (async function(){
+      await window.__layoutReady;
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      realtime: { params: { eventsPerSecond: 10 } }
-    });
+      // Header Setup
+      UI.setHeader("LSPD Leitstelle", "Leitstellenblatt");
+      UI.setPresenceVisible(true);
+      UI.clearExtra();
 
-    const LEITSTELLE_EMAIL = "leitstelle@gta.local";
-    const OFFICER_EMAIL = "officer@gta.local";
-    const ADMIN_EMAIL = "admin@gta.local";
+      /***********************
+       * CONFIG
+       ***********************/
+      const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
-    /***********************
-     * ✅ Realtime Auth Sync (RLS Fix)
-     ***********************/
-    async function syncRealtimeAuth(){
-      try{
-        const { data } = await sb.auth.getSession();
-        const token = data?.session?.access_token || null;
-        if(!token) return;
-
-        if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
-        else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
-      }catch(e){
-        console.warn("syncRealtimeAuth failed:", e);
-      }
-    }
-
-    /***********************
-     * RANKS
-     ***********************/
-    const RANKS = [
-      { name:"Chief of Police", abbr:"CoP" },
-      { name:"Deputy Chief", abbr:"DC" },
-      { name:"Assistant Chief", abbr:"AC" },
-      { name:"Commander", abbr:"Cmd" },
-      { name:"Trial Commander", abbr:"Tr.Cmd" },
-      { name:"Captain", abbr:"Cap" },
-      { name:"Senior Lieutenant", abbr:"SrLt" },
-      { name:"Lieutenant", abbr:"Lt" },
-      { name:"Master Sergeant", abbr:"MSgt" },
-      { name:"Staff Sergeant", abbr:"StSgt" },
-      { name:"Sergeant", abbr:"Sgt" },
-      { name:"Senior Corporal", abbr:"SrCorp" },
-      { name:"Corporal", abbr:"Corp" },
-      { name:"Senior Officer", abbr:"SrOf" },
-      { name:"Officer", abbr:"Of" },
-      { name:"Junior Officer", abbr:"JrOf" },
-      { name:"Rookie", abbr:"Rk" },
-      { name:"K9", abbr:"K9" }
-    ];
-
-    function getRankAbbrByName(rankName){
-      const hit = RANKS.find(r => r.name === rankName);
-      return hit ? hit.abbr : "Of";
-    }
-
-    function renderRankDropdown(){
-      const sel = document.getElementById("selRank");
-      if(!sel) return;
-      sel.innerHTML = RANKS.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join("");
-      sel.value = "Officer";
-    }
-
-    /***********************
-     * ROLE / PERMISSIONS
-     ***********************/
-    const perms = {
-      email: "",
-      role: "guest",
-      canCreateOfficer: false,
-      canEditOfficer: false,
-      canDeleteOfficer: false,
-      canSelectPoolForEdit: false
-    };
-
-    function setRoleFromEmail(email){
-      const e = (email || "").toLowerCase().trim();
-      perms.email = e;
-
-      if(e === OFFICER_EMAIL){
-        perms.role = "officer";
-        perms.canCreateOfficer = false;
-        perms.canEditOfficer = false;
-        perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = false;
-      }else if(e === LEITSTELLE_EMAIL){
-        perms.role = "leitstelle";
-        perms.canCreateOfficer = true;
-        perms.canEditOfficer = true;
-        perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = true;
-      }else if(e === ADMIN_EMAIL){
-        perms.role = "admin";
-        perms.canCreateOfficer = true;
-        perms.canEditOfficer = true;
-        perms.canDeleteOfficer = true;
-        perms.canSelectPoolForEdit = true;
-      }else if(e){
-        perms.role = "leitstelle";
-        perms.canCreateOfficer = true;
-        perms.canEditOfficer = true;
-        perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = true;
-      }else{
-        perms.role = "guest";
-        perms.canCreateOfficer = false;
-        perms.canEditOfficer = false;
-        perms.canDeleteOfficer = false;
-        perms.canSelectPoolForEdit = false;
-      }
-
-      applyRoleUi();
-    }
-
-    /***********************
-     * DOM
-     ***********************/
-    const app = document.getElementById("app");
-    const topHeader = document.getElementById("topHeader"); // ✅ FIX: global header toggle
-    const loginOverlay = document.getElementById("loginOverlay");
-    const inpLoginName = document.getElementById("inpLoginName");
-    const inpLoginPw = document.getElementById("inpLoginPw");
-    const btnLogin = document.getElementById("btnLogin");
-    const loginErr = document.getElementById("loginErr");
-
-    const btnToggleLeft = document.getElementById("btnToggleLeft");
-    const btnToggleRight = document.getElementById("btnToggleRight");
-    const edgeLeft = document.getElementById("edgeLeft");
-    const edgeRight = document.getElementById("edgeRight");
-
-    const connDot = document.getElementById("connDot");
-    const connText = document.getElementById("connText");
-    const toastEl = document.getElementById("toast");
-
-    const inpName = document.getElementById("inpName");
-    const inpDienstnr = document.getElementById("inpDienstnr");
-    const selRank = document.getElementById("selRank");
-    const btnCreateOfficer = document.getElementById("btnCreateOfficer");
-    const btnRemember = document.getElementById("btnRemember");
-    const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
-    const meHint = document.getElementById("meHint");
-
-    const inpSearch = document.getElementById("inpSearch");
-    const createdList = document.getElementById("createdList");
-    const createdCount = document.getElementById("createdCount");
-
-    const patrolGrid = document.getElementById("patrolGrid");
-    const btnAddPatrol = document.getElementById("btnAddPatrol");
-    const onDutyCountEl = document.getElementById("onDutyCount");
-
-    const txtNotes = document.getElementById("txtNotes");
-    const noteStatus = document.getElementById("noteStatus");
-
-    const funcodeList = document.getElementById("funcodeList");
-
-    const createCard = document.getElementById("createCard");
-    const createToggle = document.getElementById("createToggle");
-    const createMiniHint = document.getElementById("createMiniHint");
-
-    const confirmOverlay = document.getElementById("confirmOverlay");
-    const confirmText = document.getElementById("confirmText");
-    const confirmClose = document.getElementById("confirmClose");
-    const confirmCancel = document.getElementById("confirmCancel");
-    const confirmDelete = document.getElementById("confirmDelete");
-
-    /***********************
-     * HELPERS
-     ***********************/
-    function toast(msg){
-      toastEl.textContent = msg;
-      toastEl.classList.add("show");
-      setTimeout(() => toastEl.classList.remove("show"), 2200);
-    }
-
-    window.addEventListener("error", (e)=>{
-      const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
-      console.error("JS ERROR:", e.error || e.message, e);
-      toast("JS: " + msg.slice(0, 140));
-    });
-    window.addEventListener("unhandledrejection", (e)=>{
-      const msg = (e?.reason?.message || String(e?.reason) || "Unbekannte Promise-Rejection");
-      console.error("Unhandled Promise:", e.reason, e);
-      toast("Promise: " + msg.slice(0, 140));
-    });
-
-    function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
-    function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
-    function emailFromName(name){
-      const key = normalizeKey(name);
-      return key ? `${key}@gta.local` : "";
-    }
-
-    function showLogin(errMsg = ""){
-      loginOverlay.style.display = "flex";
-      app.style.display = "none";
-      topHeader.style.display = "none";   // ✅ FIX: header ausblenden im Login
-      loginErr.style.display = errMsg ? "block" : "none";
-      loginErr.textContent = errMsg || "";
-      setTimeout(()=> inpLoginName.focus(), 50);
-    }
-    function hideLogin(){
-      loginOverlay.style.display = "none";
-      app.style.display = "grid";
-      topHeader.style.display = "flex";  // ✅ FIX: header einblenden wenn App sichtbar
-    }
-
-    function friendlyAuthError(error){
-      const msg = (error?.message || "").toLowerCase();
-      if(msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")){
-        return "Falscher Name oder Passwort.";
-      }
-      if(msg.includes("email not confirmed")){
-        return "Account ist noch nicht bestätigt.";
-      }
-      if(msg.includes("too many requests") || msg.includes("rate limit")){
-        return "Zu viele Versuche. Bitte kurz warten.";
-      }
-      return "Login fehlgeschlagen.";
-    }
-
-    function escapeHtml(s){
-      return (s ?? "").toString().replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
-    }
-
-    function timeAgo(iso){
-      try{
-        const t = new Date(iso).getTime();
-        const diff = Math.max(0, Date.now() - t);
-        const min = Math.floor(diff/60000);
-        if(min < 1) return "gerade eben";
-        if(min < 60) return `${min} min`;
-        const h = Math.floor(min/60);
-        return `${h} h`;
-      }catch{ return "—"; }
-    }
-
-    function upsertLocal(arr, row){
-      const i = arr.findIndex(x => x.id === row.id);
-      if(i >= 0) arr[i] = row;
-      else arr.push(row);
-    }
-
-    function dnNum(v){
-      const s = (v ?? "").toString().trim();
-      if(!s) return Number.POSITIVE_INFINITY;
-      const n = parseInt(s.replace(/[^\d]/g, ""), 10);
-      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-    }
-
-    function numOrInf(v){
-      const n = Number(v);
-      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-    }
-
-    function withTimeout(promise, ms){
-      return Promise.race([
-        promise,
-        new Promise((_, reject)=> setTimeout(()=> reject(new Error("timeout")), ms))
-      ]);
-    }
-
-    /***********************
-     * ✅ Fokus/Cursor beim Streifennamen behalten
-     ***********************/
-    function capturePatrolNameFocus(){
-      const el = document.activeElement;
-      if(el && el.matches && el.matches("input[data-act='renamePatrol']")){
-        const id = Number(el.getAttribute("data-id"));
-        return { id, value: el.value, start: el.selectionStart ?? null, end: el.selectionEnd ?? null };
-      }
-      return null;
-    }
-    function restorePatrolNameFocus(snapshot){
-      if(!snapshot || !Number.isFinite(snapshot.id)) return;
-      requestAnimationFrame(() => {
-        const inp = patrolGrid.querySelector(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
-        if(!inp) return;
-        inp.value = snapshot.value;
-        inp.focus({ preventScroll:true });
-        try{
-          if(snapshot.start != null && snapshot.end != null){
-            inp.setSelectionRange(snapshot.start, snapshot.end);
-          }
-        }catch{}
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        realtime: { params: { eventsPerSecond: 10 } }
       });
-    }
 
-    /***********************
-     * ✅ Drag Guard + ✅ Realtime Queue (MULTI-USER FIX)
-     ***********************/
-    let isDragging = false;
-    let pendingRender = false;
-    let rtQueue = [];
+      const LEITSTELLE_EMAIL = "leitstelle@gta.local";
+      const OFFICER_EMAIL = "officer@gta.local";
+      const ADMIN_EMAIL = "admin@gta.local";
 
-    function applyQueuedRealtime(){
-      if(!rtQueue.length) return;
-      const q = rtQueue.slice();
-      rtQueue = [];
-      for(const fn of q){
-        try{ fn(); }catch(e){ console.error("applyQueuedRealtime fn error:", e); }
+      async function syncRealtimeAuth(){
+        try{
+          const { data } = await sb.auth.getSession();
+          const token = data?.session?.access_token || null;
+          if(!token) return;
+
+          if (sb?.realtime?.setAuth) sb.realtime.setAuth(token);
+          else if (sb?.realtime?.client?.setAuth) sb.realtime.client.setAuth(token);
+        }catch(e){
+          console.warn("syncRealtimeAuth failed:", e);
+        }
       }
-    }
 
-    function handleRealtimeSafely(fn){
-      if(isDragging){
-        rtQueue.push(fn);
-        pendingRender = true;
-        return;
+      /***********************
+       * RANKS
+       ***********************/
+      const RANKS = [
+        { name:"Chief of Police", abbr:"CoP" },
+        { name:"Deputy Chief", abbr:"DC" },
+        { name:"Assistant Chief", abbr:"AC" },
+        { name:"Commander", abbr:"Cmd" },
+        { name:"Trial Commander", abbr:"Tr.Cmd" },
+        { name:"Captain", abbr:"Cap" },
+        { name:"Senior Lieutenant", abbr:"SrLt" },
+        { name:"Lieutenant", abbr:"Lt" },
+        { name:"Master Sergeant", abbr:"MSgt" },
+        { name:"Staff Sergeant", abbr:"StSgt" },
+        { name:"Sergeant", abbr:"Sgt" },
+        { name:"Senior Corporal", abbr:"SrCorp" },
+        { name:"Corporal", abbr:"Corp" },
+        { name:"Senior Officer", abbr:"SrOf" },
+        { name:"Officer", abbr:"Of" },
+        { name:"Junior Officer", abbr:"JrOf" },
+        { name:"Rookie", abbr:"Rk" },
+        { name:"K9", abbr:"K9" }
+      ];
+
+      function getRankAbbrByName(rankName){
+        const hit = RANKS.find(r => r.name === rankName);
+        return hit ? hit.abbr : "Of";
       }
-      try{ fn(); }catch(e){ console.error("handleRealtimeSafely fn error:", e); }
-      renderAll();
-    }
 
-    function endDragAndFlush(){
-      isDragging = false;
-      applyQueuedRealtime();
-      if(pendingRender){
-        pendingRender = false;
+      function renderRankDropdown(){
+        const sel = document.getElementById("selRank");
+        if(!sel) return;
+        sel.innerHTML = RANKS.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join("");
+        sel.value = "Officer";
+      }
+
+      /***********************
+       * ROLE / PERMISSIONS
+       ***********************/
+      const perms = {
+        email: "",
+        role: "guest",
+        canCreateOfficer: false,
+        canEditOfficer: false,
+        canDeleteOfficer: false,
+        canSelectPoolForEdit: false
+      };
+
+      function setRoleFromEmail(email){
+        const e = (email || "").toLowerCase().trim();
+        perms.email = e;
+
+        if(e === OFFICER_EMAIL){
+          perms.role = "officer";
+          perms.canCreateOfficer = false;
+          perms.canEditOfficer = false;
+          perms.canDeleteOfficer = false;
+          perms.canSelectPoolForEdit = false;
+        }else if(e === LEITSTELLE_EMAIL){
+          perms.role = "leitstelle";
+          perms.canCreateOfficer = true;
+          perms.canEditOfficer = true;
+          perms.canDeleteOfficer = false;
+          perms.canSelectPoolForEdit = true;
+        }else if(e === ADMIN_EMAIL){
+          perms.role = "admin";
+          perms.canCreateOfficer = true;
+          perms.canEditOfficer = true;
+          perms.canDeleteOfficer = true;
+          perms.canSelectPoolForEdit = true;
+        }else if(e){
+          perms.role = "leitstelle";
+          perms.canCreateOfficer = true;
+          perms.canEditOfficer = true;
+          perms.canDeleteOfficer = false;
+          perms.canSelectPoolForEdit = true;
+        }else{
+          perms.role = "guest";
+          perms.canCreateOfficer = false;
+          perms.canEditOfficer = false;
+          perms.canDeleteOfficer = false;
+          perms.canSelectPoolForEdit = false;
+        }
+
+        applyRoleUi();
+      }
+
+      /***********************
+       * DOM (Login/Header kommen aus shared!)
+       ***********************/
+      const app = document.getElementById("app");
+      const loginOverlay = document.getElementById("loginOverlay");
+      const inpLoginName = document.getElementById("inpLoginName");
+      const inpLoginPw = document.getElementById("inpLoginPw");
+      const btnLogin = document.getElementById("btnLogin");
+      const loginErr = document.getElementById("loginErr");
+      const btnLogout = document.getElementById("btnLogout");
+
+      const btnToggleLeft = document.getElementById("btnToggleLeft");
+      const btnToggleRight = document.getElementById("btnToggleRight");
+      const edgeLeft = document.getElementById("edgeLeft");
+      const edgeRight = document.getElementById("edgeRight");
+
+      const connDot = document.getElementById("connDot");
+      const connText = document.getElementById("connText");
+      const toastEl = document.getElementById("toast");
+
+      const inpName = document.getElementById("inpName");
+      const inpDienstnr = document.getElementById("inpDienstnr");
+      const selRank = document.getElementById("selRank");
+      const btnCreateOfficer = document.getElementById("btnCreateOfficer");
+      const btnRemember = document.getElementById("btnRemember");
+      const btnDeleteOfficer = document.getElementById("btnDeleteOfficer");
+      const meHint = document.getElementById("meHint");
+
+      const inpSearch = document.getElementById("inpSearch");
+      const createdList = document.getElementById("createdList");
+      const createdCount = document.getElementById("createdCount");
+
+      const patrolGrid = document.getElementById("patrolGrid");
+      const btnAddPatrol = document.getElementById("btnAddPatrol");
+      const onDutyCountEl = document.getElementById("onDutyCount");
+
+      const txtNotes = document.getElementById("txtNotes");
+      const noteStatus = document.getElementById("noteStatus");
+
+      const funcodeList = document.getElementById("funcodeList");
+
+      const createCard = document.getElementById("createCard");
+      const createToggle = document.getElementById("createToggle");
+      const createMiniHint = document.getElementById("createMiniHint");
+
+      const confirmOverlay = document.getElementById("confirmOverlay");
+      const confirmText = document.getElementById("confirmText");
+      const confirmClose = document.getElementById("confirmClose");
+      const confirmCancel = document.getElementById("confirmCancel");
+      const confirmDelete = document.getElementById("confirmDelete");
+
+      /***********************
+       * HELPERS
+       ***********************/
+      function toast(msg){
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        setTimeout(() => toastEl.classList.remove("show"), 2200);
+      }
+
+      window.addEventListener("error", (e)=>{
+        const msg = (e?.error?.message || e?.message || "Unbekannter Fehler");
+        console.error("JS ERROR:", e.error || e.message, e);
+        toast("JS: " + msg.slice(0, 140));
+      });
+      window.addEventListener("unhandledrejection", (e)=>{
+        const msg = (e?.reason?.message || String(e?.reason) || "Unbekannte Promise-Rejection");
+        console.error("Unhandled Promise:", e.reason, e);
+        toast("Promise: " + msg.slice(0, 140));
+      });
+
+      function normalizeSpaces(s){ return (s ?? "").toString().replace(/\s+/g, " ").trim(); }
+      function normalizeKey(name){ return normalizeSpaces(name).toLowerCase(); }
+      function emailFromName(name){
+        const key = normalizeKey(name);
+        return key ? `${key}@gta.local` : "";
+      }
+
+      function showLogin(errMsg = ""){
+        UI.showLogin(errMsg);
+        app.style.display = "none";
+        loginErr.style.display = errMsg ? "block" : "none";
+        loginErr.textContent = errMsg || "";
+      }
+      function hideLogin(){
+        UI.hideLogin();
+        app.style.display = "grid";
+      }
+
+      function friendlyAuthError(error){
+        const msg = (error?.message || "").toLowerCase();
+        if(msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")){
+          return "Falscher Name oder Passwort.";
+        }
+        if(msg.includes("email not confirmed")){
+          return "Account ist noch nicht bestätigt.";
+        }
+        if(msg.includes("too many requests") || msg.includes("rate limit")){
+          return "Zu viele Versuche. Bitte kurz warten.";
+        }
+        return "Login fehlgeschlagen.";
+      }
+
+      function escapeHtml(s){
+        return (s ?? "").toString().replace(/[&<>"']/g, m => ({
+          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+        }[m]));
+      }
+
+      function timeAgo(iso){
+        try{
+          const t = new Date(iso).getTime();
+          const diff = Math.max(0, Date.now() - t);
+          const min = Math.floor(diff/60000);
+          if(min < 1) return "gerade eben";
+          if(min < 60) return `${min} min`;
+          const h = Math.floor(min/60);
+          return `${h} h`;
+        }catch{ return "—"; }
+      }
+
+      function upsertLocal(arr, row){
+        const i = arr.findIndex(x => x.id === row.id);
+        if(i >= 0) arr[i] = row;
+        else arr.push(row);
+      }
+
+      function dnNum(v){
+        const s = (v ?? "").toString().trim();
+        if(!s) return Number.POSITIVE_INFINITY;
+        const n = parseInt(s.replace(/[^\d]/g, ""), 10);
+        return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+      }
+
+      function numOrInf(v){
+        const n = Number(v);
+        return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+      }
+
+      function withTimeout(promise, ms){
+        return Promise.race([
+          promise,
+          new Promise((_, reject)=> setTimeout(()=> reject(new Error("timeout")), ms))
+        ]);
+      }
+
+      /***********************
+       * Fokus beim Streifennamen behalten
+       ***********************/
+      function capturePatrolNameFocus(){
+        const el = document.activeElement;
+        if(el && el.matches && el.matches("input[data-act='renamePatrol']")){
+          const id = Number(el.getAttribute("data-id"));
+          return { id, value: el.value, start: el.selectionStart ?? null, end: el.selectionEnd ?? null };
+        }
+        return null;
+      }
+      function restorePatrolNameFocus(snapshot){
+        if(!snapshot || !Number.isFinite(snapshot.id)) return;
+        requestAnimationFrame(() => {
+          const inp = patrolGrid.querySelector(`input[data-act='renamePatrol'][data-id='${snapshot.id}']`);
+          if(!inp) return;
+          inp.value = snapshot.value;
+          inp.focus({ preventScroll:true });
+          try{
+            if(snapshot.start != null && snapshot.end != null){
+              inp.setSelectionRange(snapshot.start, snapshot.end);
+            }
+          }catch{}
+        });
+      }
+
+      /***********************
+       * Drag Guard + Realtime Queue
+       ***********************/
+      let isDragging = false;
+      let pendingRender = false;
+      let rtQueue = [];
+
+      function applyQueuedRealtime(){
+        if(!rtQueue.length) return;
+        const q = rtQueue.slice();
+        rtQueue = [];
+        for(const fn of q){
+          try{ fn(); }catch(e){ console.error("applyQueuedRealtime fn error:", e); }
+        }
+      }
+
+      function handleRealtimeSafely(fn){
+        if(isDragging){
+          rtQueue.push(fn);
+          pendingRender = true;
+          return;
+        }
+        try{ fn(); }catch(e){ console.error("handleRealtimeSafely fn error:", e); }
         renderAll();
       }
-    }
 
-    /***********************
-     * ✅ Post-Move Catch-up (MULTI-USER FIX)
-     ***********************/
-    let postMoveResyncTimer = null;
-    function schedulePostMoveResync(){
-      if(postMoveResyncTimer) clearTimeout(postMoveResyncTimer);
-      postMoveResyncTimer = setTimeout(()=> {
-        loadAll().catch(e => console.warn("postMove loadAll failed:", e));
-      }, 350);
-    }
-
-    /***********************
-     * UI: Role
-     ***********************/
-    let selectedOfficerId = null;
-
-    function updateCreateControls(){
-      const hasSel = (selectedOfficerId != null);
-
-      if(perms.role === "officer"){
-        btnCreateOfficer.disabled = true;
-        btnRemember.disabled = true;
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-        return;
-      }
-
-      const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
-      btnCreateOfficer.disabled = !canSave;
-
-      if(perms.canDeleteOfficer && hasSel){
-        btnDeleteOfficer.disabled = false;
-        btnDeleteOfficer.classList.add("show");
-      }else{
-        btnDeleteOfficer.disabled = true;
-        btnDeleteOfficer.classList.remove("show");
-      }
-
-      btnRemember.disabled = false;
-    }
-
-    function applyRoleUi(){
-      app.classList.toggle("hideCreateCard", perms.role === "officer");
-      updateCreateControls();
-      renderCreatedPool();
-    }
-
-    /***********************
-     * Collapsible Panels
-     ***********************/
-    const LS_UI = "lspd_ui_panels";
-    function loadUi(){
-      try{
-        const raw = localStorage.getItem(LS_UI);
-        const v = raw ? JSON.parse(raw) : {};
-        return { left: !!v.left, right: !!v.right };
-      }catch{ return { left:false, right:false }; }
-    }
-    function saveUi(state){ try{ localStorage.setItem(LS_UI, JSON.stringify(state)); }catch{} }
-    const ui = loadUi();
-    function applyUi(){
-      app.classList.toggle("leftCollapsed", ui.left);
-      app.classList.toggle("rightCollapsed", ui.right);
-      btnToggleLeft.textContent = ui.left ? "❯" : "❮";
-      btnToggleRight.textContent = ui.right ? "❮" : "❯";
-    }
-    btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-    edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
-
-    const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
-    function loadCreateCollapsed(){ try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; } }
-    function saveCreateCollapsed(v){ try{ localStorage.setItem(LS_CREATE_COLLAPSE, v ? "1":"0"); }catch{} }
-    let createCollapsed = loadCreateCollapsed();
-    function applyCreateCollapsed(){
-      createCard.classList.toggle("collapsedUp", createCollapsed);
-      createMiniHint.style.display = createCollapsed ? "inline" : "none";
-    }
-    createToggle.addEventListener("click", ()=>{
-      createCollapsed = !createCollapsed;
-      saveCreateCollapsed(createCollapsed);
-      applyCreateCollapsed();
-    });
-
-    /***********************
-     * Leitstelle Online/Offline (Presence)
-     ***********************/
-    let presenceChannel = null;
-
-    function setLeitstelleIndicator(isOnline){
-      connDot.classList.toggle("on", !!isOnline);
-      connDot.classList.toggle("off", !isOnline);
-      // ✅ FIX: Text niemals “admin”, immer “Leitstelle”
-      connText.textContent = "Leitstelle";
-    }
-
-    function computeLeitstelleOnlineFromPresence(state){
-      try{
-        for(const key of Object.keys(state || {})){
-          const arr = state[key] || [];
-          for(const item of arr){
-            const email = (item?.email || "").toLowerCase();
-            if(email === LEITSTELLE_EMAIL) return true;
-          }
+      function endDragAndFlush(){
+        isDragging = false;
+        applyQueuedRealtime();
+        if(pendingRender){
+          pendingRender = false;
+          renderAll();
         }
-      }catch{}
-      return false;
-    }
-
-    async function setupPresence(){
-      try{
-        if(presenceChannel){
-          try{ sb.removeChannel(presenceChannel); }catch{}
-          presenceChannel = null;
-        }
-
-        const { data } = await sb.auth.getSession();
-        const session = data?.session;
-        const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
-
-        presenceChannel = sb.channel("presence-leitstelle", { config: { presence: { key } } });
-
-        presenceChannel
-          .on("presence", { event: "sync" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          })
-          .on("presence", { event: "join" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          })
-          .on("presence", { event: "leave" }, () => {
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          });
-
-        presenceChannel.subscribe(async (status) => {
-          if(status === "SUBSCRIBED"){
-            const email = (session?.user?.email || "").toLowerCase();
-            if(email === LEITSTELLE_EMAIL){
-              try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
-            }
-            setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
-          }
-        });
-      }catch(e){
-        console.error("presence setup error:", e);
-        setLeitstelleIndicator(false);
       }
-    }
 
-    async function stopPresence(){
-      try{
-        if(!presenceChannel){
-          setLeitstelleIndicator(false);
+      let postMoveResyncTimer = null;
+      function schedulePostMoveResync(){
+        if(postMoveResyncTimer) clearTimeout(postMoveResyncTimer);
+        postMoveResyncTimer = setTimeout(()=> {
+          loadAll().catch(e => console.warn("postMove loadAll failed:", e));
+        }, 350);
+      }
+
+      /***********************
+       * UI: Role
+       ***********************/
+      let selectedOfficerId = null;
+
+      function updateCreateControls(){
+        const hasSel = (selectedOfficerId != null);
+
+        if(perms.role === "officer"){
+          btnCreateOfficer.disabled = true;
+          btnRemember.disabled = true;
+          btnDeleteOfficer.disabled = true;
+          btnDeleteOfficer.classList.remove("show");
           return;
         }
 
-        const { data } = await sb.auth.getSession();
-        const email = (data?.session?.user?.email || "").toLowerCase();
+        const canSave = (hasSel && perms.canEditOfficer) || (!hasSel && perms.canCreateOfficer);
+        btnCreateOfficer.disabled = !canSave;
 
-        if(email === LEITSTELLE_EMAIL){
-          try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){ /* ignore */ }
+        if(perms.canDeleteOfficer && hasSel){
+          btnDeleteOfficer.disabled = false;
+          btnDeleteOfficer.classList.add("show");
+        }else{
+          btnDeleteOfficer.disabled = true;
+          btnDeleteOfficer.classList.remove("show");
         }
-      }catch(e){
-        console.error("presence untrack error:", e);
+
+        btnRemember.disabled = false;
       }
 
-      try{
-        if(presenceChannel){
-          try{ sb.removeChannel(presenceChannel); }catch{}
-        }
-      }catch(e){
-        console.error("remove presence error:", e);
+      function applyRoleUi(){
+        app.classList.toggle("hideCreateCard", perms.role === "officer");
+        updateCreateControls();
+        renderCreatedPool();
       }
 
-      presenceChannel = null;
-      setLeitstelleIndicator(false);
-    }
-
-    /***********************
-     * FUNKCODES / STATUS
-     ***********************/
-    const FUNCODES = [
-      ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
-      ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
-      ["10-33", "Verunfallt"], ["10-50", "Verkehrsunfall"], ["10-60", "Allgemeine Verkehrskontrolle"],
-      ["10-80", "Verfolgungsjagd"], ["11-90", "Officers in Bedrängnis"], ["11-99", "Officer unter Beschuss"],
-      ["10-20", "Positionsabfrage"], ["10-22", "Abholung benötigt"], ["CODE 0", "Kopfschmerzen"],
-      ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
-      ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
-    ];
-    const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
-
-    function statusOptionsHtml(selected){
-      return PATROL_STATUSES.map(v=>{
-        const sel = (selected === v) ? "selected" : "";
-        return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
-      }).join("");
-    }
-    function statusLabel(v){ return v || "Auf Streife"; }
-
-    function renderFuncodes(){
-      funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
-        <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
-      `).join("");
-    }
-
-    /***********************
-     * STATE + RENDER
-     ***********************/
-    let patrols = [];
-    let officers = [];
-    let noteAutosaveTimer = null;
-
-    const patrolRenameTimers = new Map();
-    const patrolRenameLastSent = new Map();
-    let editingPatrolNameId = null;
-
-    function updateOnDutyCount(){
-      const cnt = officers.filter(o => o.status === "10-1").length;
-      onDutyCountEl.textContent = cnt;
-    }
-
-    function matchesSearch(officer, q){
-      if(!q) return true;
-      const name = (officer.name ?? "").toString().toLowerCase();
-      const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
-      const rk = (officer.rank ?? "").toString().toLowerCase();
-      const ra = (officer.rank_abbr ?? "").toString().toLowerCase();
-      return name.includes(q) || dn.includes(q) || rk.includes(q) || ra.includes(q);
-    }
-
-    function clearOfficerSelection(){
-      selectedOfficerId = null;
-      updateCreateControls();
-      renderCreatedPool();
-    }
-
-    function selectOfficerForEdit(officerId){
-      if(!perms.canSelectPoolForEdit) return;
-      const o = officers.find(x => x.id === officerId);
-      if(!o) return;
-
-      selectedOfficerId = officerId;
-      inpName.value = o.name ?? "";
-      inpDienstnr.value = (o.dienstnummer ?? "").toString();
-
-      const rName = o.rank || "Officer";
-      if(selRank){
-        selRank.value = RANKS.some(r => r.name === rName) ? rName : "Officer";
+      /***********************
+       * Collapsible Panels
+       ***********************/
+      const LS_UI = "lspd_ui_panels";
+      function loadUi(){
+        try{
+          const raw = localStorage.getItem(LS_UI);
+          const v = raw ? JSON.parse(raw) : {};
+          return { left: !!v.left, right: !!v.right };
+        }catch{ return { left:false, right:false }; }
       }
+      function saveUi(state){ try{ localStorage.setItem(LS_UI, JSON.stringify(state)); }catch{} }
+      const ui = loadUi();
+      function applyUi(){
+        app.classList.toggle("leftCollapsed", ui.left);
+        app.classList.toggle("rightCollapsed", ui.right);
+        btnToggleLeft.textContent = ui.left ? "❯" : "❮";
+        btnToggleRight.textContent = ui.right ? "❮" : "❯";
+      }
+      btnToggleLeft.addEventListener("click", ()=>{ ui.left = !ui.left; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      btnToggleRight.addEventListener("click", ()=>{ ui.right = !ui.right; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      edgeLeft.addEventListener("click", ()=>{ ui.left = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
+      edgeRight.addEventListener("click", ()=>{ ui.right = false; saveUi(ui); applyUi(); scheduleRebuildSortables(); });
 
-      meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
-      setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
-
-      if(createCollapsed){
-        createCollapsed = false;
-        saveCreateCollapsed(false);
+      const LS_CREATE_COLLAPSE = "lspd_create_collapsed";
+      function loadCreateCollapsed(){ try{ return localStorage.getItem(LS_CREATE_COLLAPSE) === "1"; }catch{ return false; } }
+      function saveCreateCollapsed(v){ try{ localStorage.setItem(LS_CREATE_COLLAPSE, v ? "1":"0"); }catch{} }
+      let createCollapsed = loadCreateCollapsed();
+      function applyCreateCollapsed(){
+        createCard.classList.toggle("collapsedUp", createCollapsed);
+        createMiniHint.style.display = createCollapsed ? "inline" : "none";
+      }
+      createToggle.addEventListener("click", ()=>{
+        createCollapsed = !createCollapsed;
+        saveCreateCollapsed(createCollapsed);
         applyCreateCollapsed();
-      }
-
-      updateCreateControls();
-      renderCreatedPool();
-    }
-
-    /* ✅ UPDATED: DN = grün, Rang = blau */
-    function getOfficerRankPills(o){
-      const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
-      const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
-
-      const dnPill = `<span class="pill pillDn">${escapeHtml(dn)}</span>`;
-      const rankPill = abbr ? `<span class="pill pillRank">${escapeHtml(abbr)}</span>` : "";
-
-      return `${dnPill}${rankPill}`;
-    }
-
-    function renderCreatedPool(){
-      const q = (inpSearch.value ?? "").trim().toLowerCase();
-      let pool = officers.filter(o => o.patrol_id == null);
-      if(q) pool = pool.filter(o => matchesSearch(o, q));
-
-      pool = pool.slice().sort((a,b)=>{
-        const da = dnNum(a.dienstnummer), db = dnNum(b.dienstnummer);
-        if(da !== db) return da - db;
-        return (a.name||"").localeCompare(b.name||"");
       });
 
-      createdCount.textContent = pool.length;
+      /***********************
+       * Leitstelle Presence
+       ***********************/
+      let presenceChannel = null;
 
-      if(pool.length === 0){
-        createdList.innerHTML = `<div class="muted">Keine Treffer im Pool.</div>`;
-        return;
+      function setLeitstelleIndicator(isOnline){
+        connDot.classList.toggle("on", !!isOnline);
+        connDot.classList.toggle("off", !isOnline);
+        connText.textContent = "Leitstelle";
       }
 
-      const canClickSelect = perms.canSelectPoolForEdit;
-
-      createdList.innerHTML = pool.map(o => {
-        const isOn = o.status === "10-1";
-        const selected = (selectedOfficerId === o.id && canClickSelect) ? "selected" : "";
-        const clickableClass = canClickSelect ? "clickable" : "";
-
-        return `
-          <div class="officerLine ${clickableClass} ${selected}" data-officer-id="${o.id}">
-            <div style="display:flex; gap:10px; align-items:stretch; min-width:0; flex:1;">
-              <div class="dragHandle" title="Ziehen">≡</div>
-
-              <div style="min-width:0; flex:1;">
-                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-                  <span class="dot ${isOn ? "on":"off"}"></span>
-                  <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    ${escapeHtml(o.name)}
-                  </strong>
-                  ${isOn ? `<span class="pill">10-1</span>` : ``}
-                </div>
-
-                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  ${getOfficerRankPills(o)}
-                </div>
-
-                <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      if(canClickSelect){
-        createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
-          line.addEventListener("click", (e)=>{
-            if(e.target.closest(".dragHandle")) return;
-
-            const id = Number(line.getAttribute("data-officer-id"));
-            if(selectedOfficerId === id){
-              clearOfficerSelection();
-              toast("Auswahl aufgehoben");
-              return;
+      function computeLeitstelleOnlineFromPresence(state){
+        try{
+          for(const key of Object.keys(state || {})){
+            const arr = state[key] || [];
+            for(const item of arr){
+              const email = (item?.email || "").toLowerCase();
+              if(email === LEITSTELLE_EMAIL) return true;
             }
-            selectOfficerForEdit(id);
+          }
+        }catch{}
+        return false;
+      }
+
+      async function setupPresence(){
+        try{
+          if(presenceChannel){
+            try{ sb.removeChannel(presenceChannel); }catch{}
+            presenceChannel = null;
+          }
+
+          const { data } = await sb.auth.getSession();
+          const session = data?.session;
+          const key = session?.user?.id || ("anon-" + Math.random().toString(16).slice(2));
+
+          presenceChannel = sb.channel("presence-leitstelle", { config: { presence: { key } } });
+
+          presenceChannel
+            .on("presence", { event: "sync" }, () => {
+              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+            })
+            .on("presence", { event: "join" }, () => {
+              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+            })
+            .on("presence", { event: "leave" }, () => {
+              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+            });
+
+          presenceChannel.subscribe(async (status) => {
+            if(status === "SUBSCRIBED"){
+              const email = (session?.user?.email || "").toLowerCase();
+              if(email === LEITSTELLE_EMAIL){
+                try{ await presenceChannel.track({ email, ts: new Date().toISOString() }); }catch(e){ console.error("presence track error:", e); }
+              }
+              setLeitstelleIndicator(computeLeitstelleOnlineFromPresence(presenceChannel.presenceState()));
+            }
           });
+        }catch(e){
+          console.error("presence setup error:", e);
+          setLeitstelleIndicator(false);
+        }
+      }
+
+      async function stopPresence(){
+        try{
+          if(!presenceChannel){
+            setLeitstelleIndicator(false);
+            return;
+          }
+
+          const { data } = await sb.auth.getSession();
+          const email = (data?.session?.user?.email || "").toLowerCase();
+
+          if(email === LEITSTELLE_EMAIL){
+            try{ await withTimeout(presenceChannel.untrack(), 500); }catch(e){}
+          }
+        }catch(e){
+          console.error("presence untrack error:", e);
+        }
+
+        try{
+          if(presenceChannel){
+            try{ sb.removeChannel(presenceChannel); }catch{}
+          }
+        }catch(e){
+          console.error("remove presence error:", e);
+        }
+
+        presenceChannel = null;
+        setLeitstelleIndicator(false);
+      }
+
+      /***********************
+       * FUNKCODES / STATUS
+       ***********************/
+      const FUNCODES = [
+        ["10-1", "Im Dienst"], ["10-2", "Außer Dienst"], ["10-4", "Verstanden"], ["10-5", "Verstärkung"],
+        ["10-6", "Funkspruch wiederholen"], ["10-7", "Overwatch benötigt"], ["10-15", "TV in Gewahrsam"],
+        ["10-33", "Verunfallt"], ["10-50", "Verkehrsunfall"], ["10-60", "Allgemeine Verkehrskontrolle"],
+        ["10-80", "Verfolgungsjagd"], ["11-90", "Officers in Bedrängnis"], ["11-99", "Officer unter Beschuss"],
+        ["10-20", "Positionsabfrage"], ["10-22", "Abholung benötigt"], ["CODE 0", "Kopfschmerzen"],
+        ["CODE 1", "Auf Streife"], ["CODE 2", "Anfahrt ohne Sondersignal"], ["CODE 3", "Anfahrt mit Sondersignal"],
+        ["CODE 4", "Einsatz Ende / unter Kontrolle"], ["CODE 7", "Nicht einsatzbereit"], ["CODE 99", "Möglicher Hinterhalt"]
+      ];
+      const PATROL_STATUSES = ["Auf Streife","Stand-By","Einsatz","Pause","Im PD","Ausbildung"];
+
+      function statusOptionsHtml(selected){
+        return PATROL_STATUSES.map(v=>{
+          const sel = (selected === v) ? "selected" : "";
+          return `<option value="${escapeHtml(v)}" ${sel}>${escapeHtml(v)}</option>`;
+        }).join("");
+      }
+      function statusLabel(v){ return v || "Auf Streife"; }
+
+      function renderFuncodes(){
+        funcodeList.innerHTML = FUNCODES.map(([c, d]) => `
+          <div class="codeRow"><b>${escapeHtml(c)}</b><span>${escapeHtml(d)}</span></div>
+        `).join("");
+      }
+
+      /***********************
+       * STATE + RENDER
+       ***********************/
+      let patrols = [];
+      let officers = [];
+      let noteAutosaveTimer = null;
+
+      const patrolRenameTimers = new Map();
+      const patrolRenameLastSent = new Map();
+      let editingPatrolNameId = null;
+
+      function updateOnDutyCount(){
+        const cnt = officers.filter(o => o.status === "10-1").length;
+        onDutyCountEl.textContent = cnt;
+      }
+
+      function matchesSearch(officer, q){
+        if(!q) return true;
+        const name = (officer.name ?? "").toString().toLowerCase();
+        const dn = (officer.dienstnummer ?? "").toString().toLowerCase();
+        const rk = (officer.rank ?? "").toString().toLowerCase();
+        const ra = (officer.rank_abbr ?? "").toString().toLowerCase();
+        return name.includes(q) || dn.includes(q) || rk.includes(q) || ra.includes(q);
+      }
+
+      function clearOfficerSelection(){
+        selectedOfficerId = null;
+        updateCreateControls();
+        renderCreatedPool();
+      }
+
+      function selectOfficerForEdit(officerId){
+        if(!perms.canSelectPoolForEdit) return;
+        const o = officers.find(x => x.id === officerId);
+        if(!o) return;
+
+        selectedOfficerId = officerId;
+        inpName.value = o.name ?? "";
+        inpDienstnr.value = (o.dienstnummer ?? "").toString();
+
+        const rName = o.rank || "Officer";
+        if(selRank){
+          selRank.value = RANKS.some(r => r.name === rName) ? rName : "Officer";
+        }
+
+        meHint.textContent = `Bearbeiten: ${o.name || "Officer"} (DN ${o.dienstnummer || "—"})`;
+        setTimeout(()=>{ if(meHint.textContent.startsWith("Bearbeiten:")) meHint.textContent = ""; }, 3500);
+
+        if(createCollapsed){
+          createCollapsed = false;
+          saveCreateCollapsed(false);
+          applyCreateCollapsed();
+        }
+
+        updateCreateControls();
+        renderCreatedPool();
+      }
+
+      function getOfficerRankPills(o){
+        const dn = o.dienstnummer ? `DN ${o.dienstnummer}` : "DN —";
+        const abbr = (o.rank_abbr || getRankAbbrByName(o.rank || "Officer") || "Of").toString();
+
+        const dnPill = `<span class="pill" style="border-color: rgba(0,255,140,0.35); background: rgba(0,255,140,0.10); color: rgba(220,255,240,0.92); box-shadow: 0 0 0 1px rgba(0,255,140,0.10) inset;">${escapeHtml(dn)}</span>`;
+        const rankPill = abbr ? `<span class="pill" style="border-color: rgba(0,140,255,0.35); background: rgba(0,140,255,0.10); color: rgba(220,240,255,0.92); box-shadow: 0 0 0 1px rgba(0,140,255,0.10) inset;">${escapeHtml(abbr)}</span>` : "";
+
+        return `${dnPill}${rankPill}`;
+      }
+
+      function renderCreatedPool(){
+        const q = (inpSearch.value ?? "").trim().toLowerCase();
+        let pool = officers.filter(o => o.patrol_id == null);
+        if(q) pool = pool.filter(o => matchesSearch(o, q));
+
+        pool = pool.slice().sort((a,b)=>{
+          const da = dnNum(a.dienstnummer), db = dnNum(b.dienstnummer);
+          if(da !== db) return da - db;
+          return (a.name||"").localeCompare(b.name||"");
         });
-      }
-    }
 
-    let sortables = [];
-    let patrolSortable = null;
+        createdCount.textContent = pool.length;
 
-    function sortPatrolsInMemory(){
-      patrols = patrols.slice().sort((a,b)=>{
-        const sa = numOrInf(a.sort_index);
-        const sbx = numOrInf(b.sort_index);
-        if(sa !== sbx) return sa - sbx;
-        return (a.id ?? 0) - (b.id ?? 0);
-      });
-    }
-
-    async function persistPatrolOrderFromDom(){
-      const ids = Array.from(patrolGrid.querySelectorAll(".card"))
-        .map(el => Number(el.getAttribute("data-patrol-card")))
-        .filter(n => Number.isFinite(n));
-
-      ids.forEach((id, idx)=>{
-        const p = patrols.find(x => x.id === id);
-        if(p) p.sort_index = idx + 1;
-      });
-
-      const payload = ids.map((id, idx)=>({ id, sort_index: idx + 1 }));
-      const res = await sb.from("patrols").upsert(payload, { onConflict: "id" });
-      if(res.error){
-        console.error("persistPatrolOrder error:", res.error);
-        toast("Fehler Reihenfolge speichern");
-        return;
-      }
-      toast("Streifen-Reihenfolge gespeichert");
-      schedulePostMoveResync();
-    }
-
-    function destroyAllSortables(){
-      try{ if(patrolSortable){ try{ patrolSortable.destroy(); }catch{} } }catch{}
-      patrolSortable = null;
-      try{ (sortables || []).forEach(s => { try{ s.destroy(); }catch{} }); }catch{}
-      sortables = [];
-    }
-
-    let rebuildTimer = null;
-    function scheduleRebuildSortables(){
-      if(rebuildTimer) clearTimeout(rebuildTimer);
-      rebuildTimer = setTimeout(() => {
-        try{
-          if(app.style.display === "none") return;
-          destroyAllSortables();
-          initPatrolOrderDrag();
-          initDragAndDrop();
-        }catch(e){
-          console.error("rebuild sortables error:", e);
+        if(pool.length === 0){
+          createdList.innerHTML = `<div class="muted">Keine Treffer im Pool.</div>`;
+          return;
         }
-      }, 120);
-    }
 
-    function queuePatrolRename(id, rawName){
-      const name = (rawName || "").trim() || "Streife";
-      if(patrolRenameLastSent.get(id) === name) return;
+        const canClickSelect = perms.canSelectPoolForEdit;
 
-      if(patrolRenameTimers.has(id)){
-        clearTimeout(patrolRenameTimers.get(id));
-      }
+        createdList.innerHTML = pool.map(o => {
+          const isOn = o.status === "10-1";
+          const selected = (selectedOfficerId === o.id && canClickSelect) ? "selected" : "";
+          const clickableClass = canClickSelect ? "clickable" : "";
 
-      const t = setTimeout(async ()=>{
-        patrolRenameTimers.delete(id);
-        patrolRenameLastSent.set(id, name);
-
-        const p = patrols.find(x => x.id === id);
-        if(p) p.name = name;
-
-        try{
-          const res = await sb.from("patrols").update({ name }).eq("id", id);
-          if(res.error) throw res.error;
-        }catch(e){
-          console.error("queuePatrolRename error:", e);
-          toast("Fehler Name");
-        }
-      }, 450);
-
-      patrolRenameTimers.set(id, t);
-    }
-
-    function renderPatrolGrid(){
-      if(isDragging){ pendingRender = true; return; }
-
-      const focusSnap = capturePatrolNameFocus();
-
-      destroyAllSortables();
-      sortPatrolsInMemory();
-      const sortedPatrols = patrols.slice();
-
-      patrolGrid.innerHTML = sortedPatrols.map(p => {
-        const list = officers.filter(o => o.patrol_id === p.id).slice()
-          .sort((a,b)=> (a.name||"").localeCompare(b.name||""));
-
-        const status = p.funcode || "Auf Streife";
-
-        const lines = list.length ? list.map(o => {
           return `
-            <div class="officerLine" data-officer-id="${o.id}">
-              <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+            <div class="officerLine ${clickableClass} ${selected}" data-officer-id="${o.id}">
+              <div style="display:flex; gap:10px; align-items:stretch; min-width:0; flex:1;">
                 <div class="dragHandle" title="Ziehen">≡</div>
-                <div style="min-width:0;">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span class="dot ${o.status === "10-1" ? "on":"off"}"></span>
-                    <strong>${escapeHtml(o.name)}</strong>
+
+                <div style="min-width:0; flex:1;">
+                  <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                    <span class="dot ${isOn ? "on":"off"}"></span>
+                    <strong style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                      ${escapeHtml(o.name)}
+                    </strong>
+                    ${isOn ? `<span class="pill">10-1</span>` : ``}
+                  </div>
+
+                  <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                     ${getOfficerRankPills(o)}
                   </div>
-                </div>
-              </div>
 
-              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}" type="button">Zurück in Pool</button>
+                  <div class="muted" style="margin-top:6px;">zuletzt: ${escapeHtml(timeAgo(o.last_seen))}</div>
+                </div>
               </div>
             </div>
           `;
-        }).join("") : `<div class="muted">Ziehe Beamte hierher…</div>`;
+        }).join("");
 
-        return `
-          <div class="card" data-patrol-card="${p.id}">
-            <div class="cardHeader">
-              <div class="patrolDrag" title="Streife verschieben">⋮⋮</div>
+        if(canClickSelect){
+          createdList.querySelectorAll(".officerLine.clickable").forEach(line=>{
+            line.addEventListener("click", (e)=>{
+              if(e.target.closest(".dragHandle")) return;
 
-              <div class="patrolName">
-                <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
-              </div>
-
-              <select class="statusSelect" data-act="patrolStatus" data-id="${p.id}" title="Status wählen">
-                ${statusOptionsHtml(status)}
-              </select>
-
-              <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen" type="button">✕</button>
-            </div>
-
-            <div class="cardBody">
-              <div class="pill" title="Aktueller Status">
-                <b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(status))}
-              </div>
-              <div style="height:10px"></div>
-
-              <div class="dropZone" data-dropzone="1" data-patrol-id="${p.id}">
-                ${lines}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      patrolGrid.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const act = btn.getAttribute("data-act");
-          const id = Number(btn.getAttribute("data-id"));
-          if(act === "deletePatrol") return deletePatrol(id);
-          if(act === "backToPool") return moveOfficerToPatrolAndMaybeStatus(id, null, "10-2");
-        });
-      });
-
-      patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
-        const id = Number(inp.getAttribute("data-id"));
-
-        inp.addEventListener("focus", ()=>{ editingPatrolNameId = id; });
-        inp.addEventListener("blur", ()=>{
-          editingPatrolNameId = null;
-          queuePatrolRename(id, inp.value);
-        });
-
-        inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
-        inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
-      });
-
-      patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
-        sel.addEventListener("change", async ()=>{
-          const id = Number(sel.getAttribute("data-id"));
-          const status = sel.value;
-          await updatePatrolStatus(id, status);
-        });
-      });
-
-      initPatrolOrderDrag();
-      initDragAndDrop();
-      restorePatrolNameFocus(focusSnap);
-    }
-
-    const SORTABLE_SCROLL_OPTS = { scroll:true, scrollSensitivity:90, scrollSpeed:18, bubbleScroll:true };
-
-    function initPatrolOrderDrag(){
-      patrolSortable = new Sortable(patrolGrid, {
-        animation:160,
-        handle:".patrolDrag",
-        draggable:".card",
-        ghostClass:"sortable-ghost",
-        chosenClass:"sortable-chosen",
-        ...SORTABLE_SCROLL_OPTS,
-        onStart: () => { isDragging = true; },
-        onEnd: async () => {
-          try{
-            await persistPatrolOrderFromDom();
-          }catch(e){
-            console.error(e);
-            toast("Fehler Reihenfolge");
-          }finally{
-            endDragAndFlush();
-          }
+              const id = Number(line.getAttribute("data-officer-id"));
+              if(selectedOfficerId === id){
+                clearOfficerSelection();
+                toast("Auswahl aufgehoben");
+                return;
+              }
+              selectOfficerForEdit(id);
+            });
+          });
         }
-      });
-    }
+      }
 
-    function initDragAndDrop(){
-      const zones = document.querySelectorAll(".dropZone[data-dropzone='1']");
-      zones.forEach(zone=>{
-        const sortable = new Sortable(zone, {
-          group:"officers-shared",
-          animation:150,
-          handle:".dragHandle",
+      let sortables = [];
+      let patrolSortable = null;
+
+      function sortPatrolsInMemory(){
+        patrols = patrols.slice().sort((a,b)=>{
+          const sa = numOrInf(a.sort_index);
+          const sbx = numOrInf(b.sort_index);
+          if(sa !== sbx) return sa - sbx;
+          return (a.id ?? 0) - (b.id ?? 0);
+        });
+      }
+
+      async function persistPatrolOrderFromDom(){
+        const ids = Array.from(patrolGrid.querySelectorAll(".card"))
+          .map(el => Number(el.getAttribute("data-patrol-card")))
+          .filter(n => Number.isFinite(n));
+
+        ids.forEach((id, idx)=>{
+          const p = patrols.find(x => x.id === id);
+          if(p) p.sort_index = idx + 1;
+        });
+
+        const payload = ids.map((id, idx)=>({ id, sort_index: idx + 1 }));
+        const res = await sb.from("patrols").upsert(payload, { onConflict: "id" });
+        if(res.error){
+          console.error("persistPatrolOrder error:", res.error);
+          toast("Fehler Reihenfolge speichern");
+          return;
+        }
+        toast("Streifen-Reihenfolge gespeichert");
+        schedulePostMoveResync();
+      }
+
+      function destroyAllSortables(){
+        try{ if(patrolSortable){ try{ patrolSortable.destroy(); }catch{} } }catch{}
+        patrolSortable = null;
+        try{ (sortables || []).forEach(s => { try{ s.destroy(); }catch{} }); }catch{}
+        sortables = [];
+      }
+
+      let rebuildTimer = null;
+      function scheduleRebuildSortables(){
+        if(rebuildTimer) clearTimeout(rebuildTimer);
+        rebuildTimer = setTimeout(() => {
+          try{
+            if(app.style.display === "none") return;
+            destroyAllSortables();
+            initPatrolOrderDrag();
+            initDragAndDrop();
+          }catch(e){
+            console.error("rebuild sortables error:", e);
+          }
+        }, 120);
+      }
+
+      function queuePatrolRename(id, rawName){
+        const name = (rawName || "").trim() || "Streife";
+        if(patrolRenameLastSent.get(id) === name) return;
+
+        if(patrolRenameTimers.has(id)){
+          clearTimeout(patrolRenameTimers.get(id));
+        }
+
+        const t = setTimeout(async ()=>{
+          patrolRenameTimers.delete(id);
+          patrolRenameLastSent.set(id, name);
+
+          const p = patrols.find(x => x.id === id);
+          if(p) p.name = name;
+
+          try{
+            const res = await sb.from("patrols").update({ name }).eq("id", id);
+            if(res.error) throw res.error;
+          }catch(e){
+            console.error("queuePatrolRename error:", e);
+            toast("Fehler Name");
+          }
+        }, 450);
+
+        patrolRenameTimers.set(id, t);
+      }
+
+      function renderPatrolGrid(){
+        if(isDragging){ pendingRender = true; return; }
+
+        const focusSnap = capturePatrolNameFocus();
+
+        destroyAllSortables();
+        sortPatrolsInMemory();
+        const sortedPatrols = patrols.slice();
+
+        patrolGrid.innerHTML = sortedPatrols.map(p => {
+          const list = officers.filter(o => o.patrol_id === p.id).slice()
+            .sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+
+          const status = p.funcode || "Auf Streife";
+
+          const lines = list.length ? list.map(o => {
+            return `
+              <div class="officerLine" data-officer-id="${o.id}">
+                <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+                  <div class="dragHandle" title="Ziehen">≡</div>
+                  <div style="min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <span class="dot ${o.status === "10-1" ? "on":"off"}"></span>
+                      <strong>${escapeHtml(o.name)}</strong>
+                      ${getOfficerRankPills(o)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                  <button class="btn btnGhost btnBack" data-act="backToPool" data-id="${o.id}" type="button">Zurück in Pool</button>
+                </div>
+              </div>
+            `;
+          }).join("") : `<div class="muted">Ziehe Beamte hierher…</div>`;
+
+          return `
+            <div class="card" data-patrol-card="${p.id}">
+              <div class="cardHeader">
+                <div class="patrolDrag" title="Streife verschieben">⋮⋮</div>
+
+                <div class="patrolName">
+                  <input value="${escapeHtml(p.name)}" data-act="renamePatrol" data-id="${p.id}" title="Streifenname bearbeiten"/>
+                </div>
+
+                <select class="statusSelect" data-act="patrolStatus" data-id="${p.id}" title="Status wählen">
+                  ${statusOptionsHtml(status)}
+                </select>
+
+                <button class="btn btnDanger" data-act="deletePatrol" data-id="${p.id}" title="Streife löschen" type="button">✕</button>
+              </div>
+
+              <div class="cardBody">
+                <div class="pill" title="Aktueller Status">
+                  <b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(status))}
+                </div>
+                <div style="height:10px"></div>
+
+                <div class="dropZone" data-dropzone="1" data-patrol-id="${p.id}">
+                  ${lines}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        patrolGrid.querySelectorAll("button[data-act]").forEach(btn=>{
+          btn.addEventListener("click", async ()=>{
+            const act = btn.getAttribute("data-act");
+            const id = Number(btn.getAttribute("data-id"));
+            if(act === "deletePatrol") return deletePatrol(id);
+            if(act === "backToPool") return moveOfficerToPatrolAndMaybeStatus(id, null, "10-2");
+          });
+        });
+
+        patrolGrid.querySelectorAll("input[data-act='renamePatrol']").forEach(inp=>{
+          const id = Number(inp.getAttribute("data-id"));
+
+          inp.addEventListener("focus", ()=>{ editingPatrolNameId = id; });
+          inp.addEventListener("blur", ()=>{
+            editingPatrolNameId = null;
+            queuePatrolRename(id, inp.value);
+          });
+
+          inp.addEventListener("input", ()=>{ queuePatrolRename(id, inp.value); });
+          inp.addEventListener("change", ()=>{ queuePatrolRename(id, inp.value); });
+        });
+
+        patrolGrid.querySelectorAll("select[data-act='patrolStatus']").forEach(sel=>{
+          sel.addEventListener("change", async ()=>{
+            const id = Number(sel.getAttribute("data-id"));
+            const status = sel.value;
+            await updatePatrolStatus(id, status);
+          });
+        });
+
+        initPatrolOrderDrag();
+        initDragAndDrop();
+        restorePatrolNameFocus(focusSnap);
+      }
+
+      const SORTABLE_SCROLL_OPTS = { scroll:true, scrollSensitivity:90, scrollSpeed:18, bubbleScroll:true };
+
+      function initPatrolOrderDrag(){
+        patrolSortable = new Sortable(patrolGrid, {
+          animation:160,
+          handle:".patrolDrag",
+          draggable:".card",
           ghostClass:"sortable-ghost",
           chosenClass:"sortable-chosen",
           ...SORTABLE_SCROLL_OPTS,
           onStart: () => { isDragging = true; },
-          onEnd: async (evt) => {
+          onEnd: async () => {
             try{
-              const item = evt.item;
-              const officerId = Number(item.getAttribute("data-officer-id"));
-
-              const toRaw = evt.to.getAttribute("data-patrol-id");
-              const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
-
-              const fromRaw = evt.from.getAttribute("data-patrol-id");
-              const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
-              const changedZone = (fromPatrolId !== toPatrolId);
-              if(!changedZone) return;
-
-              const o = officers.find(x => x.id === officerId);
-              if(!o) return;
-
-              const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
-              await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
+              await persistPatrolOrderFromDom();
+            }catch(e){
+              console.error(e);
+              toast("Fehler Reihenfolge");
             }finally{
               endDragAndFlush();
             }
           }
         });
-        sortables.push(sortable);
-      });
-    }
-
-    function renderAll(){
-      if(isDragging){ pendingRender = true; return; }
-      renderCreatedPool();
-      renderPatrolGrid();
-      updateOnDutyCount();
-      updateCreateControls();
-    }
-
-    /***********************
-     * CRUD (Supabase)
-     ***********************/
-    async function loadAll(){
-      const pRes = await sb.from("patrols").select("*")
-        .order("sort_index", {ascending:true, nullsFirst:false})
-        .order("id", {ascending:true});
-      if(pRes.error) throw pRes.error;
-      patrols = pRes.data || [];
-
-      const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
-      if(oRes.error) throw oRes.error;
-
-      officers = (oRes.data || []).map(o => ({
-        ...o,
-        rank: o.rank || "Officer",
-        rank_abbr: o.rank_abbr || getRankAbbrByName(o.rank || "Officer")
-      }));
-
-      const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
-      if(nRes.error) throw nRes.error;
-      txtNotes.value = nRes.data?.content ?? "";
-
-      renderAll();
-      noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
-    }
-
-    function findOfficerIdentity(name, dienstnummer){
-      const dn = (dienstnummer ?? "").trim();
-      if(dn) return officers.find(o => (o.dienstnummer ?? "").toString().trim() === dn);
-      return officers.find(o => o.name === name);
-    }
-
-    async function upsertOfficer({name, dienstnummer, patrol_id, status, rank, rank_abbr, forceId=null}){
-      const existing = forceId ? officers.find(o => o.id === forceId) : findOfficerIdentity(name, dienstnummer);
-
-      const payload = {
-        name,
-        dienstnummer: (dienstnummer ?? "").trim() || null,
-        patrol_id: (patrol_id === "" || patrol_id == null) ? null : Number(patrol_id),
-        status,
-        rank: (rank ?? "Officer").toString(),
-        rank_abbr: (rank_abbr ?? getRankAbbrByName(rank ?? "Officer")).toString(),
-        last_seen: new Date().toISOString()
-      };
-
-      if(existing){
-        const optimistic = { ...existing, ...payload, id: existing.id };
-        officers = officers.map(o => o.id === existing.id ? optimistic : o);
-        renderAll();
-
-        const res = await sb.from("officers").update(payload).eq("id", existing.id).select("*").single();
-        if(res.error) throw res.error;
-        upsertLocal(officers, res.data);
-        renderAll();
-        return res.data;
-      }else{
-        const res = await sb.from("officers").insert(payload).select("*").single();
-        if(res.error) throw res.error;
-        upsertLocal(officers, res.data);
-        renderAll();
-        return res.data;
       }
-    }
 
-    async function createOrEditOfficer(){
-      if(perms.role === "officer"){ toast("Keine Berechtigung"); return; }
+      function initDragAndDrop(){
+        const zones = document.querySelectorAll(".dropZone[data-dropzone='1']");
+        zones.forEach(zone=>{
+          const sortable = new Sortable(zone, {
+            group:"officers-shared",
+            animation:150,
+            handle:".dragHandle",
+            ghostClass:"sortable-ghost",
+            chosenClass:"sortable-chosen",
+            ...SORTABLE_SCROLL_OPTS,
+            onStart: () => { isDragging = true; },
+            onEnd: async (evt) => {
+              try{
+                const item = evt.item;
+                const officerId = Number(item.getAttribute("data-officer-id"));
 
-      const name = inpName.value.trim();
-      const dienstnummer = inpDienstnr.value.trim();
-      const rankName = (selRank?.value || "Officer").toString();
-      const rankAbbr = getRankAbbrByName(rankName);
+                const toRaw = evt.to.getAttribute("data-patrol-id");
+                const toPatrolId = (toRaw === "" || toRaw == null) ? null : Number(toRaw);
 
-      if(!name) return toast("Name ausfüllen");
-      if(!dienstnummer) return toast("Dienstnummer ausfüllen");
+                const fromRaw = evt.from.getAttribute("data-patrol-id");
+                const fromPatrolId = (fromRaw === "" || fromRaw == null) ? null : Number(fromRaw);
+                const changedZone = (fromPatrolId !== toPatrolId);
+                if(!changedZone) return;
 
-      const hasSel = (selectedOfficerId != null);
+                const o = officers.find(x => x.id === officerId);
+                if(!o) return;
 
-      if(hasSel){
-        if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
-        const cur = officers.find(x => x.id === selectedOfficerId);
-        if(!cur){ clearOfficerSelection(); toast("Auswahl verloren"); return; }
-
-        await upsertOfficer({
-          name, dienstnummer,
-          patrol_id: cur.patrol_id,
-          status: cur.status,
-          rank: rankName,
-          rank_abbr: rankAbbr,
-          forceId: selectedOfficerId
+                const autoStatus = (toPatrolId == null) ? "10-2" : "10-1";
+                await moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, autoStatus);
+              }finally{
+                endDragAndFlush();
+              }
+            }
+          });
+          sortables.push(sortable);
         });
-        toast("Beamter gespeichert");
-        clearOfficerSelection();
-        return;
       }
 
-      if(!perms.canCreateOfficer){ toast("Keine Berechtigung zum Erstellen"); return; }
-      await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2", rank: rankName, rank_abbr: rankAbbr });
-      toast("Beamter gespeichert");
-    }
-
-    async function moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, status){
-      const o = officers.find(x => x.id === officerId);
-      if(!o) return;
-
-      const before = { ...o };
-      const optimistic = {
-        ...o,
-        patrol_id: (toPatrolId == null ? null : Number(toPatrolId)),
-        status: status ?? o.status,
-        last_seen: new Date().toISOString()
-      };
-
-      officers = officers.map(x => x.id === officerId ? optimistic : x);
-      renderAll();
-
-      const res = await sb.from("officers")
-        .update({ patrol_id: optimistic.patrol_id, status: optimistic.status, last_seen: optimistic.last_seen })
-        .eq("id", officerId)
-        .select("*")
-        .single();
-
-      if(res.error){
-        console.error("moveOfficerToPatrol error:", res.error);
-        toast("Fehler Verschieben: " + (res.error.message || "unknown"));
-        officers = officers.map(x => x.id === officerId ? before : x);
-        renderAll();
-        return;
-      }
-
-      upsertLocal(officers, res.data);
-      renderAll();
-      toast(toPatrolId == null ? "In Pool" : "Auf Streife");
-      schedulePostMoveResync();
-    }
-
-    async function addPatrol(){
-      const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
-      const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
-      if(res.error){
-        console.error("addPatrol error:", res.error);
-        toast("Fehler +Streife: " + (res.error.message || "unknown"));
-        return;
-      }
-
-      upsertLocal(patrols, res.data);
-      renderAll();
-      toast("Streife erstellt");
-      schedulePostMoveResync();
-    }
-
-    async function updatePatrolStatus(id, status){
-      const safe = PATROL_STATUSES.includes(status) ? status : "Auf Streife";
-      const p = patrols.find(x => x.id === id);
-      if(!p) return;
-
-      const before = { ...p };
-      patrols = patrols.map(x => x.id === id ? { ...x, funcode: safe } : x);
-      renderPatrolGrid();
-
-      const res = await sb.from("patrols").update({ funcode: safe }).eq("id", id).select("*").single();
-      if(res.error){
-        console.error("updatePatrolStatus error:", res.error);
-        toast("Fehler Status: " + (res.error.message || "unknown"));
-        patrols = patrols.map(x => x.id === id ? before : x);
+      function renderAll(){
+        if(isDragging){ pendingRender = true; return; }
+        renderCreatedPool();
         renderPatrolGrid();
-        return;
+        updateOnDutyCount();
+        updateCreateControls();
       }
-      upsertLocal(patrols, res.data);
-      renderPatrolGrid();
-      toast("Status gespeichert");
-      schedulePostMoveResync();
-    }
 
-    async function deletePatrol(id){
-      const beforePatrols = patrols.slice();
-      const beforeOfficers = officers.slice();
+      /***********************
+       * CRUD (Supabase)
+       ***********************/
+      async function loadAll(){
+        const pRes = await sb.from("patrols").select("*")
+          .order("sort_index", {ascending:true, nullsFirst:false})
+          .order("id", {ascending:true});
+        if(pRes.error) throw pRes.error;
+        patrols = pRes.data || [];
 
-      patrols = patrols.filter(p => p.id !== id);
-      officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-      renderAll();
+        const oRes = await sb.from("officers").select("*").order("id", {ascending:true});
+        if(oRes.error) throw oRes.error;
 
-      const res = await sb.from("patrols").delete().eq("id", id);
-      if(res.error){
-        console.error("deletePatrol error:", res.error);
-        toast("Fehler Löschen: " + (res.error.message || "unknown"));
-        patrols = beforePatrols;
-        officers = beforeOfficers;
+        officers = (oRes.data || []).map(o => ({
+          ...o,
+          rank: o.rank || "Officer",
+          rank_abbr: o.rank_abbr || getRankAbbrByName(o.rank || "Officer")
+        }));
+
+        const nRes = await sb.from("dispatch_notes").select("*").eq("id", 1).single();
+        if(nRes.error) throw nRes.error;
+        txtNotes.value = nRes.data?.content ?? "";
+
         renderAll();
-        return;
+        noteStatus.textContent = `geladen • ${new Date().toLocaleTimeString()}`;
       }
-      toast("Streife gelöscht");
-      schedulePostMoveResync();
-    }
 
-    async function saveNote(){
-      const content = txtNotes.value ?? "";
-      const res = await sb.from("dispatch_notes")
-        .update({ content, updated_at: new Date().toISOString() })
-        .eq("id", 1);
-
-      if(res.error){
-        console.error("saveNote error:", res.error);
-        noteStatus.textContent = "Fehler beim Speichern";
-        return;
+      function findOfficerIdentity(name, dienstnummer){
+        const dn = (dienstnummer ?? "").trim();
+        if(dn) return officers.find(o => (o.dienstnummer ?? "").toString().trim() === dn);
+        return officers.find(o => o.name === name);
       }
-      noteStatus.textContent = `gespeichert • ${new Date().toLocaleTimeString()}`;
-    }
 
-    async function deleteOfficer(id){
-      if(!perms.canDeleteOfficer){ toast("Keine Berechtigung zum Löschen"); return; }
+      async function upsertOfficer({name, dienstnummer, patrol_id, status, rank, rank_abbr, forceId=null}){
+        const existing = forceId ? officers.find(o => o.id === forceId) : findOfficerIdentity(name, dienstnummer);
 
-      const before = officers.slice();
-      officers = officers.filter(o => o.id !== id);
-      if(selectedOfficerId === id) selectedOfficerId = null;
-      renderAll();
+        const payload = {
+          name,
+          dienstnummer: (dienstnummer ?? "").trim() || null,
+          patrol_id: (patrol_id === "" || patrol_id == null) ? null : Number(patrol_id),
+          status,
+          rank: (rank ?? "Officer").toString(),
+          rank_abbr: (rank_abbr ?? getRankAbbrByName(rank ?? "Officer")).toString(),
+          last_seen: new Date().toISOString()
+        };
 
-      const res = await sb.from("officers").delete().eq("id", id);
-      if(res.error){
-        console.error("deleteOfficer error:", res.error);
-        toast("Fehler Löschen: " + (res.error.message || "unknown"));
-        officers = before;
+        if(existing){
+          const optimistic = { ...existing, ...payload, id: existing.id };
+          officers = officers.map(o => o.id === existing.id ? optimistic : o);
+          renderAll();
+
+          const res = await sb.from("officers").update(payload).eq("id", existing.id).select("*").single();
+          if(res.error) throw res.error;
+          upsertLocal(officers, res.data);
+          renderAll();
+          return res.data;
+        }else{
+          const res = await sb.from("officers").insert(payload).select("*").single();
+          if(res.error) throw res.error;
+          upsertLocal(officers, res.data);
+          renderAll();
+          return res.data;
+        }
+      }
+
+      async function createOrEditOfficer(){
+        if(perms.role === "officer"){ toast("Keine Berechtigung"); return; }
+
+        const name = inpName.value.trim();
+        const dienstnummer = inpDienstnr.value.trim();
+        const rankName = (selRank?.value || "Officer").toString();
+        const rankAbbr = getRankAbbrByName(rankName);
+
+        if(!name) return toast("Name ausfüllen");
+        if(!dienstnummer) return toast("Dienstnummer ausfüllen");
+
+        const hasSel = (selectedOfficerId != null);
+
+        if(hasSel){
+          if(!perms.canEditOfficer){ toast("Keine Berechtigung zum Bearbeiten"); return; }
+          const cur = officers.find(x => x.id === selectedOfficerId);
+          if(!cur){ clearOfficerSelection(); toast("Auswahl verloren"); return; }
+
+          await upsertOfficer({
+            name, dienstnummer,
+            patrol_id: cur.patrol_id,
+            status: cur.status,
+            rank: rankName,
+            rank_abbr: rankAbbr,
+            forceId: selectedOfficerId
+          });
+          toast("Beamter gespeichert");
+          clearOfficerSelection();
+          return;
+        }
+
+        if(!perms.canCreateOfficer){ toast("Keine Berechtigung zum Erstellen"); return; }
+        await upsertOfficer({ name, dienstnummer, patrol_id: null, status: "10-2", rank: rankName, rank_abbr: rankAbbr });
+        toast("Beamter gespeichert");
+      }
+
+      async function moveOfficerToPatrolAndMaybeStatus(officerId, toPatrolId, status){
+        const o = officers.find(x => x.id === officerId);
+        if(!o) return;
+
+        const before = { ...o };
+        const optimistic = {
+          ...o,
+          patrol_id: (toPatrolId == null ? null : Number(toPatrolId)),
+          status: status ?? o.status,
+          last_seen: new Date().toISOString()
+        };
+
+        officers = officers.map(x => x.id === officerId ? optimistic : x);
         renderAll();
-        return;
+
+        const res = await sb.from("officers")
+          .update({ patrol_id: optimistic.patrol_id, status: optimistic.status, last_seen: optimistic.last_seen })
+          .eq("id", officerId)
+          .select("*")
+          .single();
+
+        if(res.error){
+          console.error("moveOfficerToPatrol error:", res.error);
+          toast("Fehler Verschieben: " + (res.error.message || "unknown"));
+          officers = officers.map(x => x.id === officerId ? before : x);
+          renderAll();
+          return;
+        }
+
+        upsertLocal(officers, res.data);
+        renderAll();
+        toast(toPatrolId == null ? "In Pool" : "Auf Streife");
+        schedulePostMoveResync();
       }
-      toast("Officer gelöscht");
-      schedulePostMoveResync();
-    }
 
-    /***********************
-     * MODAL
-     ***********************/
-    let pendingDeleteId = null;
+      async function addPatrol(){
+        const maxSort = patrols.reduce((m,p)=> Math.max(m, Number(p.sort_index)||0), 0);
+        const res = await sb.from("patrols").insert({ name: "Neue Streife", funcode: "Auf Streife", sort_index: maxSort + 1 }).select("*").single();
+        if(res.error){
+          console.error("addPatrol error:", res.error);
+          toast("Fehler +Streife: " + (res.error.message || "unknown"));
+          return;
+        }
 
-    function openDeleteModal(officer){
-      if(!perms.canDeleteOfficer){ toast("Keine Berechtigung"); return; }
-      pendingDeleteId = officer?.id ?? null;
-      const name = officer?.name || "Officer";
-      const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
-      confirmText.innerHTML = `Du bist dabei, <b>${escapeHtml(name)}</b> (<span class="muted" style="opacity:.9;">${escapeHtml(dn)}</span>) zu löschen.`;
-      confirmOverlay.style.display = "flex";
-      confirmOverlay.setAttribute("aria-hidden", "false");
-      setTimeout(()=> confirmDelete.focus(), 50);
-    }
+        upsertLocal(patrols, res.data);
+        renderAll();
+        toast("Streife erstellt");
+        schedulePostMoveResync();
+      }
 
-    function closeDeleteModal(){
-      pendingDeleteId = null;
-      confirmOverlay.style.display = "none";
-      confirmOverlay.setAttribute("aria-hidden", "true");
-    }
+      async function updatePatrolStatus(id, status){
+        const safe = PATROL_STATUSES.includes(status) ? status : "Auf Streife";
+        const p = patrols.find(x => x.id === id);
+        if(!p) return;
 
-    confirmClose.addEventListener("click", closeDeleteModal);
-    confirmCancel.addEventListener("click", closeDeleteModal);
-    confirmOverlay.addEventListener("click", (e)=>{ if(e.target === confirmOverlay) closeDeleteModal(); });
-    document.addEventListener("keydown", (e)=>{ if(confirmOverlay.style.display === "flex" && e.key === "Escape") closeDeleteModal(); });
+        const before = { ...p };
+        patrols = patrols.map(x => x.id === id ? { ...x, funcode: safe } : x);
+        renderPatrolGrid();
 
-    confirmDelete.addEventListener("click", async ()=>{
-      if(pendingDeleteId == null) return closeDeleteModal();
-      const id = pendingDeleteId;
-      closeDeleteModal();
-      await deleteOfficer(id);
-      inpName.value = "";
-      inpDienstnr.value = "";
-      if(selRank) selRank.value = "Officer";
-      clearOfficerSelection();
-    });
+        const res = await sb.from("patrols").update({ funcode: safe }).eq("id", id).select("*").single();
+        if(res.error){
+          console.error("updatePatrolStatus error:", res.error);
+          toast("Fehler Status: " + (res.error.message || "unknown"));
+          patrols = patrols.map(x => x.id === id ? before : x);
+          renderPatrolGrid();
+          return;
+        }
+        upsertLocal(patrols, res.data);
+        renderPatrolGrid();
+        toast("Status gespeichert");
+        schedulePostMoveResync();
+      }
 
-    /***********************
-     * REALTIME (robust + Catch-up)
-     ***********************/
-    let rtChannels = [];
-    let rtResubTimer = null;
-    let rtBackoffMs = 800;
-    let rtNeedsResync = false;
+      async function deletePatrol(id){
+        const beforePatrols = patrols.slice();
+        const beforeOfficers = officers.slice();
 
-    function teardownRealtime(){
-      try{ rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} }); }catch{}
-      rtChannels = [];
-    }
-    function resetBackoff(){ rtBackoffMs = 800; }
-    function scheduleResubscribe(){
-      if(rtResubTimer) clearTimeout(rtResubTimer);
-      rtNeedsResync = true;
-      const wait = Math.min(rtBackoffMs, 8000);
-      rtResubTimer = setTimeout(() => {
+        patrols = patrols.filter(p => p.id !== id);
+        officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+        renderAll();
+
+        const res = await sb.from("patrols").delete().eq("id", id);
+        if(res.error){
+          console.error("deletePatrol error:", res.error);
+          toast("Fehler Löschen: " + (res.error.message || "unknown"));
+          patrols = beforePatrols;
+          officers = beforeOfficers;
+          renderAll();
+          return;
+        }
+        toast("Streife gelöscht");
+        schedulePostMoveResync();
+      }
+
+      async function saveNote(){
+        const content = txtNotes.value ?? "";
+        const res = await sb.from("dispatch_notes")
+          .update({ content, updated_at: new Date().toISOString() })
+          .eq("id", 1);
+
+        if(res.error){
+          console.error("saveNote error:", res.error);
+          noteStatus.textContent = "Fehler beim Speichern";
+          return;
+        }
+        noteStatus.textContent = `gespeichert • ${new Date().toLocaleTimeString()}`;
+      }
+
+      async function deleteOfficer(id){
+        if(!perms.canDeleteOfficer){ toast("Keine Berechtigung zum Löschen"); return; }
+
+        const before = officers.slice();
+        officers = officers.filter(o => o.id !== id);
+        if(selectedOfficerId === id) selectedOfficerId = null;
+        renderAll();
+
+        const res = await sb.from("officers").delete().eq("id", id);
+        if(res.error){
+          console.error("deleteOfficer error:", res.error);
+          toast("Fehler Löschen: " + (res.error.message || "unknown"));
+          officers = before;
+          renderAll();
+          return;
+        }
+        toast("Officer gelöscht");
+        schedulePostMoveResync();
+      }
+
+      /***********************
+       * MODAL (Delete)
+       ***********************/
+      let pendingDeleteId = null;
+
+      function openDeleteModal(officer){
+        if(!perms.canDeleteOfficer){ toast("Keine Berechtigung"); return; }
+        pendingDeleteId = officer?.id ?? null;
+        const name = officer?.name || "Officer";
+        const dn = officer?.dienstnummer ? `DN ${officer.dienstnummer}` : "DN —";
+        confirmText.innerHTML = `Du bist dabei, <b>${escapeHtml(name)}</b> (<span class="muted" style="opacity:.9;">${escapeHtml(dn)}</span>) zu löschen.`;
+        confirmOverlay.style.display = "flex";
+        confirmOverlay.setAttribute("aria-hidden", "false");
+        setTimeout(()=> confirmDelete.focus(), 50);
+      }
+
+      function closeDeleteModal(){
+        pendingDeleteId = null;
+        confirmOverlay.style.display = "none";
+        confirmOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      confirmClose.addEventListener("click", closeDeleteModal);
+      confirmCancel.addEventListener("click", closeDeleteModal);
+      confirmOverlay.addEventListener("click", (e)=>{ if(e.target === confirmOverlay) closeDeleteModal(); });
+      document.addEventListener("keydown", (e)=>{ if(confirmOverlay.style.display === "flex" && e.key === "Escape") closeDeleteModal(); });
+
+      confirmDelete.addEventListener("click", async ()=>{
+        if(pendingDeleteId == null) return closeDeleteModal();
+        const id = pendingDeleteId;
+        closeDeleteModal();
+        await deleteOfficer(id);
+        inpName.value = "";
+        inpDienstnr.value = "";
+        if(selRank) selRank.value = "Officer";
+        clearOfficerSelection();
+      });
+
+      /***********************
+       * REALTIME
+       ***********************/
+      let rtChannels = [];
+      let rtResubTimer = null;
+      let rtBackoffMs = 800;
+      let rtNeedsResync = false;
+
+      function teardownRealtime(){
+        try{ rtChannels.forEach(ch => { try{ sb.removeChannel(ch); }catch{} }); }catch{}
+        rtChannels = [];
+      }
+      function resetBackoff(){ rtBackoffMs = 800; }
+      function scheduleResubscribe(){
+        if(rtResubTimer) clearTimeout(rtResubTimer);
+        rtNeedsResync = true;
+        const wait = Math.min(rtBackoffMs, 8000);
+        rtResubTimer = setTimeout(() => {
+          teardownRealtime();
+          setupRealtime();
+        }, wait);
+        rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
+      }
+
+      function patchPatrolCard(incoming, before){
+        const id = incoming?.id;
+        const card = patrolGrid.querySelector(`.card[data-patrol-card="${id}"]`);
+        if(!card) return false;
+
+        const nameChanged = before && (before.name !== incoming.name);
+        const statusChanged = before && (before.funcode !== incoming.funcode);
+
+        const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
+        if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
+          nameInp.value = incoming.name || "Streife";
+        }
+
+        if(statusChanged){
+          const sel = card.querySelector(`select[data-act="patrolStatus"][data-id="${id}"]`);
+          if(sel && document.activeElement !== sel){
+            sel.value = incoming.funcode || "Auf Streife";
+          }
+          const pill = card.querySelector(".cardBody .pill");
+          if(pill){
+            const s = incoming.funcode || "Auf Streife";
+            pill.innerHTML = `<b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(s))}`;
+          }
+        }
+        return true;
+      }
+
+      function setupRealtime(){
+        try{ sb.realtime.connect(); }catch{}
         teardownRealtime();
-        setupRealtime();
-      }, wait);
-      rtBackoffMs = Math.min(rtBackoffMs * 1.6, 8000);
-    }
 
-    function patchPatrolCard(incoming, before){
-      const id = incoming?.id;
-      const card = patrolGrid.querySelector(`.card[data-patrol-card="${id}"]`);
-      if(!card) return false;
-
-      const nameChanged = before && (before.name !== incoming.name);
-      const statusChanged = before && (before.funcode !== incoming.funcode);
-
-      const nameInp = card.querySelector(`input[data-act="renamePatrol"][data-id="${id}"]`);
-      if(nameChanged && nameInp && document.activeElement !== nameInp && editingPatrolNameId !== id){
-        nameInp.value = incoming.name || "Streife";
-      }
-
-      if(statusChanged){
-        const sel = card.querySelector(`select[data-act="patrolStatus"][data-id="${id}"]`);
-        if(sel && document.activeElement !== sel){
-          sel.value = incoming.funcode || "Auf Streife";
-        }
-        const pill = card.querySelector(".cardBody .pill");
-        if(pill){
-          const s = incoming.funcode || "Auf Streife";
-          pill.innerHTML = `<b style="opacity:.9;">Status:</b> ${escapeHtml(statusLabel(s))}`;
-        }
-      }
-      return true;
-    }
-
-    function setupRealtime(){
-      try{ sb.realtime.connect(); }catch{}
-      teardownRealtime();
-
-      const chOfficers = sb.channel("rt-officers")
-        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
-          handleRealtimeSafely(() => {
-            if(payload.eventType === "DELETE"){
-              const id = payload.old?.id;
-              officers = officers.filter(o => o.id !== id);
-              if(selectedOfficerId === id) selectedOfficerId = null;
-            }else{
-              const row = payload.new || {};
-              const patched = {
-                ...row,
-                rank: row.rank || "Officer",
-                rank_abbr: row.rank_abbr || getRankAbbrByName(row.rank || "Officer")
-              };
-              upsertLocal(officers, patched);
+        const chOfficers = sb.channel("rt-officers")
+          .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, (payload) => {
+            handleRealtimeSafely(() => {
+              if(payload.eventType === "DELETE"){
+                const id = payload.old?.id;
+                officers = officers.filter(o => o.id !== id);
+                if(selectedOfficerId === id) selectedOfficerId = null;
+              }else{
+                const row = payload.new || {};
+                const patched = {
+                  ...row,
+                  rank: row.rank || "Officer",
+                  rank_abbr: row.rank_abbr || getRankAbbrByName(row.rank || "Officer")
+                };
+                upsertLocal(officers, patched);
+              }
+            });
+          })
+          .subscribe(async (status) => {
+            if(status === "SUBSCRIBED"){
+              resetBackoff();
+              await syncRealtimeAuth();
+              if(rtNeedsResync){
+                rtNeedsResync = false;
+                try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              }
             }
+            if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
           });
-        })
-        .subscribe(async (status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            await syncRealtimeAuth();
-            if(rtNeedsResync){
-              rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+
+        const chPatrols = sb.channel("rt-patrols")
+          .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
+            handleRealtimeSafely(() => {
+              if(payload.eventType === "DELETE"){
+                const id = payload.old?.id;
+                patrols = patrols.filter(p => p.id !== id);
+                officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
+                return;
+              }
+
+              if(payload.eventType === "INSERT"){
+                upsertLocal(patrols, payload.new);
+                return;
+              }
+
+              const incoming = payload.new;
+              const id = incoming?.id;
+              const existing = patrols.find(p => p.id === id);
+              const before = existing ? { ...existing } : null;
+
+              upsertLocal(patrols, incoming);
+
+              const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
+              if(sortChanged){
+                return;
+              }
+
+              patchPatrolCard(incoming, before);
+            });
+          })
+          .subscribe(async (status) => {
+            if(status === "SUBSCRIBED"){
+              resetBackoff();
+              await syncRealtimeAuth();
+              if(rtNeedsResync){
+                rtNeedsResync = false;
+                try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              }
             }
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
-        });
-
-      const chPatrols = sb.channel("rt-patrols")
-        .on("postgres_changes", { event:"*", schema:"public", table:"patrols" }, (payload) => {
-          handleRealtimeSafely(() => {
-            if(payload.eventType === "DELETE"){
-              const id = payload.old?.id;
-              patrols = patrols.filter(p => p.id !== id);
-              officers = officers.map(o => (o.patrol_id === id ? { ...o, patrol_id: null } : o));
-              return;
-            }
-
-            if(payload.eventType === "INSERT"){
-              upsertLocal(patrols, payload.new);
-              return;
-            }
-
-            const incoming = payload.new;
-            const id = incoming?.id;
-            const existing = patrols.find(p => p.id === id);
-            const before = existing ? { ...existing } : null;
-
-            upsertLocal(patrols, incoming);
-
-            const sortChanged = before && (Number(before.sort_index) !== Number(incoming.sort_index));
-            if(sortChanged){
-              return;
-            }
-
-            patchPatrolCard(incoming, before);
+            if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
           });
-        })
-        .subscribe(async (status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            await syncRealtimeAuth();
-            if(rtNeedsResync){
-              rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
-            }
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
-        });
 
-      const chNotes = sb.channel("rt-notes")
-        .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
-          handleRealtimeSafely(() => {
-            const next = payload.new?.content ?? "";
-            if (document.activeElement !== txtNotes) {
-              txtNotes.value = next;
-              noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+        const chNotes = sb.channel("rt-notes")
+          .on("postgres_changes", { event:"UPDATE", schema:"public", table:"dispatch_notes" }, (payload) => {
+            handleRealtimeSafely(() => {
+              const next = payload.new?.content ?? "";
+              if (document.activeElement !== txtNotes) {
+                txtNotes.value = next;
+                noteStatus.textContent = `aktualisiert • ${new Date().toLocaleTimeString()}`;
+              }
+            });
+          })
+          .subscribe(async (status) => {
+            if(status === "SUBSCRIBED"){
+              resetBackoff();
+              await syncRealtimeAuth();
+              if(rtNeedsResync){
+                rtNeedsResync = false;
+                try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
+              }
             }
+            if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
           });
-        })
-        .subscribe(async (status) => {
-          if(status === "SUBSCRIBED"){
-            resetBackoff();
-            await syncRealtimeAuth();
-            if(rtNeedsResync){
-              rtNeedsResync = false;
-              try{ await loadAll(); }catch(e){ console.error("resync loadAll failed:", e); }
-            }
-          }
-          if(status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){ scheduleResubscribe(); }
-        });
 
-      rtChannels.push(chOfficers, chPatrols, chNotes);
-    }
-
-    /***********************
-     * POST-LOGIN INIT
-     ***********************/
-    async function postLoginInit(){
-      const { data } = await sb.auth.getSession();
-      const session = data?.session;
-      if(!session) return;
-
-      const email = (session.user?.email || "").toLowerCase();
-      setRoleFromEmail(email);
-
-      await syncRealtimeAuth();
-      await setupPresence();
-      setupRealtime();
-      await loadAll();
-
-      scheduleRebuildSortables();
-    }
-
-    /***********************
-     * LOGIN / LOGOUT
-     ***********************/
-    async function doLogin(){
-      const name = normalizeSpaces(inpLoginName.value);
-      const pw = (inpLoginPw.value ?? "").toString();
-      loginErr.style.display = "none";
-      loginErr.textContent = "";
-
-      if(!name) return showLogin("Bitte Namen eingeben.");
-      if(!pw) return showLogin("Bitte Passwort eingeben.");
-
-      const email = emailFromName(name);
-
-      try{
-        btnLogin.disabled = true;
-        btnLogin.textContent = "Login…";
-
-        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-        if(error) throw error;
-
-        toast("Eingeloggt");
-      }catch(e){
-        console.error(e);
-        showLogin(friendlyAuthError(e));
-      }finally{
-        btnLogin.disabled = false;
-        btnLogin.textContent = "Login";
+        rtChannels.push(chOfficers, chPatrols, chNotes);
       }
-    }
 
-    async function doLogout(){
-      showLogin("");
-      toast("Ausgeloggt");
-
-      try { stopPresence().catch(()=>{}); } catch {}
-      try { teardownRealtime(); } catch {}
-      try { destroyAllSortables(); } catch {}
-      try { clearOfficerSelection(); } catch {}
-      try { setRoleFromEmail(""); } catch {}
-
-      try{
-        const { error } = await sb.auth.signOut();
-        if(error) console.error("signOut error:", error);
-      }catch(e){
-        console.error("signOut throw:", e);
-      }
-    }
-
-    /***********************
-     * Events
-     ***********************/
-    inpSearch.addEventListener("input", renderCreatedPool);
-
-    btnRemember.addEventListener("click", ()=>{
-      inpName.value = "";
-      inpDienstnr.value = "";
-      if(selRank) selRank.value = "Officer";
-      meHint.textContent = "Eingaben gelöscht";
-      setTimeout(()=> meHint.textContent = "", 1500);
-      clearOfficerSelection();
-    });
-
-    btnDeleteOfficer.addEventListener("click", ()=>{
-      if(selectedOfficerId == null) return;
-      const o = officers.find(x => x.id === selectedOfficerId);
-      if(!o) return;
-      openDeleteModal(o);
-    });
-
-    txtNotes.addEventListener("input", ()=>{
-      noteStatus.textContent = "tippt…";
-      if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
-      noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
-    });
-
-    inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
-    inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
-    btnLogin.addEventListener("click", doLogin);
-
-    document.addEventListener("click", (e) => {
-      const logout = e.target.closest("#btnLogout");
-      if(logout){ e.preventDefault(); doLogout(); return; }
-
-      const add = e.target.closest("#btnAddPatrol");
-      if(add){ e.preventDefault(); addPatrol(); return; }
-
-      const save = e.target.closest("#btnCreateOfficer");
-      if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
-    }, true);
-
-    /***********************
-     * ✅ TAB/FOKUS FIX + PERSIST/REALTIME CATCHUP (mit Sperre)
-     ***********************/
-    let returnFromTabRunning = false;
-
-    async function onReturnFromTab(){
-      if(returnFromTabRunning) return;
-      returnFromTabRunning = true;
-
-      try{
+      /***********************
+       * POST-LOGIN INIT
+       ***********************/
+      async function postLoginInit(){
         const { data } = await sb.auth.getSession();
         const session = data?.session;
         if(!session) return;
 
-        await syncRealtimeAuth();
-        try{ sb.realtime.connect(); }catch{}
+        const email = (session.user?.email || "").toLowerCase();
+        setRoleFromEmail(email);
 
-        try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
+        await syncRealtimeAuth();
+        await setupPresence();
+        setupRealtime();
+        await loadAll();
 
         scheduleRebuildSortables();
-      }catch(e){
-        console.error("onReturnFromTab error:", e);
-      }finally{
-        returnFromTabRunning = false;
       }
-    }
 
-    window.addEventListener("focus", () => { onReturnFromTab(); });
+      /***********************
+       * LOGIN / LOGOUT
+       ***********************/
+      async function doLogin(){
+        const name = normalizeSpaces(inpLoginName.value);
+        const pw = (inpLoginPw.value ?? "").toString();
+        loginErr.style.display = "none";
+        loginErr.textContent = "";
 
-    document.addEventListener("visibilitychange", () => {
-      if(!document.hidden){
-        onReturnFromTab();
-      }else{
-        isDragging = false;
-        pendingRender = false;
-        rtQueue = [];
-      }
-    });
+        if(!name) return showLogin("Bitte Namen eingeben.");
+        if(!pw) return showLogin("Bitte Passwort eingeben.");
 
-    window.addEventListener("pageshow", () => { onReturnFromTab(); });
+        const email = emailFromName(name);
 
-    /***********************
-     * ✅ Single-init Guard
-     ***********************/
-    let lastInitUserId = null;
-    let loginInitRunning = false;
+        try{
+          btnLogin.disabled = true;
+          btnLogin.textContent = "Login…";
 
-    /***********************
-     * INIT
-     ***********************/
-    (async function init(){
-      applyUi();
-      applyCreateCollapsed();
-      renderFuncodes();
-      renderRankDropdown();
-      setLeitstelleIndicator(false);
-      setRoleFromEmail("");
+          const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+          if(error) throw error;
 
-      try{
-        const { data } = await sb.auth.getSession();
-        const session = data?.session;
-
-        if(session){
-          hideLogin();
-        }else{
-          showLogin("");
+          toast("Eingeloggt");
+        }catch(e){
+          console.error(e);
+          showLogin(friendlyAuthError(e));
+        }finally{
+          btnLogin.disabled = false;
+          btnLogin.textContent = "Login";
         }
-      }catch(e){
-        console.error(e);
-        showLogin("Auth-Fehler.");
       }
 
-      sb.auth.onAuthStateChange(async (evt, session) => {
-        if(session){
-          const uid = session.user?.id || null;
-          if(loginInitRunning) return;
-          if(uid && uid === lastInitUserId) return;
+      async function doLogout(){
+        showLogin("");
+        toast("Ausgeloggt");
 
-          loginInitRunning = true;
-          lastInitUserId = uid;
+        try { stopPresence().catch(()=>{}); } catch {}
+        try { teardownRealtime(); } catch {}
+        try { destroyAllSortables(); } catch {}
+        try { clearOfficerSelection(); } catch {}
+        try { setRoleFromEmail(""); } catch {}
 
-          try{
-            await syncRealtimeAuth();
-            hideLogin();
-            await postLoginInit();
-          }catch(e){
-            console.error("postLoginInit error:", e);
-            showLogin("Init-Fehler.");
-          }finally{
-            loginInitRunning = false;
-          }
+        try{
+          const { error } = await sb.auth.signOut();
+          if(error) console.error("signOut error:", error);
+        }catch(e){
+          console.error("signOut throw:", e);
+        }
+      }
+
+      /***********************
+       * Events
+       ***********************/
+      inpSearch.addEventListener("input", renderCreatedPool);
+
+      btnRemember.addEventListener("click", ()=>{
+        inpName.value = "";
+        inpDienstnr.value = "";
+        if(selRank) selRank.value = "Officer";
+        meHint.textContent = "Eingaben gelöscht";
+        setTimeout(()=> meHint.textContent = "", 1500);
+        clearOfficerSelection();
+      });
+
+      btnDeleteOfficer.addEventListener("click", ()=>{
+        if(selectedOfficerId == null) return;
+        const o = officers.find(x => x.id === selectedOfficerId);
+        if(!o) return;
+        openDeleteModal(o);
+      });
+
+      txtNotes.addEventListener("input", ()=>{
+        noteStatus.textContent = "tippt…";
+        if(noteAutosaveTimer) clearTimeout(noteAutosaveTimer);
+        noteAutosaveTimer = setTimeout(async ()=>{ await saveNote(); }, 900);
+      });
+
+      inpLoginName.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+      inpLoginPw.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doLogin(); }});
+      btnLogin.addEventListener("click", doLogin);
+
+      btnLogout.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+
+      document.addEventListener("click", (e) => {
+        const add = e.target.closest("#btnAddPatrol");
+        if(add){ e.preventDefault(); addPatrol(); return; }
+
+        const save = e.target.closest("#btnCreateOfficer");
+        if(save){ e.preventDefault(); createOrEditOfficer().catch(err=>{console.error(err); toast("Fehler Speichern");}); return; }
+      }, true);
+
+      /***********************
+       * TAB/FOKUS FIX
+       ***********************/
+      let returnFromTabRunning = false;
+
+      async function onReturnFromTab(){
+        if(returnFromTabRunning) return;
+        returnFromTabRunning = true;
+
+        try{
+          const { data } = await sb.auth.getSession();
+          const session = data?.session;
+          if(!session) return;
+
+          await syncRealtimeAuth();
+          try{ sb.realtime.connect(); }catch{}
+
+          try{ await loadAll(); }catch(e){ console.warn("loadAll after tab failed:", e); }
+
+          scheduleRebuildSortables();
+        }catch(e){
+          console.error("onReturnFromTab error:", e);
+        }finally{
+          returnFromTabRunning = false;
+        }
+      }
+
+      window.addEventListener("focus", () => { onReturnFromTab(); });
+
+      document.addEventListener("visibilitychange", () => {
+        if(!document.hidden){
+          onReturnFromTab();
         }else{
-          lastInitUserId = null;
-
-          await stopPresence();
-          teardownRealtime();
-          destroyAllSortables();
-          clearOfficerSelection();
-          setRoleFromEmail("");
-          showLogin("");
+          isDragging = false;
+          pendingRender = false;
+          rtQueue = [];
         }
       });
 
-      window.addEventListener("online", () => { onReturnFromTab(); });
+      window.addEventListener("pageshow", () => { onReturnFromTab(); });
+
+      /***********************
+       * INIT
+       ***********************/
+      let lastInitUserId = null;
+      let loginInitRunning = false;
+
+      (async function init(){
+        applyUi();
+        applyCreateCollapsed();
+        renderFuncodes();
+        renderRankDropdown();
+        setLeitstelleIndicator(false);
+        setRoleFromEmail("");
+
+        try{
+          const { data } = await sb.auth.getSession();
+          const session = data?.session;
+
+          if(session){
+            hideLogin();
+          }else{
+            showLogin("");
+          }
+        }catch(e){
+          console.error(e);
+          showLogin("Auth-Fehler.");
+        }
+
+        sb.auth.onAuthStateChange(async (_evt, session) => {
+          if(session){
+            const uid = session.user?.id || null;
+            if(loginInitRunning) return;
+            if(uid && uid === lastInitUserId) return;
+
+            loginInitRunning = true;
+            lastInitUserId = uid;
+
+            try{
+              await syncRealtimeAuth();
+              hideLogin();
+              await postLoginInit();
+            }catch(e){
+              console.error("postLoginInit error:", e);
+              showLogin("Init-Fehler.");
+            }finally{
+              loginInitRunning = false;
+            }
+          }else{
+            lastInitUserId = null;
+
+            await stopPresence();
+            teardownRealtime();
+            destroyAllSortables();
+            clearOfficerSelection();
+            setRoleFromEmail("");
+            showLogin("");
+          }
+        });
+
+        window.addEventListener("online", () => { onReturnFromTab(); });
+      })();
     })();
   </script>
 </body>
