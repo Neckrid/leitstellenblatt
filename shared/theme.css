@@ -817,3 +817,77 @@ textarea{ resize:vertical; min-height:120px; }
   .app{ height:auto; grid-template-columns: 1fr; }
   /* Dock buttons usually hidden in mobile by page; keep safe */
 }
+/* ============================= */
+/* TEXT-FIX: Overflow / Wrapping */
+/* (Funcodes + Pool Header)      */
+/* ============================= */
+
+/* Wichtig: Flex-Children dürfen schrumpfen */
+.brand,
+.titleWrap,
+.topHeaderLeft,
+.topHeaderText,
+.panelHeader,
+.cardHeader,
+.row{
+  min-width: 0;
+}
+
+/* Panel/Box Titel sauber mit Ellipsis statt Überlaufen */
+.title,
+.subtitle,
+.topHeaderTitle,
+.topHeaderSub{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========= INFO BOX: Funcodes ========= */
+/* Zeilen korrekt aufteilen: Code links fix, Text rechts darf umbrechen */
+.codeRow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-start;  /* statt space-between -> verhindert komische Abstände */
+  gap:12px;
+  width:100%;
+  min-width:0;
+}
+
+.codeRow b{
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.codeRow span{
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;         /* darf umbrechen */
+  overflow-wrap: anywhere;     /* bricht auch lange Wörter sauber */
+  word-break: break-word;
+}
+
+/* ========= Beamten Pool Header (Label + Pill) ========= */
+/* Label soll nicht rauslaufen, sondern kürzen */
+.field .row > label{
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pill soll nicht schrumpfen */
+.field .row .pill{
+  flex: 0 0 auto;
+}
+
+/* Optional: auf sehr schmalen Screens darf das Pool-Label auch umbrechen */
+@media (max-width: 420px){
+  .field .row > label{
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
