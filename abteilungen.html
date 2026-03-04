@@ -12,15 +12,9 @@
   <link rel="stylesheet" href="shared/theme.css"/>
 
   <style>
-    /* =========================================================
-       VERWALTUNG – PAGE CSS ONLY
-       (Theme.css ist Master für Look & Feel)
-       ========================================================= */
-
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
 
-    /* App Wrapper unter globalem Header */
     .adminApp{
       height:100%;
       display:grid;
@@ -34,18 +28,14 @@
     }
     body.poolClosed .adminApp{ grid-template-columns: 0px 1fr; }
 
-    /* Panels: benutzen Theme .panel/.panelHeader/.content etc. */
     #poolPanel{ min-width:0; transition: opacity .22s ease; }
     body.poolClosed #poolPanel{ opacity:0; pointer-events:none; }
 
-    /* Content heights */
     #poolPanel .content,
     #deptPanel .content{ height:100%; }
 
-    /* Dept content ohne padding, damit grid sauber scrollt */
     #deptPanel .content{ padding:0; }
 
-    /* Horizontaler Dept-Scroll: nebeneinander, NICHT untereinander */
     .deptGrid{
       height:100%;
       display:flex;
@@ -64,7 +54,6 @@
       min-height:140px;
       position:relative;
     }
-    /* Dept Card nutzt Theme .card Look */
     .dept.card{ border-radius:18px; }
 
     .deptHead{
@@ -88,7 +77,6 @@
 
     .deptBody{ padding:12px; overflow:auto; min-height:0; flex:1 1 auto; }
 
-    /* Officer cards in Verwaltung (Theme-kompatibel) */
     .officer{
       border: 1px solid rgba(255,255,255,0.10);
       background:
@@ -164,7 +152,6 @@
     .tag.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
     .tag.deputy{ border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
 
-    /* Hover remove membership */
     .memRemoveWrap{
       opacity:0;
       pointer-events:none;
@@ -190,10 +177,8 @@
       border-color: rgba(255,60,90,0.40);
     }
 
-    /* Pool search spacing */
     .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
 
-    /* ✅ Pool Toggle (wandert zwischen Slots) */
     .poolToggleBtn{
       width: 44px;
       height: 36px;
@@ -222,46 +207,25 @@
       transform: translateY(-1px);
     }
 
-    /* Slot oben links (wie Leitstellenblatt) */
     #poolToggleSlotTopLeft{
       position: fixed;
       left: 14px;
       top: calc(var(--appTopPad) + 12px);
       z-index: 999;
-      display:none; /* nur wenn poolClosed */
+      display:none;
     }
     body.poolClosed #poolToggleSlotTopLeft{ display:block; }
 
-    /* Slot im Pool Header (nur wenn offen) */
     body.poolClosed #poolToggleSlotInPool{ display:none; }
     #poolToggleSlotInPool{ display:flex; }
 
-    /* Wenn Pool eingeklappt: Header Text im DeptPanel nach rechts, damit Toggle nicht überdeckt */
     body.poolClosed #deptPanel .panelHeader{
       padding-left: 84px;
     }
 
-    /* Besser sichtbar: “Zur Leitstelle” */
     #btnToLeitstelle{
       border-color: rgba(0,255,195,0.25);
       box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
-    }
-
-    /* ✅ Login soll alles “wegblenden” wie im Leitstellenblatt */
-    body.loginActive .topHeader,
-    body.loginActive .adminApp,
-    body.loginActive #poolToggleSlotTopLeft,
-    body.loginActive #poolToggleBtn{
-      display:none !important;
-    }
-
-    /* Overlay wirklich “voll zu” */
-    #loginOverlay{
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: rgba(0,0,0,0.88);
-      backdrop-filter: blur(14px);
     }
   </style>
 </head>
@@ -287,11 +251,9 @@
     </div>
   </header>
 
-  <!-- Slot oben links (nur wenn Pool eingeklappt ist) -->
   <div id="poolToggleSlotTopLeft"></div>
 
   <div class="adminApp">
-    <!-- Pool -->
     <section class="panel" id="poolPanel">
       <div class="panelHeader">
         <div class="brand">
@@ -315,7 +277,6 @@
       </div>
     </section>
 
-    <!-- Departments -->
     <section class="panel" id="deptPanel">
       <div class="panelHeader">
         <div class="brand" style="min-width:0;">
@@ -337,42 +298,10 @@
     </section>
   </div>
 
-  <!-- Der EINZIGE Toggle-Button (wandert in Slots) -->
   <div class="poolToggleBtn" id="poolToggleBtn" title="Officer Pool ein-/ausblenden" style="display:none;">
     <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
   </div>
 
-  <!-- Login (Theme) -->
-  <div class="loginOverlay" id="loginOverlay" style="display:none;">
-    <div class="loginCard">
-      <div class="loginHeader">
-        <div class="brand" style="display:flex; gap:10px; align-items:center; min-width:0;">
-          <div class="badge">LSPD</div>
-          <div class="loginTitleWrap">
-            <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Bitte anmelden</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="loginBody">
-        <label>Name</label>
-        <input id="loginName" placeholder="Name (z.B. admin)" autocomplete="username"/>
-        <div style="height:10px"></div>
-
-        <label>Passwort</label>
-        <input id="loginPass" type="password" placeholder="Passwort" autocomplete="current-password"/>
-        <div class="loginErr" id="loginMsg">—</div>
-
-        <div style="height:12px"></div>
-        <div class="row">
-          <button class="btn btnPrimary" id="btnLogin" style="width:100%;" type="button">Einloggen</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Create Department (Theme) -->
   <div class="modalOverlay" id="modalCreateDept" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true">
       <div class="modalHeader">
@@ -390,7 +319,6 @@
     </div>
   </div>
 
-  <!-- Modal Delete Department (Theme) -->
   <div class="modalOverlay" id="modalDeleteDept" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true">
       <div class="modalHeader">
@@ -412,26 +340,19 @@
 
   <script>
   (function(){
-    /***********************************************************************
-     * WICHTIG: dieselben Werte wie im Leitstellenblatt
-     ***********************************************************************/
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
-    // ✅ Stabilere Client-Config (Multi-PC/Token Refresh/Tab stable)
+    // ✅ WICHTIG: kein custom storageKey -> teilt Session mit Leitstellenblatt (Default)
     const sb = supabase.createClient(SB_URL, SB_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
-        storageKey: "lspd-auth"
+        detectSessionInUrl: false
       },
-      realtime: {
-        params: { eventsPerSecond: 10 }
-      }
+      realtime: { params: { eventsPerSecond: 10 } }
     });
 
-    // UI
     const roleDot = document.getElementById("roleDot");
     const roleText = document.getElementById("roleText");
     const btnLogout = document.getElementById("btnLogout");
@@ -450,12 +371,6 @@
     const deptCount = document.getElementById("deptCount");
     const btnCreateDeptTop = document.getElementById("btnCreateDeptTop");
 
-    const loginOverlay = document.getElementById("loginOverlay");
-    const btnLogin = document.getElementById("btnLogin");
-    const loginName = document.getElementById("loginName");
-    const loginPass = document.getElementById("loginPass");
-    const loginMsg = document.getElementById("loginMsg");
-
     const modalCreateDept = document.getElementById("modalCreateDept");
     const closeCreateDept = document.getElementById("closeCreateDept");
     const cancelCreateDept = document.getElementById("cancelCreateDept");
@@ -468,26 +383,23 @@
     const confirmDeleteDept = document.getElementById("confirmDeleteDept");
     const delDeptName = document.getElementById("delDeptName");
 
-    // State
     let sessionUser = null;
     let userRole = "none";
 
     let departments = [];
     let officers = [];
-    let memberships = []; // department_members
-
+    let memberships = [];
     let rtChannel = null;
     let isRealtimeReady = false;
 
     let pendingDeleteDeptIdStr = null;
 
-    // ID typing
     let deptIdIsNumeric = null;
     let officerIdIsNumeric = null;
 
-    // Load-control (verhindert “Realtime-Sturm” + kaputte Sortables)
     let loadInFlight = false;
     let loadQueued = false;
+    let loadTimer = null;
 
     const escapeHtml = (s="") => String(s)
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -514,34 +426,6 @@
       return officerIdIsNumeric ? Number(v) : String(v);
     }
 
-    function isAdmin(){ return userRole === "admin"; }
-
-    function setRoleUI(){
-      btnLogout.style.display = sessionUser ? "inline-flex" : "none";
-      if(!sessionUser){
-        roleText.textContent = "Nicht angemeldet";
-        roleDot.className = "dot warn";
-        btnCreateDeptTop.style.display = "none";
-        return;
-      }
-
-      const label =
-        (userRole === "admin") ? "Admin" :
-        (userRole === "leitstelle") ? "Leitstelle" :
-        (userRole === "officer") ? "Officer" : "User";
-
-      roleText.textContent = label;
-      roleDot.className = (userRole === "admin") ? "dot on" : "dot";
-      btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
-    }
-
-    async function detectRole(user){
-      const email = (user?.email || "").toLowerCase();
-      if(email === "admin@gta.local") return "admin";
-      if(email === "leitstelle@gta.local") return "leitstelle";
-      return "officer";
-    }
-
     function niceError(err){
       if(!err) return "Unbekannter Fehler";
       const msg = err.message || String(err);
@@ -552,7 +436,32 @@
       return msg;
     }
 
-    // Fallback rank map (nur falls rank_abbr leer)
+    async function detectRole(user){
+      const email = (user?.email || "").toLowerCase();
+      if(email === "admin@gta.local") return "admin";
+      if(email === "leitstelle@gta.local") return "leitstelle";
+      return "officer";
+    }
+    function isAdmin(){ return userRole === "admin"; }
+
+    function setRoleUI(){
+      btnLogout.style.display = sessionUser ? "inline-flex" : "none";
+      if(!sessionUser){
+        roleText.textContent = "Nicht angemeldet";
+        roleDot.className = "dot warn";
+        btnCreateDeptTop.style.display = "none";
+        return;
+      }
+      const label =
+        (userRole === "admin") ? "Admin" :
+        (userRole === "leitstelle") ? "Leitstelle" :
+        (userRole === "officer") ? "Officer" : "User";
+
+      roleText.textContent = label;
+      roleDot.className = (userRole === "admin") ? "dot on" : "dot";
+      btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
+    }
+
     const RANK_MAP = new Map([
       ["chief of police","CoP"],
       ["deputy chief","DC"],
@@ -580,15 +489,12 @@
     function getRankAbbrev(o){
       const fromTable = (o.rank_abbr ?? "").toString().trim();
       if(fromTable) return fromTable;
-
       const direct = (o.rank_short ?? o.rank_abbrev ?? o.rank_code ?? "");
       if(direct) return String(direct);
-
       const n = String(o.rank_name ?? o.rank ?? "").trim();
       if(!n) return "";
       return RANK_MAP.get(n.toLowerCase()) || "";
     }
-
     function parseDN(v){
       const s = String(v ?? "").trim();
       const n = parseInt(s.replace(/[^\d]/g,""), 10);
@@ -597,7 +503,6 @@
 
     function officerCardHTML(o, opts={}){
       const { inDept=false, deptIdStr=null, isLeader=false, isDeputy=false } = opts;
-
       const name = escapeHtml(o.name || "Unbekannt");
       const dn = escapeHtml(String(getDienstnummer(o) || ""));
       const rankAbbrev = escapeHtml(String(getRankAbbrev(o) || ""));
@@ -716,12 +621,8 @@
           <div class="deptBody">
             ${isAdmin() ? `
               <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-direction:column;">
-                <select data-action="leader-select" title="Leitung festlegen" style="width:100%;">
-                  ${leaderOptions}
-                </select>
-                <select data-action="deputy-select" title="Stv. Leitung festlegen" style="width:100%;">
-                  ${deputyOptions}
-                </select>
+                <select data-action="leader-select" title="Leitung festlegen" style="width:100%;">${leaderOptions}</select>
+                <select data-action="deputy-select" title="Stv. Leitung festlegen" style="width:100%;">${deputyOptions}</select>
               </div>
             ` : ``}
 
@@ -763,7 +664,6 @@
       deptGrid.innerHTML = sortedDepts.map(d => deptHTML(d)).join("");
       deptCount.textContent = String(sortedDepts.length);
 
-      // Hover delete wrapper sichtbar nur on hover
       deptGrid.querySelectorAll(".dept").forEach(el=>{
         const w = el.querySelector(".delWrap");
         if(!w) return;
@@ -785,7 +685,6 @@
       el.style.display = "none";
       el.setAttribute("aria-hidden","true");
     }
-    function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
 
     function wireDeptActions(){
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
@@ -795,7 +694,6 @@
           const deptIdStr = deptEl?.dataset?.deptId;
           const dept = departments.find(x => idToStr(x.id) === idToStr(deptIdStr));
           if(!deptIdStr || !dept) return;
-
           pendingDeleteDeptIdStr = idToStr(deptIdStr);
           delDeptName.textContent = dept.name || "—";
           openModal(modalDeleteDept);
@@ -808,11 +706,9 @@
           const deptEl = e.currentTarget.closest(".dept");
           const deptIdStr = deptEl?.dataset?.deptId;
           if(!deptIdStr) return;
-
           const deptId = castDeptId(deptIdStr);
           const leaderIdStr = e.currentTarget.value || "";
           const leaderId = leaderIdStr ? castOfficerId(leaderIdStr) : null;
-
           const { error } = await sb.from("departments").update({ leader_officer_id: leaderId }).eq("id", deptId);
           if(error) alert("Leitung setzen fehlgeschlagen: " + niceError(error));
         });
@@ -824,11 +720,9 @@
           const deptEl = e.currentTarget.closest(".dept");
           const deptIdStr = deptEl?.dataset?.deptId;
           if(!deptIdStr) return;
-
           const deptId = castDeptId(deptIdStr);
           const deputyIdStr = e.currentTarget.value || "";
           const deputyId = deputyIdStr ? castOfficerId(deputyIdStr) : null;
-
           const { error } = await sb.from("departments").update({ deputy_leader_officer_id: deputyId }).eq("id", deptId);
           if(error) alert("Stv. Leitung setzen fehlgeschlagen: " + niceError(error));
         });
@@ -876,7 +770,6 @@
     async function ensureMembership(deptIdStr, officerIdStr){
       const deptId = castDeptId(deptIdStr);
       const officerId = castOfficerId(officerIdStr);
-
       if(hasMembership(deptIdStr, officerIdStr)) return;
 
       const { error } = await sb.from("department_members").insert({
@@ -894,39 +787,12 @@
       const fromDeptId = castDeptId(fromDeptIdStr);
       const toDeptId = castDeptId(toDeptIdStr);
       const officerId = castOfficerId(officerIdStr);
-
       await sb.from("department_members").delete().match({ department_id: fromDeptId, officer_id: officerId });
       await ensureMembership(toDeptIdStr, officerIdStr);
     }
 
-    async function softRefreshSession(){
-      try{
-        const { data } = await sb.auth.getSession();
-        const sess = data?.session || null;
-
-        if(!sess){
-          sessionUser = null;
-          userRole = "none";
-          setRoleUI();
-          overlayLogin(true);
-          teardownRealtime();
-          destroySortable();
-          return false;
-        }
-
-        await sb.auth.refreshSession();
-        sessionUser = sess.user;
-        userRole = await detectRole(sessionUser);
-        setRoleUI();
-        return true;
-      }catch(_){
-        return false;
-      }
-    }
-
     function initSortable(){
       destroySortable();
-
       const canDrag = isAdmin() && !!sessionUser;
 
       poolSortable = new Sortable(poolList, {
@@ -950,23 +816,17 @@
           handle: ".handle",
           sort: false,
           disabled: !canDrag,
-
           onAdd: async (evt) => {
             if(!canDrag) return;
-
             const officerIdStr = evt.item?.dataset?.officerId;
             const toDeptIdStr = evt.to?.dataset?.deptId;
             const fromDeptIdStr = evt.from?.dataset?.deptId || null;
-
             if(!officerIdStr || !toDeptIdStr) return;
-
-            await softRefreshSession();
 
             if(evt.from === poolList){
               await ensureMembership(toDeptIdStr, officerIdStr);
               return;
             }
-
             if(fromDeptIdStr && fromDeptIdStr !== toDeptIdStr){
               await moveMembership(fromDeptIdStr, toDeptIdStr, officerIdStr);
             }
@@ -977,12 +837,8 @@
     }
 
     async function loadDataNow(){
-      if(loadInFlight){
-        loadQueued = true;
-        return;
-      }
+      if(loadInFlight){ loadQueued = true; return; }
       loadInFlight = true;
-
       try{
         const d1 = await sb.from("departments").select("*");
         if(d1.error){ alert("Departments laden fehlgeschlagen: " + niceError(d1.error)); departments = []; }
@@ -999,17 +855,13 @@
         renderAll();
       }finally{
         loadInFlight = false;
-        if(loadQueued){
-          loadQueued = false;
-          loadDataNow();
-        }
+        if(loadQueued){ loadQueued = false; loadDataNow(); }
       }
     }
 
-    let loadTimer = null;
     function requestLoad(){
       clearTimeout(loadTimer);
-      loadTimer = setTimeout(() => { loadDataNow(); }, 80);
+      loadTimer = setTimeout(() => loadDataNow(), 80);
     }
 
     function teardownRealtime(){
@@ -1024,28 +876,22 @@
       teardownRealtime();
       if(!sessionUser) return;
 
-      rtChannel = sb.channel("verwaltung-rt", { config: { broadcast: { ack: false } } });
-
+      rtChannel = sb.channel("verwaltung-rt");
       rtChannel
         .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => requestLoad())
         .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => requestLoad())
         .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => requestLoad())
-        .subscribe((status) => {
-          isRealtimeReady = (status === "SUBSCRIBED");
-        });
+        .subscribe((status) => { isRealtimeReady = (status === "SUBSCRIBED"); });
     }
 
-    // ✅ schneller horizontal scroll (Mausrad)
     function enableWheelHorizontalScroll(){
-      const SPEED = 2.8; // höher = schneller
+      const SPEED = 2.8;
       deptGrid.addEventListener("wheel", (e) => {
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
         e.preventDefault();
-
         let dy = e.deltaY;
         if (e.deltaMode === 1) dy *= 18;
         if (e.deltaMode === 2) dy *= 240;
-
         deptGrid.scrollLeft += dy * SPEED;
       }, { passive:false });
     }
@@ -1057,91 +903,16 @@
 
     function mountPoolToggle(){
       if(!poolToggleBtn || !poolToggleSlotTopLeft || !poolToggleSlotInPool) return;
-
       poolToggleBtn.style.display = "flex";
 
       const closed = document.body.classList.contains("poolClosed");
       if(closed){
-        if(poolToggleBtn.parentElement !== poolToggleSlotTopLeft){
-          poolToggleSlotTopLeft.appendChild(poolToggleBtn);
-        }
+        if(poolToggleBtn.parentElement !== poolToggleSlotTopLeft) poolToggleSlotTopLeft.appendChild(poolToggleBtn);
       }else{
-        if(poolToggleBtn.parentElement !== poolToggleSlotInPool){
-          poolToggleSlotInPool.appendChild(poolToggleBtn);
-        }
+        if(poolToggleBtn.parentElement !== poolToggleSlotInPool) poolToggleSlotInPool.appendChild(poolToggleBtn);
       }
       syncPoolToggleArrow();
     }
-
-    function overlayLogin(show){
-      document.body.classList.toggle("loginActive", !!show);
-      loginOverlay.style.display = show ? "flex" : "none";
-    }
-
-    async function onAppResume(){
-      if(document.visibilityState !== "visible") return;
-
-      const ok = await softRefreshSession();
-      if(!ok) return;
-
-      if(!rtChannel || !isRealtimeReady){
-        setupRealtime();
-      }
-
-      requestLoad();
-      mountPoolToggle();
-    }
-
-    // Modals
-    modalCreateDept.addEventListener("click", (e) => { if(e.target === modalCreateDept) closeModal(modalCreateDept); });
-    modalDeleteDept.addEventListener("click", (e) => { if(e.target === modalDeleteDept) closeModal(modalDeleteDept); });
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "Escape"){
-        closeModal(modalCreateDept);
-        closeModal(modalDeleteDept);
-      }
-    });
-
-    btnCreateDeptTop.addEventListener("click", () => {
-      if(!isAdmin()) return;
-      createDeptName.value = "";
-      openModal(modalCreateDept);
-    });
-
-    closeCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
-    cancelCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
-    confirmCreateDept.addEventListener("click", async () => {
-      if(!isAdmin()) return;
-      const name = String(createDeptName.value || "").trim();
-      if(!name) return;
-
-      await softRefreshSession();
-
-      const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
-      const { error } = await sb.from("departments").insert({ name, sort: maxSort + 1 });
-      if(error) alert("Erstellen fehlgeschlagen: " + niceError(error));
-      else closeModal(modalCreateDept);
-    });
-    createDeptName.addEventListener("keydown", (e) => { if(e.key === "Enter") confirmCreateDept.click(); });
-
-    closeDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
-    cancelDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
-    confirmDeleteDept.addEventListener("click", async () => {
-      if(!isAdmin()) return;
-      const deptIdStr = pendingDeleteDeptIdStr;
-      if(!deptIdStr) return;
-
-      await softRefreshSession();
-
-      const deptId = castDeptId(deptIdStr);
-
-      await sb.from("department_members").delete().match({ department_id: deptId });
-      await sb.from("departments").update({ leader_officer_id: null, deputy_leader_officer_id: null }).eq("id", deptId);
-
-      const { error } = await sb.from("departments").delete().eq("id", deptId);
-      if(error) alert("Löschen fehlgeschlagen: " + niceError(error));
-      else { closeModal(modalDeleteDept); pendingDeleteDeptIdStr = null; }
-    });
 
     // Pool toggle click
     poolToggleBtn.addEventListener("click", () => {
@@ -1150,94 +921,36 @@
     });
 
     poolSearch.addEventListener("input", () => renderAll());
-
     btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
 
-    // ✅ Logout robust
+    // ✅ GLOBAL logout (für alle Tabs/Seiten im Browser)
     btnLogout.addEventListener("click", async () => {
       try{
         btnLogout.disabled = true;
         btnLogout.style.opacity = "0.8";
-
         teardownRealtime();
         destroySortable();
-
-        await sb.auth.signOut({ scope: "local" });
+        await sb.auth.signOut(); // <- NICHT local scope
       }catch(_){
       }finally{
         btnLogout.disabled = false;
         btnLogout.style.opacity = "";
-
-        sessionUser = null;
-        userRole = "none";
-        setRoleUI();
-        overlayLogin(true);
+        window.location.replace("index.html");
       }
     });
 
-    function normalizeNameToEmail(name){
-      const n = (name || "").trim().toLowerCase();
-      return n ? `${n}@gta.local` : "";
-    }
-
-    async function doLogin(){
-      loginMsg.textContent = "";
-      loginMsg.style.display = "none";
-
-      const email = normalizeNameToEmail(loginName.value);
-      const password = loginPass.value || "";
-      if(!email || !password){
-        loginMsg.textContent = "Bitte Name und Passwort eingeben.";
-        loginMsg.style.display = "block";
-        return;
-      }
-
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if(error){
-        loginMsg.textContent = "Falscher Name/Passwort";
-        loginMsg.style.display = "block";
-        return;
-      }
-
-      sessionUser = data.user;
-      userRole = await detectRole(sessionUser);
-      setRoleUI();
-      overlayLogin(false);
-
-      await loadDataNow();
-      setupRealtime();
-      mountPoolToggle();
-    }
-
-    btnLogin.addEventListener("click", doLogin);
-    loginPass.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
-    loginName.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
-
-    // ✅ Resume Hooks (Tabwechsel Fix)
-    document.addEventListener("visibilitychange", onAppResume);
-    window.addEventListener("focus", onAppResume);
-
-    // optional: Keepalive (mild)
-    setInterval(() => {
-      if(sessionUser) softRefreshSession();
-    }, 60 * 1000);
-
-    // Auth State Sync (z.B. anderer Tab logged out)
+    // ✅ Wenn irgendwo (Leitstelle oder Abteilungen) ausgeloggt wird, reagiert diese Seite auch
     sb.auth.onAuthStateChange(async (_event, session) => {
       sessionUser = session?.user || null;
-      userRole = sessionUser ? await detectRole(sessionUser) : "none";
-      setRoleUI();
-
-      if(sessionUser){
-        overlayLogin(false);
-        setupRealtime();
-        requestLoad();
-        mountPoolToggle();
-      }else{
-        overlayLogin(true);
-        teardownRealtime();
-        destroySortable();
+      if(!sessionUser){
+        window.location.replace("index.html");
+        return;
       }
+      userRole = await detectRole(sessionUser);
+      setRoleUI();
+      if(!rtChannel || !isRealtimeReady) setupRealtime();
+      requestLoad();
+      mountPoolToggle();
     });
 
     async function init(){
@@ -1247,14 +960,12 @@
       sessionUser = data?.session?.user || null;
 
       if(!sessionUser){
-        setRoleUI();
-        overlayLogin(true);
+        window.location.replace("index.html");
         return;
       }
 
       userRole = await detectRole(sessionUser);
       setRoleUI();
-      overlayLogin(false);
 
       await loadDataNow();
       setupRealtime();
