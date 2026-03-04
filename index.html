@@ -63,12 +63,12 @@
       transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
     }
     /* Abteilungen Button – gleiche Optik wie "Zur Leitstelle" */
-#btnDepartments{
-  border-color: rgba(0,255,195,0.25);
-  box-shadow:
-    0 0 0 1px rgba(0,255,195,0.10) inset,
-    0 14px 32px rgba(0,0,0,0.30);
-}
+    #btnDepartments{
+      border-color: rgba(0,255,195,0.25);
+      box-shadow:
+        0 0 0 1px rgba(0,255,195,0.10) inset,
+        0 14px 32px rgba(0,0,0,0.30);
+    }
   </style>
 </head>
 
@@ -432,29 +432,29 @@
      * ✅ Header Button: Abteilungen (links neben Logout)
      ***********************/
     function injectDepartmentsButton(){
-  const logoutBtn = document.getElementById("btnLogout");
-  if(!logoutBtn) return;
+      const logoutBtn = document.getElementById("btnLogout");
+      if(!logoutBtn) return;
 
-  // schon vorhanden?
-  if(document.getElementById("btnDepartments")) return;
+      // schon vorhanden?
+      if(document.getElementById("btnDepartments")) return;
 
-  const btn = document.createElement("button");
-  btn.id = "btnDepartments";
-  btn.type = "button";
+      const btn = document.createElement("button");
+      btn.id = "btnDepartments";
+      btn.type = "button";
 
-  // exakt gleiche Buttonklassen wie "Zur Leitstelle"
-  btn.className = "btn btnGhost btnPrimary";
+      // exakt gleiche Buttonklassen wie "Zur Leitstelle"
+      btn.className = "btn btnGhost btnPrimary";
 
-  btn.title = "Zur Abteilungen-Seite";
-  btn.textContent = "Abteilungen";
+      btn.title = "Zur Abteilungen-Seite";
+      btn.textContent = "Abteilungen";
 
-  // links neben Logout einfügen
-  logoutBtn.parentElement?.insertBefore(btn, logoutBtn);
+      // links neben Logout einfügen
+      logoutBtn.parentElement?.insertBefore(btn, logoutBtn);
 
-  btn.addEventListener("click", () => {
-    window.location.href = "abteilung.html";
-  });
-}
+      btn.addEventListener("click", () => {
+        window.location.href = "abteilungen.html";
+      });
+    }
 
     /***********************
      * HELPERS
@@ -1651,8 +1651,9 @@
       try { clearOfficerSelection(); } catch {}
       try { setRoleFromEmail(""); } catch {}
 
+      // ✅ WICHTIG: NICHT global -> PC B bleibt eingeloggt
       try{
-        const { error } = await sb.auth.signOut();
+        const { error } = await sb.auth.signOut({ scope: "local" });
         if(error) console.error("signOut error:", error);
       }catch(e){
         console.error("signOut throw:", e);
@@ -1777,7 +1778,7 @@
 
       document.addEventListener("click", (e) => {
         const dep = e.target.closest("#btnDepartments");
-        if(dep){ e.preventDefault(); window.location.href = "abteilung.html"; return; }
+        if(dep){ e.preventDefault(); window.location.href = "abteilungen.html"; return; }
 
         const logout = e.target.closest("#btnLogout");
         if(logout){ e.preventDefault(); doLogout(); return; }
