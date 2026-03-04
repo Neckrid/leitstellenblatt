@@ -744,3 +744,55 @@ input::placeholder, textarea::placeholder{ color: rgba(255,255,255,0.45); }
   body{ overflow:auto; }
   .app{ height:auto; grid-template-columns: 1fr; }
 }
+
+/* =========================================================
+   GLOBAL CHIPS / BADGES (DN, Rang, etc.)
+   Einheitlich für alle Seiten
+   ========================================================= */
+
+/* Base chip */
+.chip,
+.tag,                /* ✅ Verwaltung-Kompatibilität */
+.pillDn, .pillRank { /* ✅ Leitstellenblatt-Kompatibilität */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.88);
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* DN chip */
+.chipDn,
+.tag.dn,     /* ✅ Verwaltung */
+.pillDn {    /* ✅ Leitstellenblatt */
+  border-color: rgba(0,255,195,0.22);
+  background: rgba(0,255,195,0.09);
+}
+
+/* Rank chip */
+.chipRank,
+.tag.rank,   /* ✅ Verwaltung */
+.pillRank {  /* ✅ Leitstellenblatt */
+  border-color: rgba(0,140,255,0.22);
+  background: rgba(0,140,255,0.10);
+}
+
+/* Optional: Leitung / Stv. (falls du’s überall angleichen willst) */
+.chipLead,
+.tag.lead{
+  border-color: rgba(255,200,0,0.25);
+  background: rgba(255,200,0,0.10);
+}
+.chipDeputy,
+.tag.deputy{
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
+}
