@@ -402,10 +402,11 @@ async function ensureSession(){
    DATA LOADERS
 =========================== */
 async function fetchOfficers(){
-  // Passe die Spalten an, falls sie bei dir anders heißen
+  // ✅ Anpassung: dienstnummer statt badge_number
+  // Falls du kein rank Feld hast: rank aus select entfernen
   const { data, error } = await supabase
     .from("officers")
-    .select("id, name, badge_number, rank")
+    .select("id, name, dienstnummer, rank")
     .order("name", { ascending: true });
   if(error) throw error;
   return data || [];
@@ -447,7 +448,7 @@ function closeOfficerModal(){ $("#officerModal").style.display = "none"; }
 
 function officerLabel(o){
   const parts = [o.name];
-  if(o.badge_number) parts.push(o.badge_number);
+  if(o.dienstnummer) parts.push(o.dienstnummer);
   if(o.rank) parts.push(o.rank);
   return parts.join(" • ");
 }
@@ -458,7 +459,7 @@ function renderOfficerPickList(filter=""){
   list.innerHTML = "";
 
   const rows = OFFICERS.filter(o=>{
-    const hay = `${o.name||""} ${o.badge_number||""} ${o.rank||""}`.toLowerCase();
+    const hay = `${o.name||""} ${o.dienstnummer||""} ${o.rank||""}`.toLowerCase();
     return !q || hay.includes(q);
   });
 
@@ -685,6 +686,7 @@ async function init(){
 
     fillTargetOfficerSelect();
 
+    // Katalog laden (wenn Tabellen noch nicht existieren: zeigt Fehler)
     CATALOG = await loadCatalog();
     fillCategoryFilter();
     renderCatalog();
