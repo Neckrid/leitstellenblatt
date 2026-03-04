@@ -330,7 +330,7 @@
           <div class="badge">LSPD</div>
           <div class="loginTitleWrap">
             <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Bitte mit deinem Supabase-Account anmelden.</div>
+            <div class="loginSub">Bitte anmelden.</div>
           </div>
         </div>
       </div>
@@ -348,11 +348,7 @@
         <div class="row">
           <button class="btn btnPrimary" id="btnLogin" style="width:100%;" type="button">Einloggen</button>
         </div>
-
-        <div class="muted" style="margin-top:10px; line-height:1.35;">
-          E-Mail-Format: <b>name@gta.local</b> (case-insensitive).<br/>
-          (Wenn du bereits im Leitstellenblatt eingeloggt bist, sollte es hier automatisch durchgehen.)
-        </div>
+        
       </div>
     </div>
   </div>
@@ -1000,12 +996,21 @@
     }
 
     function enableWheelHorizontalScroll(){
-      deptGrid.addEventListener("wheel", (e) => {
-        if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-        e.preventDefault();
-        deptGrid.scrollLeft += e.deltaY;
-      }, { passive:false });
-    }
+  const SPEED = 2.8; // <- höher = schneller (z.B. 2.0 bis 4.0)
+  deptGrid.addEventListener("wheel", (e) => {
+    // Wenn User bewusst horizontal scrollt (Trackpad deltaX), nicht reinpfuschen
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+    e.preventDefault();
+
+    // deltaMode: 0=pixel, 1=line, 2=page -> auf pixel skalieren
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 18;
+    if (e.deltaMode === 2) dy *= 240;
+
+    deptGrid.scrollLeft += dy * SPEED;
+  }, { passive:false });
+}
 
     function syncPoolToggleArrow(){
       const closed = document.body.classList.contains("poolClosed");
