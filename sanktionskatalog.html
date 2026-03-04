@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>LSPD Leitstelle – Disziplinar</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Dein globales Theme -->
+  <link rel="stylesheet" href="shared/theme.css"/>
+
+  <style>
+    /* =========================
+       Disziplinar-Modul (scoped)
+       ========================= */
+
+    .discWrap{
+      height:100%;
+      padding:14px;
+      padding-top: var(--appTopPad);
+      display:grid;
+      gap:14px;
+      grid-template-columns: 360px 1fr 420px;
+      min-height:0;
+    }
+
+    .discCard{
+      border:1px solid var(--stroke);
+      background: rgba(18,22,28,0.62);
+      backdrop-filter: blur(16px);
+      border-radius:16px;
+      box-shadow: var(--shadow2);
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .discHdr{
+      padding:12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+    }
+    .discHdr h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      color: rgba(255,255,255,0.86);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .discBody{ padding:12px; overflow:auto; min-height:0; }
+
+    .row{ display:flex; gap:10px; align-items:center; }
+    .col{ display:flex; flex-direction:column; gap:8px; }
+
+    .inp, .sel, .ta{
+      width:100%;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      color:#fff;
+      border-radius:12px;
+      padding:10px 10px;
+      outline:none;
+      font-size:13px;
+    }
+    .ta{ min-height:90px; resize:vertical; }
+
+    .btn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.10); }
+    .btn.primary{
+      border-color: rgba(0,255,195,0.35);
+      background: rgba(0,255,195,0.10);
+    }
+    .btn.primary:hover{ background: rgba(0,255,195,0.14); }
+
+    .btn.danger{
+      border-color: rgba(255,90,90,0.35);
+      background: rgba(255,90,90,0.10);
+    }
+    .btn.danger:hover{ background: rgba(255,90,90,0.14); }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      font-size:12px;
+      color: rgba(255,255,255,0.82);
+      white-space:nowrap;
+    }
+    .pill.ok{ border-color: rgba(0,255,195,0.30); }
+    .pill.muted{ color: rgba(255,255,255,0.62); }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .item{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      border-radius:14px;
+      padding:10px 10px;
+      cursor:pointer;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .item:hover{ background: rgba(255,255,255,0.06); }
+    .item.active{
+      border-color: rgba(0,255,195,0.35);
+      background: rgba(0,255,195,0.08);
+    }
+    .item .t{ font-weight:800; font-size:13px; }
+    .item .s{ font-size:12px; color: rgba(255,255,255,0.70); margin-top:2px; }
+
+    .badgeLvl{
+      min-width:40px;
+      height:28px;
+      padding:0 10px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.9);
+      font-size:12px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 120px 1fr;
+      gap:8px 10px;
+      font-size:13px;
+    }
+    .kv .k{ color: rgba(255,255,255,0.62); }
+    .kv .v{ color: rgba(255,255,255,0.88); }
+
+    /* Modal */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index: 9999;
+    }
+    .modal{
+      width:min(820px, 100%);
+      border:1px solid var(--stroke);
+      background: rgba(18,22,28,0.82);
+      backdrop-filter: blur(18px);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      max-height: 90vh;
+    }
+    .modal .mh{
+      padding:12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+    }
+    .modal .mh .title{
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+    .modal .mb{ padding:12px; overflow:auto; }
+    .modal .mf{
+      padding:12px;
+      border-top:1px solid var(--stroke);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .hint{
+      font-size:12px;
+      color: rgba(255,255,255,0.62);
+      line-height:1.35;
+    }
+
+    .two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .three{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+
+    @media (max-width: 1100px){
+      .discWrap{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="discWrap">
+
+    <!-- LEFT: Katalog -->
+    <section class="discCard" id="cardCatalog">
+      <div class="discHdr">
+        <h2>📚 Sanktionskatalog</h2>
+        <span class="pill muted" id="catCount">0 Einträge</span>
+      </div>
+
+      <div class="discBody col">
+        <input class="inp" id="catSearch" placeholder="Suche (Titel/Description) …">
+        <select class="sel" id="catCategory">
+          <option value="">Alle Kategorien</option>
+        </select>
+
+        <div class="list" id="catalogList"></div>
+
+        <div class="hint" style="margin-top:6px;">
+          Tipp: Klick auf einen Eintrag → Details rechts. Admins können daraus direkt einen Fall erstellen.
+        </div>
+      </div>
+    </section>
+
+    <!-- MIDDLE: Protokoll -->
+    <section class="discCard" id="cardCases">
+      <div class="discHdr">
+        <h2>🧾 Protokoll</h2>
+
+        <div class="row">
+          <span class="pill ok" id="adminPill" style="display:none;">Admin</span>
+          <button class="btn primary" id="btnNewCase" style="display:none;">+ Sanktion erfassen</button>
+        </div>
+      </div>
+
+      <div class="discBody col">
+        <div class="two">
+          <input class="inp" id="caseSearch" placeholder="Suche (Officer/Verstoß/Begründung) …">
+          <select class="sel" id="caseStatus">
+            <option value="">Alle Status</option>
+            <option value="draft">draft</option>
+            <option value="issued">issued</option>
+            <option value="appealed">appealed</option>
+            <option value="closed">closed</option>
+            <option value="void">void</option>
+          </select>
+        </div>
+
+        <div class="list" id="casesList"></div>
+
+        <div class="hint" id="casesHint" style="display:none;">
+          Protokoll ist nur für Admins sichtbar.
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Details -->
+    <section class="discCard" id="cardDetails">
+      <div class="discHdr">
+        <h2>🔎 Details</h2>
+        <span class="pill muted" id="detailsHint">Katalog oder Fall auswählen</span>
+      </div>
+
+      <div class="discBody" id="detailsBody">
+        <div class="hint">Links einen Katalogeintrag oder in der Mitte einen Fall anklicken.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modal: Fall erfassen -->
+  <div class="modalBack" id="modalBack">
+    <div class="modal">
+      <div class="mh">
+        <div class="title">Sanktion erfassen</div>
+        <button class="btn danger" id="btnCloseModal">✕</button>
+      </div>
+
+      <div class="mb col">
+        <div class="two">
+          <div class="col">
+            <label class="hint">Officer</label>
+            <select class="sel" id="mOfficer"></select>
+          </div>
+          <div class="col">
+            <label class="hint">Katalog (optional)</label>
+            <select class="sel" id="mCatalog">
+              <option value="">— Freitext —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="col">
+            <label class="hint">Kategorie</label>
+            <input class="inp" id="mCategory" placeholder="z.B. Funk / Einsatz / Integrität">
+          </div>
+          <div class="col">
+            <label class="hint">Titel</label>
+            <input class="inp" id="mTitle" placeholder="z.B. Funkpflicht missachtet">
+          </div>
+        </div>
+
+        <div class="three">
+          <div class="col">
+            <label class="hint">Level (1–4)</label>
+            <select class="sel" id="mLevel">
+              <option value="1">1 (leicht)</option>
+              <option value="2">2 (mittel)</option>
+              <option value="3">3 (schwer)</option>
+              <option value="4">4 (kritisch)</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="hint">Punkte</label>
+            <input class="inp" id="mPoints" type="number" min="0" max="50" value="0">
+          </div>
+          <div class="col">
+            <label class="hint">Status</label>
+            <select class="sel" id="mStatus">
+              <option value="issued">issued</option>
+              <option value="draft">draft</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="col">
+          <label class="hint">Maßnahmen (JSON, optional)</label>
+          <textarea class="ta" id="mActions" placeholder='{"warning":"schriftlich","suspension_hours":24,"training":true}'></textarea>
+          <div class="hint">Leer lassen → wird als {} gespeichert. Muss gültiges JSON sein.</div>
+        </div>
+
+        <div class="col">
+          <label class="hint">Begründung (Pflicht)</label>
+          <textarea class="ta" id="mReason" placeholder="Kurz und sachlich: Was ist passiert?"></textarea>
+        </div>
+
+        <div class="col">
+          <label class="hint">Evidence (optional)</label>
+          <input class="inp" id="mEvidence" placeholder="Clip-Link / Aktenzeichen …">
+        </div>
+      </div>
+
+      <div class="mf">
+        <button class="btn" id="btnSaveDraft">Als Entwurf speichern</button>
+        <button class="btn primary" id="btnIssue">Ausstellen (issued)</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   CONFIG
+   ========================= */
+
+// ✅ HIER deine Keys eintragen
+const SUPABASE_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Admin via Mail (ohne profiles)
+const ADMIN_EMAILS = new Set([
+  "admin@gta.local"
+]);
+
+function normEmail(x){ return (x || "").trim().toLowerCase(); }
+function isAdminEmail(email){ return ADMIN_EMAILS.has(normEmail(email)); }
+
+// Hilfsformat
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+  }[m]));
+}
+function fmtDate(ts){
+  try{
+    const d = new Date(ts);
+    return d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  }catch{ return ts; }
+}
+
+/* =========================
+   STATE
+   ========================= */
+
+let currentUser = null;
+let admin = false;
+
+let catalog = [];          // discipline_catalog rows
+let officers = [];         // officers rows (for modal)
+let cases = [];            // discipline_cases rows
+let selectedCatalogId = null;
+let selectedCaseId = null;
+
+/* =========================
+   ELEMENTS
+   ========================= */
+
+const el = {
+  catCount: document.getElementById("catCount"),
+  catSearch: document.getElementById("catSearch"),
+  catCategory: document.getElementById("catCategory"),
+  catalogList: document.getElementById("catalogList"),
+
+  adminPill: document.getElementById("adminPill"),
+  btnNewCase: document.getElementById("btnNewCase"),
+  caseSearch: document.getElementById("caseSearch"),
+  caseStatus: document.getElementById("caseStatus"),
+  casesList: document.getElementById("casesList"),
+  casesHint: document.getElementById("casesHint"),
+
+  detailsHint: document.getElementById("detailsHint"),
+  detailsBody: document.getElementById("detailsBody"),
+
+  modalBack: document.getElementById("modalBack"),
+  btnCloseModal: document.getElementById("btnCloseModal"),
+
+  mOfficer: document.getElementById("mOfficer"),
+  mCatalog: document.getElementById("mCatalog"),
+  mCategory: document.getElementById("mCategory"),
+  mTitle: document.getElementById("mTitle"),
+  mLevel: document.getElementById("mLevel"),
+  mPoints: document.getElementById("mPoints"),
+  mStatus: document.getElementById("mStatus"),
+  mActions: document.getElementById("mActions"),
+  mReason: document.getElementById("mReason"),
+  mEvidence: document.getElementById("mEvidence"),
+  btnSaveDraft: document.getElementById("btnSaveDraft"),
+  btnIssue: document.getElementById("btnIssue"),
+};
+
+/* =========================
+   INIT
+   ========================= */
+
+(async function init(){
+  const { data: { user } } = await sb.auth.getUser();
+  currentUser = user;
+  const email = normEmail(user?.email);
+  admin = isAdminEmail(email);
+
+  if(admin){
+    el.adminPill.style.display = "";
+    el.btnNewCase.style.display = "";
+  }else{
+    el.casesHint.style.display = "";
+  }
+
+  wireEvents();
+  await loadCatalog();
+  await loadOfficersForModal(); // only used if admin, but cheap
+
+  renderCatalog();
+
+  // Cases only for admins (wegen RLS)
+  if(admin){
+    await loadCases();
+    renderCases();
+  }else{
+    el.casesList.innerHTML = `<div class="hint">Nur Admins sehen das Protokoll.</div>`;
+  }
+})();
+
+function wireEvents(){
+  el.catSearch.addEventListener("input", renderCatalog);
+  el.catCategory.addEventListener("change", renderCatalog);
+
+  el.caseSearch.addEventListener("input", renderCases);
+  el.caseStatus.addEventListener("change", renderCases);
+
+  el.btnNewCase.addEventListener("click", () => openModalForNewCase());
+  el.btnCloseModal.addEventListener("click", closeModal);
+  el.modalBack.addEventListener("click", (e)=>{ if(e.target === el.modalBack) closeModal(); });
+
+  el.mCatalog.addEventListener("change", () => applyCatalogToModal());
+
+  el.btnSaveDraft.addEventListener("click", () => saveCase("draft"));
+  el.btnIssue.addEventListener("click", () => saveCase("issued"));
+}
+
+/* =========================
+   LOADERS
+   ========================= */
+
+async function loadCatalog(){
+  const { data, error } = await sb
+    .from("discipline_catalog")
+    .select("id, category, title, description, default_level, default_points, default_actions, active, sort")
+    .eq("active", true)
+    .order("category", { ascending: true })
+    .order("sort", { ascending: true })
+    .order("title", { ascending: true });
+
+  if(error){
+    console.error(error);
+    el.catalogList.innerHTML = `<div class="hint">Fehler beim Laden des Katalogs.</div>`;
+    return;
+  }
+  catalog = data || [];
+
+  // Category filter + modal catalog dropdown
+  const cats = Array.from(new Set(catalog.map(x => x.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b, "de"));
+  el.catCategory.innerHTML = `<option value="">Alle Kategorien</option>` + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+
+  el.mCatalog.innerHTML = `<option value="">— Freitext —</option>` + catalog.map(x =>
+    `<option value="${x.id}">${esc(x.category)} • ${esc(x.title)}</option>`
+  ).join("");
+
+  el.catCount.textContent = `${catalog.length} Einträge`;
+}
+
+async function loadOfficersForModal(){
+  // Passe select Felder ggf. an deine Officers-Spalten an.
+  // Mindestanforderung: id + ein Name-Feld.
+  const { data, error } = await sb
+    .from("officers")
+    .select("id, name, dienstnummer, rang")
+    .order("name", { ascending: true });
+
+  if(error){
+    console.error(error);
+    // Modal kann dann trotzdem per ID arbeiten, aber Dropdown wäre leer
+    officers = [];
+    el.mOfficer.innerHTML = `<option value="">(Fehler Officers)</option>`;
+    return;
+  }
+  officers = data || [];
+  el.mOfficer.innerHTML = officers.map(o => {
+    const label = [
+      o.name || `Officer #${o.id}`,
+      o.dienstnummer ? `(${o.dienstnummer})` : "",
+      o.rang ? `– ${o.rang}` : ""
+    ].filter(Boolean).join(" ");
+    return `<option value="${o.id}">${esc(label)}</option>`;
+  }).join("");
+}
+
+async function loadCases(){
+  // Nur Admins kommen hier durch RLS
+  const { data, error } = await sb
+    .from("discipline_cases")
+    .select("id, officer_id, catalog_id, title, category, level, points, actions, reason, evidence, status, issued_by_email, created_at, issued_at, closed_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if(error){
+    console.error(error);
+    el.casesList.innerHTML = `<div class="hint">Fehler beim Laden des Protokolls (RLS?).</div>`;
+    return;
+  }
+  cases = data || [];
+}
+
+/* =========================
+   RENDER
+   ========================= */
+
+function renderCatalog(){
+  const q = (el.catSearch.value || "").trim().toLowerCase();
+  const cat = el.catCategory.value || "";
+
+  const filtered = catalog.filter(x => {
+    if(cat && x.category !== cat) return false;
+    if(!q) return true;
+    const hay = `${x.title||""} ${x.description||""} ${x.category||""}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  el.catalogList.innerHTML = filtered.map(x => {
+    const active = (x.id === selectedCatalogId) ? "active" : "";
+    return `
+      <div class="item ${active}" data-catid="${x.id}">
+        <div style="min-width:0;">
+          <div class="t">${esc(x.title)}</div>
+          <div class="s">${esc(x.category)} • Punkte: ${x.default_points ?? 0}</div>
+        </div>
+        <div class="badgeLvl">L${esc(x.default_level ?? 1)}</div>
+      </div>
+    `;
+  }).join("") || `<div class="hint">Keine Treffer.</div>`;
+
+  // Bind clicks
+  Array.from(el.catalogList.querySelectorAll(".item")).forEach(node => {
+    node.addEventListener("click", () => {
+      selectedCaseId = null;
+      selectedCatalogId = node.getAttribute("data-catid");
+      renderCatalog(); // highlight
+      renderDetailsForCatalog(selectedCatalogId);
+    });
+  });
+}
+
+function renderCases(){
+  if(!admin) return;
+
+  const q = (el.caseSearch.value || "").trim().toLowerCase();
+  const status = el.caseStatus.value || "";
+
+  const filtered = cases.filter(x => {
+    if(status && x.status !== status) return false;
+    if(!q) return true;
+    const officerLabel = officerLabelById(x.officer_id);
+    const hay = `${officerLabel} ${x.title||""} ${x.category||""} ${x.reason||""} ${x.issued_by_email||""}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  el.casesList.innerHTML = filtered.map(x => {
+    const active = (x.id === selectedCaseId) ? "active" : "";
+    return `
+      <div class="item ${active}" data-caseid="${x.id}">
+        <div style="min-width:0;">
+          <div class="t">${esc(officerLabelById(x.officer_id))} – ${esc(x.title)}</div>
+          <div class="s">${esc(x.category)} • ${esc(x.status)} • ${fmtDate(x.created_at)}</div>
+        </div>
+        <div class="badgeLvl">L${esc(x.level)}</div>
+      </div>
+    `;
+  }).join("") || `<div class="hint">Keine Fälle.</div>`;
+
+  Array.from(el.casesList.querySelectorAll(".item")).forEach(node => {
+    node.addEventListener("click", async () => {
+      selectedCatalogId = null;
+      selectedCaseId = node.getAttribute("data-caseid");
+      renderCases();
+      await renderDetailsForCase(selectedCaseId);
+    });
+  });
+}
+
+function officerLabelById(id){
+  const o = officers.find(x => String(x.id) === String(id));
+  if(!o) return `Officer #${id}`;
+  return o.name || `Officer #${id}`;
+}
+
+/* =========================
+   DETAILS
+   ========================= */
+
+function renderDetailsForCatalog(catalogId){
+  const c = catalog.find(x => x.id === catalogId);
+  if(!c){
+    el.detailsHint.textContent = "Katalog nicht gefunden";
+    el.detailsBody.innerHTML = `<div class="hint">Eintrag nicht gefunden.</div>`;
+    return;
+  }
+
+  el.detailsHint.textContent = `Katalog: ${c.title}`;
+
+  const actionsPretty = JSON.stringify(c.default_actions ?? {}, null, 2);
+
+  el.detailsBody.innerHTML = `
+    <div class="col">
+      <div class="row" style="justify-content:space-between;">
+        <span class="pill">${esc(c.category)}</span>
+        <span class="badgeLvl">L${esc(c.default_level ?? 1)}</span>
+      </div>
+
+      <div style="font-size:16px; font-weight:900; line-height:1.2;">
+        ${esc(c.title)}
+      </div>
+
+      <div class="hint">${esc(c.description || "—")}</div>
+
+      <div class="kv" style="margin-top:8px;">
+        <div class="k">Default Punkte</div><div class="v">${esc(c.default_points ?? 0)}</div>
+        <div class="k">Default Maßnahmen</div>
+        <div class="v"><pre style="margin:0; white-space:pre-wrap; font-size:12px; opacity:.95;">${esc(actionsPretty)}</pre></div>
+      </div>
+
+      ${admin ? `<button class="btn primary" id="btnCreateFromCatalog">+ Fall aus diesem Eintrag</button>` : ""}
+    </div>
+  `;
+
+  if(admin){
+    const b = document.getElementById("btnCreateFromCatalog");
+    b?.addEventListener("click", () => openModalForNewCase(catalogId));
+  }
+}
+
+async function renderDetailsForCase(caseId){
+  const c = cases.find(x => x.id === caseId);
+  if(!c){
+    el.detailsHint.textContent = "Fall nicht gefunden";
+    el.detailsBody.innerHTML = `<div class="hint">Fall nicht gefunden.</div>`;
+    return;
+  }
+
+  el.detailsHint.textContent = `Fall: ${c.title}`;
+
+  // Notes laden
+  let notes = [];
+  try{
+    const { data, error } = await sb
+      .from("discipline_case_notes")
+      .select("id, note, created_by_email, created_at")
+      .eq("case_id", caseId)
+      .order("created_at", { ascending: false });
+
+    if(!error) notes = data || [];
+  }catch(e){
+    console.warn("notes load", e);
+  }
+
+  const actionsPretty = JSON.stringify(c.actions ?? {}, null, 2);
+
+  el.detailsBody.innerHTML = `
+    <div class="col">
+      <div class="row" style="justify-content:space-between; flex-wrap:wrap;">
+        <span class="pill">${esc(c.category)}</span>
+        <span class="pill">${esc(officerLabelById(c.officer_id))} (#${esc(c.officer_id)})</span>
+        <span class="pill">${esc(c.status)}</span>
+        <span class="badgeLvl">L${esc(c.level)}</span>
+      </div>
+
+      <div style="font-size:16px; font-weight:900; line-height:1.2;">
+        ${esc(c.title)}
+      </div>
+
+      <div class="kv" style="margin-top:8px;">
+        <div class="k">Punkte</div><div class="v">${esc(c.points ?? 0)}</div>
+        <div class="k">Begründung</div><div class="v">${esc(c.reason)}</div>
+        <div class="k">Evidence</div><div class="v">${c.evidence ? esc(c.evidence) : "—"}</div>
+        <div class="k">Erstellt</div><div class="v">${fmtDate(c.created_at)}</div>
+        <div class="k">Ausgestellt</div><div class="v">${c.issued_at ? fmtDate(c.issued_at) : "—"}</div>
+        <div class="k">Von</div><div class="v">${esc(c.issued_by_email || "—")}</div>
+        <div class="k">Maßnahmen</div><div class="v"><pre style="margin:0; white-space:pre-wrap; font-size:12px; opacity:.95;">${esc(actionsPretty)}</pre></div>
+      </div>
+
+      <div style="height:1px; background: var(--stroke); margin:10px 0;"></div>
+
+      <div class="row" style="justify-content:space-between;">
+        <div style="font-weight:900;">Notizen</div>
+        ${admin ? `<button class="btn" id="btnAddNote">+ Notiz</button>` : ""}
+      </div>
+
+      <div class="list" id="notesList">
+        ${notes.map(n => `
+          <div class="item" style="cursor:default;">
+            <div style="min-width:0;">
+              <div class="t">${esc(n.created_by_email || "")}</div>
+              <div class="s">${fmtDate(n.created_at)}</div>
+              <div style="margin-top:6px; font-size:13px; color: rgba(255,255,255,0.88); white-space:pre-wrap;">${esc(n.note)}</div>
+            </div>
+          </div>
+        `).join("") || `<div class="hint">Keine Notizen.</div>`}
+      </div>
+    </div>
+  `;
+
+  if(admin){
+    document.getElementById("btnAddNote")?.addEventListener("click", async () => {
+      const text = prompt("Notiz hinzufügen:");
+      if(!text || !text.trim()) return;
+      const { error } = await sb.from("discipline_case_notes").insert({
+        case_id: caseId,
+        note: text.trim()
+      });
+      if(error){
+        alert("Konnte Notiz nicht speichern.");
+        console.error(error);
+        return;
+      }
+      // Reload details (notes)
+      await loadCases(); // optional, nicht nötig, aber ok
+      await renderDetailsForCase(caseId);
+      renderCases();
+    });
+  }
+}
+
+/* =========================
+   MODAL (CREATE)
+   ========================= */
+
+function openModalForNewCase(prefillCatalogId = ""){
+  if(!admin){
+    alert("Nur Admins dürfen Sanktionen erfassen.");
+    return;
+  }
+
+  // reset
+  el.mCatalog.value = prefillCatalogId || "";
+  el.mCategory.value = "";
+  el.mTitle.value = "";
+  el.mLevel.value = "1";
+  el.mPoints.value = 0;
+  el.mStatus.value = "issued";
+  el.mActions.value = "";
+  el.mReason.value = "";
+  el.mEvidence.value = "";
+
+  applyCatalogToModal();
+  el.modalBack.style.display = "flex";
+}
+
+function closeModal(){
+  el.modalBack.style.display = "none";
+}
+
+function applyCatalogToModal(){
+  const id = el.mCatalog.value;
+  if(!id) return;
+
+  const c = catalog.find(x => x.id === id);
+  if(!c) return;
+
+  el.mCategory.value = c.category || "";
+  el.mTitle.value = c.title || "";
+  el.mLevel.value = String(c.default_level ?? 1);
+  el.mPoints.value = Number(c.default_points ?? 0);
+  el.mActions.value = JSON.stringify(c.default_actions ?? {}, null, 2);
+}
+
+/* =========================
+   SAVE CASE
+   ========================= */
+
+async function saveCase(forceStatus){
+  if(!admin) return;
+
+  const officer_id = Number(el.mOfficer.value);
+  const catalog_id = el.mCatalog.value || null;
+
+  const title = (el.mTitle.value || "").trim();
+  const category = (el.mCategory.value || "").trim();
+  const level = Number(el.mLevel.value);
+  const points = Number(el.mPoints.value || 0);
+  const reason = (el.mReason.value || "").trim();
+  const evidence = (el.mEvidence.value || "").trim() || null;
+  const status = forceStatus;
+
+  if(!officer_id || Number.isNaN(officer_id)){
+    alert("Officer auswählen.");
+    return;
+  }
+  if(!title){
+    alert("Titel fehlt.");
+    return;
+  }
+  if(!category){
+    alert("Kategorie fehlt.");
+    return;
+  }
+  if(!reason){
+    alert("Begründung ist Pflicht.");
+    return;
+  }
+
+  let actions = {};
+  const rawActions = (el.mActions.value || "").trim();
+  if(rawActions){
+    try{
+      actions = JSON.parse(rawActions);
+      if(actions === null || typeof actions !== "object" || Array.isArray(actions)){
+        alert("Maßnahmen JSON muss ein Objekt sein (z.B. {\"warning\":\"schriftlich\"}).");
+        return;
+      }
+    }catch(e){
+      alert("Maßnahmen JSON ist ungültig.");
+      return;
+    }
+  }
+
+  const payload = {
+    officer_id,
+    catalog_id,
+    title,
+    category,
+    level,
+    points,
+    actions,
+    reason,
+    evidence,
+    status,
+    issued_at: (status === "issued") ? new Date().toISOString() : null,
+  };
+
+  const { error } = await sb.from("discipline_cases").insert(payload);
+  if(error){
+    console.error(error);
+    alert("Konnte Fall nicht speichern (RLS/DB-Fehler).");
+    return;
+  }
+
+  closeModal();
+
+  // Reload cases + render
+  await loadCases();
+  renderCases();
+
+  // Auto open last created (best effort)
+  // (Wir kennen die ID nicht direkt ohne returning, also wählen wir top of list)
+  const newest = cases[0];
+  if(newest){
+    selectedCaseId = newest.id;
+    await renderDetailsForCase(newest.id);
+    renderCases();
+  }
+}
+</script>
+
+</body>
+</html>
