@@ -238,12 +238,6 @@
       padding-left: 84px;
     }
 
-    /* Login Overlay: nutzt Theme Klassen loginOverlay/loginCard/loginErr */
-    /* (Theme bereits vorhanden, wir nutzen nur IDs) */
-
-    /* Modals: Theme modalOverlay/modalCard etc. nutzen */
-    /* (Theme bereits vorhanden, wir nutzen nur IDs) */
-
     /* Besser sichtbar: “Zur Leitstelle” */
     #btnToLeitstelle{
       border-color: rgba(0,255,195,0.25);
@@ -253,8 +247,6 @@
 </head>
 
 <body>
-  <!-- ✅ Global Header + Login werden NICHT via layout.js geladen (Verwaltung hat eigenen Login).
-       Wir nutzen aber denselben Look über theme.css -->
   <header class="topHeader" style="display:flex;">
     <div class="topHeaderLeft">
       <div class="badge">LSPD</div>
@@ -406,11 +398,23 @@
   <script>
   (function(){
     /***********************************************************************
-     * WICHTIG: Trage hier dieselben Werte ein wie im Leitstellenblatt!
+     * WICHTIG: dieselben Werte wie im Leitstellenblatt
      ***********************************************************************/
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
-    const sb = supabase.createClient(SB_URL, SB_KEY);
+
+    // ✅ Stabilere Client-Config (Multi-Tab / Token Refresh)
+    const sb = supabase.createClient(SB_URL, SB_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: "lspd-auth" // gleicher Key = stabil in mehreren Tabs
+      },
+      realtime: {
+        params: { eventsPerSecond: 10 }
+      }
+    });
 
     // UI
     const roleDot = document.getElementById("roleDot");
@@ -452,16 +456,23 @@
     // State
     let sessionUser = null;
     let userRole = "none";
+
     let departments = [];
     let officers = [];
     let memberships = []; // department_members
+
     let rtChannel = null;
+    let isRealtimeReady = false;
 
     let pendingDeleteDeptIdStr = null;
 
     // ID typing
     let deptIdIsNumeric = null;
     let officerIdIsNumeric = null;
+
+    // Load-control (verhindert “Realtime-Sturm” + kaputte Sortables)
+    let loadInFlight = false;
+    let loadQueued = false;
 
     const escapeHtml = (s="") => String(s)
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -737,7 +748,7 @@
       deptGrid.innerHTML = sortedDepts.map(d => deptHTML(d)).join("");
       deptCount.textContent = String(sortedDepts.length);
 
-      // Hover delete wrapper sichtbar nur on hover (wie vorher)
+      // Hover delete wrapper sichtbar nur on hover
       deptGrid.querySelectorAll(".dept").forEach(el=>{
         const w = el.querySelector(".delWrap");
         if(!w) return;
@@ -876,7 +887,7 @@
     function initSortable(){
       destroySortable();
 
-      const canDrag = isAdmin();
+      const canDrag = isAdmin() && !!sessionUser;
 
       poolSortable = new Sortable(poolList, {
         group: { name:"officers", pull:"clone", put:false },
@@ -909,6 +920,9 @@
 
             if(!officerIdStr || !toDeptIdStr) return;
 
+            // ✅ Wenn Tab/Realtime kurz weg war: Session kann “stale” sein -> einmal refresh versuchen
+            await softRefreshSession();
+
             if(evt.from === poolList){
               await ensureMembership(toDeptIdStr, officerIdStr);
               return;
@@ -923,33 +937,66 @@
       });
     }
 
-    async function loadData(){
-      const d1 = await sb.from("departments").select("*");
-      if(d1.error){ alert("Departments laden fehlgeschlagen: " + niceError(d1.error)); departments = []; }
-      else departments = d1.data || [];
+    async function loadDataNow(){
+      if(loadInFlight){
+        loadQueued = true;
+        return;
+      }
+      loadInFlight = true;
 
-      const d2 = await sb.from("officers").select("*");
-      if(d2.error){ alert("Officers laden fehlgeschlagen: " + niceError(d2.error)); officers = []; }
-      else officers = d2.data || [];
+      try{
+        const d1 = await sb.from("departments").select("*");
+        if(d1.error){ alert("Departments laden fehlgeschlagen: " + niceError(d1.error)); departments = []; }
+        else departments = d1.data || [];
 
-      const d3 = await sb.from("department_members").select("*");
-      if(d3.error){ alert("Members laden fehlgeschlagen: " + niceError(d3.error)); memberships = []; }
-      else memberships = d3.data || [];
+        const d2 = await sb.from("officers").select("*");
+        if(d2.error){ alert("Officers laden fehlgeschlagen: " + niceError(d2.error)); officers = []; }
+        else officers = d2.data || [];
 
-      renderAll();
+        const d3 = await sb.from("department_members").select("*");
+        if(d3.error){ alert("Members laden fehlgeschlagen: " + niceError(d3.error)); memberships = []; }
+        else memberships = d3.data || [];
+
+        renderAll();
+      }finally{
+        loadInFlight = false;
+        if(loadQueued){
+          loadQueued = false;
+          // direkt nachziehen
+          loadDataNow();
+        }
+      }
     }
 
-    function setupRealtime(){
+    // kleine Entprellung für Realtime-Events
+    let loadTimer = null;
+    function requestLoad(reason=""){
+      clearTimeout(loadTimer);
+      loadTimer = setTimeout(() => { loadDataNow(); }, 80);
+    }
+
+    function teardownRealtime(){
       if(rtChannel){
         try{ sb.removeChannel(rtChannel); }catch(_){}
         rtChannel = null;
       }
-      rtChannel = sb.channel("verwaltung-rt");
+      isRealtimeReady = false;
+    }
+
+    function setupRealtime(){
+      teardownRealtime();
+      if(!sessionUser) return;
+
+      rtChannel = sb.channel("verwaltung-rt", { config: { broadcast: { ack: false } } });
+
       rtChannel
-        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => loadData())
-        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => loadData())
-        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => loadData())
-        .subscribe();
+        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => requestLoad("departments"))
+        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => requestLoad("officers"))
+        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => requestLoad("department_members"))
+        .subscribe((status) => {
+          // ✅ Tabwechsel/Focus kann Realtime kurz droppen – Status sauber tracken
+          isRealtimeReady = (status === "SUBSCRIBED");
+        });
     }
 
     function enableWheelHorizontalScroll(){
@@ -983,6 +1030,53 @@
       syncPoolToggleArrow();
     }
 
+    // ✅ Session “soft refresh” (wichtig nach Tabwechsel)
+    async function softRefreshSession(){
+      try{
+        const { data } = await sb.auth.getSession();
+        const sess = data?.session || null;
+
+        // wenn keine Session: UI muss wieder Login zeigen
+        if(!sess){
+          sessionUser = null;
+          userRole = "none";
+          setRoleUI();
+          loginOverlay.style.display = "flex";
+          teardownRealtime();
+          destroySortable();
+          return false;
+        }
+
+        // optional: refresh (Supabase kann hier still “no-op” machen)
+        await sb.auth.refreshSession();
+
+        // User aktualisieren, falls Storage-Event von anderem Tab kam
+        sessionUser = sess.user;
+        userRole = await detectRole(sessionUser);
+        setRoleUI();
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+
+    // ✅ Wenn Tab wieder sichtbar/fokussiert: Session + Realtime + Daten “re-arm”
+    async function onAppResume(){
+      if(document.visibilityState !== "visible") return;
+
+      const ok = await softRefreshSession();
+      if(!ok) return;
+
+      // Realtime nach Tabwechsel gern neu anstoßen, wenn nicht subscribed
+      if(!rtChannel || !isRealtimeReady){
+        setupRealtime();
+      }
+
+      // Daten neu laden, damit UI wieder “fresh” ist
+      requestLoad("resume");
+      mountPoolToggle();
+    }
+
     // Modals
     modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
     modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
@@ -1005,6 +1099,8 @@
       const name = String(createDeptName.value || "").trim();
       if(!name) return;
 
+      await softRefreshSession();
+
       const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
       const { error } = await sb.from("departments").insert({ name, sort: maxSort + 1 });
       if(error) alert("Erstellen fehlgeschlagen: " + niceError(error));
@@ -1018,6 +1114,8 @@
       if(!isAdmin()) return;
       const deptIdStr = pendingDeleteDeptIdStr;
       if(!deptIdStr) return;
+
+      await softRefreshSession();
 
       const deptId = castDeptId(deptIdStr);
 
@@ -1039,13 +1137,29 @@
 
     btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
 
+    // ✅ Logout: robust + UI Cleanup + Realtime down
     btnLogout.addEventListener("click", async () => {
-      await sb.auth.signOut();
-      sessionUser = null;
-      userRole = "none";
-      setRoleUI();
-      loginOverlay.style.display = "flex";
-      destroySortable();
+      try{
+        btnLogout.disabled = true;
+        btnLogout.style.opacity = "0.8";
+
+        teardownRealtime();
+        destroySortable();
+
+        // scope:'local' = nur diesen Browser (stabiler für Multi-Tab, trotzdem via Storage Event sync)
+        await sb.auth.signOut({ scope: "local" });
+
+      }catch(_){
+        // falls irgendwas hängt: trotzdem UI reset
+      }finally{
+        btnLogout.disabled = false;
+        btnLogout.style.opacity = "";
+
+        sessionUser = null;
+        userRole = "none";
+        setRoleUI();
+        loginOverlay.style.display = "flex";
+      }
     });
 
     function normalizeNameToEmail(name){
@@ -1076,15 +1190,48 @@
       userRole = await detectRole(sessionUser);
       setRoleUI();
       loginOverlay.style.display = "none";
-      await loadData();
+
+      await loadDataNow();
       setupRealtime();
       mountPoolToggle();
     }
 
     btnLogin.addEventListener("click", doLogin);
     loginPass.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
+    loginName.addEventListener("keydown", (e) => { if(e.key === "Enter") doLogin(); });
 
-    (async function init(){
+    // ✅ Resume Hooks (Tabwechsel Fix)
+    document.addEventListener("visibilitychange", onAppResume);
+    window.addEventListener("focus", onAppResume);
+
+    // optional: Keepalive (sehr mild)
+    setInterval(() => {
+      if(sessionUser) softRefreshSession();
+    }, 60 * 1000);
+
+    // Auth State Sync (z.B. wenn anderer Tab logged out)
+    sb.auth.onAuthStateChange(async (_event, session) => {
+      sessionUser = session?.user || null;
+      userRole = sessionUser ? await detectRole(sessionUser) : "none";
+      setRoleUI();
+
+      if(sessionUser){
+        loginOverlay.style.display = "none";
+        setupRealtime();
+        requestLoad("auth-change");
+        mountPoolToggle();
+      }else{
+        loginOverlay.style.display = "flex";
+        teardownRealtime();
+        destroySortable();
+      }
+    });
+
+    function overlayLogin(show){
+      loginOverlay.style.display = show ? "flex" : "none";
+    }
+
+    async function init(){
       enableWheelHorizontalScroll();
 
       const { data } = await sb.auth.getSession();
@@ -1092,33 +1239,20 @@
 
       if(!sessionUser){
         setRoleUI();
-        loginOverlay.style.display = "flex";
+        overlayLogin(true);
         return;
       }
 
       userRole = await detectRole(sessionUser);
       setRoleUI();
+      overlayLogin(false);
 
-      await loadData();
+      await loadDataNow();
       setupRealtime();
       mountPoolToggle();
+    }
 
-      sb.auth.onAuthStateChange(async (_event, session) => {
-        sessionUser = session?.user || null;
-        userRole = sessionUser ? await detectRole(sessionUser) : "none";
-        setRoleUI();
-
-        if(sessionUser){
-          loginOverlay.style.display = "none";
-          await loadData();
-          setupRealtime();
-          mountPoolToggle();
-        }else{
-          loginOverlay.style.display = "flex";
-          destroySortable();
-        }
-      });
-    })();
+    init();
   })();
   </script>
 </body>
