@@ -62,43 +62,13 @@
         0 0 22px rgba(0,255,195,.10);
       transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
     }
-    .navPillBtn:hover{
-      transform: translateY(-1px);
-      background: rgba(0,0,0,.28);
-      border-color: rgba(0,255,195,.72);
-      box-shadow:
-        0 14px 34px rgba(0,0,0,.45),
-        0 0 0 1px rgba(255,255,255,.06) inset,
-        0 0 26px rgba(0,255,195,.14);
-    }
-    .navPillBtn:active{
-      transform: translateY(0px);
-      box-shadow:
-        0 10px 26px rgba(0,0,0,.35),
-        0 0 0 1px rgba(255,255,255,.05) inset,
-        0 0 18px rgba(0,255,195,.10);
-    }
-    .navPillBtn:focus{
-      outline:none;
-    }
-    .navPillBtn:focus-visible{
-      box-shadow:
-        0 14px 34px rgba(0,0,0,.45),
-        0 0 0 1px rgba(255,255,255,.06) inset,
-        0 0 0 3px rgba(0,255,195,.22);
-    }
-    .navPillBtn .icon{
-      width:22px; height:22px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border-radius: 10px;
-      background: rgba(0,255,195,.10);
-      border:1px solid rgba(0,255,195,.22);
-      box-shadow: 0 0 14px rgba(0,255,195,.10);
-      flex: 0 0 22px;
-      font-weight: 900;
-    }
+    /* Abteilungen Button – gleiche Optik wie "Zur Leitstelle" */
+#btnDepartments{
+  border-color: rgba(0,255,195,0.25);
+  box-shadow:
+    0 0 0 1px rgba(0,255,195,0.10) inset,
+    0 14px 32px rgba(0,0,0,0.30);
+}
   </style>
 </head>
 
@@ -462,28 +432,29 @@
      * ✅ Header Button: Abteilungen (links neben Logout)
      ***********************/
     function injectDepartmentsButton(){
-      const logoutBtn = document.getElementById("btnLogout");
-      if(!logoutBtn) return;
+  const logoutBtn = document.getElementById("btnLogout");
+  if(!logoutBtn) return;
 
-      // schon vorhanden?
-      if(document.getElementById("btnDepartments")) return;
+  // schon vorhanden?
+  if(document.getElementById("btnDepartments")) return;
 
-      const btn = document.createElement("button");
-      btn.id = "btnDepartments";
-      btn.type = "button";
-      btn.className = "navPillBtn";
-      btn.title = "Zur Abteilungen-Seite";
+  const btn = document.createElement("button");
+  btn.id = "btnDepartments";
+  btn.type = "button";
 
-      // kleines Icon links (ähnlich wie auf deinem Bild)
-      btn.innerHTML = `<span class="icon">≡</span><span>Abteilungen</span>`;
+  // exakt gleiche Buttonklassen wie "Zur Leitstelle"
+  btn.className = "btn btnGhost btnPrimary";
 
-      // direkt links neben Logout
-      logoutBtn.parentElement?.insertBefore(btn, logoutBtn);
+  btn.title = "Zur Abteilungen-Seite";
+  btn.textContent = "Abteilungen";
 
-      btn.addEventListener("click", () => {
-        window.location.href = "abteilung.html";
-      });
-    }
+  // links neben Logout einfügen
+  logoutBtn.parentElement?.insertBefore(btn, logoutBtn);
+
+  btn.addEventListener("click", () => {
+    window.location.href = "abteilung.html";
+  });
+}
 
     /***********************
      * HELPERS
