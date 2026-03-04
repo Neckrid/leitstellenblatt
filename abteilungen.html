@@ -923,14 +923,14 @@
     poolSearch.addEventListener("input", () => renderAll());
     btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
 
-    // ✅ GLOBAL logout (für alle Tabs/Seiten im Browser)
+    // ✅ Logout: NUR LOCAL (dieser PC/Browser) -> andere PCs bleiben eingeloggt
     btnLogout.addEventListener("click", async () => {
       try{
         btnLogout.disabled = true;
         btnLogout.style.opacity = "0.8";
         teardownRealtime();
         destroySortable();
-        await sb.auth.signOut(); // <- NICHT local scope
+        await sb.auth.signOut({ scope: "local" });
       }catch(_){
       }finally{
         btnLogout.disabled = false;
@@ -939,7 +939,7 @@
       }
     });
 
-    // ✅ Wenn irgendwo (Leitstelle oder Abteilungen) ausgeloggt wird, reagiert diese Seite auch
+    // ✅ Wenn irgendwo (Leitstelle oder Abteilungen) ausgeloggt wird, reagiert diese Seite auch (innerhalb dieses Browsers)
     sb.auth.onAuthStateChange(async (_event, session) => {
       sessionUser = session?.user || null;
       if(!sessionUser){
