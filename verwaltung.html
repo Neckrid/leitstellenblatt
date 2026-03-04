@@ -17,6 +17,9 @@
        (Theme.css ist Master für Look & Feel)
        ========================================================= */
 
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
     /* App Wrapper unter globalem Header */
     .adminApp{
       height:100%;
@@ -243,6 +246,23 @@
       border-color: rgba(0,255,195,0.25);
       box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
     }
+
+    /* ✅ Login soll alles “wegblenden” wie im Leitstellenblatt */
+    body.loginActive .topHeader,
+    body.loginActive .adminApp,
+    body.loginActive #poolToggleSlotTopLeft,
+    body.loginActive #poolToggleBtn{
+      display:none !important;
+    }
+
+    /* Overlay wirklich “voll zu” */
+    #loginOverlay{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(14px);
+    }
   </style>
 </head>
 
@@ -330,7 +350,7 @@
           <div class="badge">LSPD</div>
           <div class="loginTitleWrap">
             <div class="loginTitle">LOGIN</div>
-            <div class="loginSub">Bitte anmelden.</div>
+            <div class="loginSub">Bitte anmelden</div>
           </div>
         </div>
       </div>
@@ -348,7 +368,6 @@
         <div class="row">
           <button class="btn btnPrimary" id="btnLogin" style="width:100%;" type="button">Einloggen</button>
         </div>
-        
       </div>
     </div>
   </div>
@@ -399,13 +418,13 @@
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
-    // ✅ Stabilere Client-Config (Multi-Tab / Token Refresh)
+    // ✅ Stabilere Client-Config (Multi-PC/Token Refresh/Tab stable)
     const sb = supabase.createClient(SB_URL, SB_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
-        storageKey: "lspd-auth" // gleicher Key = stabil in mehreren Tabs
+        storageKey: "lspd-auth"
       },
       realtime: {
         params: { eventsPerSecond: 10 }
@@ -880,6 +899,31 @@
       await ensureMembership(toDeptIdStr, officerIdStr);
     }
 
+    async function softRefreshSession(){
+      try{
+        const { data } = await sb.auth.getSession();
+        const sess = data?.session || null;
+
+        if(!sess){
+          sessionUser = null;
+          userRole = "none";
+          setRoleUI();
+          overlayLogin(true);
+          teardownRealtime();
+          destroySortable();
+          return false;
+        }
+
+        await sb.auth.refreshSession();
+        sessionUser = sess.user;
+        userRole = await detectRole(sessionUser);
+        setRoleUI();
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+
     function initSortable(){
       destroySortable();
 
@@ -916,7 +960,6 @@
 
             if(!officerIdStr || !toDeptIdStr) return;
 
-            // ✅ Wenn Tab/Realtime kurz weg war: Session kann “stale” sein -> einmal refresh versuchen
             await softRefreshSession();
 
             if(evt.from === poolList){
@@ -958,15 +1001,13 @@
         loadInFlight = false;
         if(loadQueued){
           loadQueued = false;
-          // direkt nachziehen
           loadDataNow();
         }
       }
     }
 
-    // kleine Entprellung für Realtime-Events
     let loadTimer = null;
-    function requestLoad(reason=""){
+    function requestLoad(){
       clearTimeout(loadTimer);
       loadTimer = setTimeout(() => { loadDataNow(); }, 80);
     }
@@ -986,31 +1027,28 @@
       rtChannel = sb.channel("verwaltung-rt", { config: { broadcast: { ack: false } } });
 
       rtChannel
-        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => requestLoad("departments"))
-        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => requestLoad("officers"))
-        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => requestLoad("department_members"))
+        .on("postgres_changes", { event:"*", schema:"public", table:"departments" }, () => requestLoad())
+        .on("postgres_changes", { event:"*", schema:"public", table:"officers" }, () => requestLoad())
+        .on("postgres_changes", { event:"*", schema:"public", table:"department_members" }, () => requestLoad())
         .subscribe((status) => {
-          // ✅ Tabwechsel/Focus kann Realtime kurz droppen – Status sauber tracken
           isRealtimeReady = (status === "SUBSCRIBED");
         });
     }
 
+    // ✅ schneller horizontal scroll (Mausrad)
     function enableWheelHorizontalScroll(){
-  const SPEED = 2.8; // <- höher = schneller (z.B. 2.0 bis 4.0)
-  deptGrid.addEventListener("wheel", (e) => {
-    // Wenn User bewusst horizontal scrollt (Trackpad deltaX), nicht reinpfuschen
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      const SPEED = 2.8; // höher = schneller
+      deptGrid.addEventListener("wheel", (e) => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
 
-    e.preventDefault();
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) dy *= 18;
+        if (e.deltaMode === 2) dy *= 240;
 
-    // deltaMode: 0=pixel, 1=line, 2=page -> auf pixel skalieren
-    let dy = e.deltaY;
-    if (e.deltaMode === 1) dy *= 18;
-    if (e.deltaMode === 2) dy *= 240;
-
-    deptGrid.scrollLeft += dy * SPEED;
-  }, { passive:false });
-}
+        deptGrid.scrollLeft += dy * SPEED;
+      }, { passive:false });
+    }
 
     function syncPoolToggleArrow(){
       const closed = document.body.classList.contains("poolClosed");
@@ -1035,56 +1073,28 @@
       syncPoolToggleArrow();
     }
 
-    // ✅ Session “soft refresh” (wichtig nach Tabwechsel)
-    async function softRefreshSession(){
-      try{
-        const { data } = await sb.auth.getSession();
-        const sess = data?.session || null;
-
-        // wenn keine Session: UI muss wieder Login zeigen
-        if(!sess){
-          sessionUser = null;
-          userRole = "none";
-          setRoleUI();
-          loginOverlay.style.display = "flex";
-          teardownRealtime();
-          destroySortable();
-          return false;
-        }
-
-        // optional: refresh (Supabase kann hier still “no-op” machen)
-        await sb.auth.refreshSession();
-
-        // User aktualisieren, falls Storage-Event von anderem Tab kam
-        sessionUser = sess.user;
-        userRole = await detectRole(sessionUser);
-        setRoleUI();
-        return true;
-      }catch(_){
-        return false;
-      }
+    function overlayLogin(show){
+      document.body.classList.toggle("loginActive", !!show);
+      loginOverlay.style.display = show ? "flex" : "none";
     }
 
-    // ✅ Wenn Tab wieder sichtbar/fokussiert: Session + Realtime + Daten “re-arm”
     async function onAppResume(){
       if(document.visibilityState !== "visible") return;
 
       const ok = await softRefreshSession();
       if(!ok) return;
 
-      // Realtime nach Tabwechsel gern neu anstoßen, wenn nicht subscribed
       if(!rtChannel || !isRealtimeReady){
         setupRealtime();
       }
 
-      // Daten neu laden, damit UI wieder “fresh” ist
-      requestLoad("resume");
+      requestLoad();
       mountPoolToggle();
     }
 
     // Modals
-    modalCreateDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalCreateDept));
-    modalDeleteDept.addEventListener("click", (e) => overlayCloseOnClick(e, modalDeleteDept));
+    modalCreateDept.addEventListener("click", (e) => { if(e.target === modalCreateDept) closeModal(modalCreateDept); });
+    modalDeleteDept.addEventListener("click", (e) => { if(e.target === modalDeleteDept) closeModal(modalDeleteDept); });
     window.addEventListener("keydown", (e) => {
       if(e.key === "Escape"){
         closeModal(modalCreateDept);
@@ -1097,6 +1107,7 @@
       createDeptName.value = "";
       openModal(modalCreateDept);
     });
+
     closeCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
     cancelCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
     confirmCreateDept.addEventListener("click", async () => {
@@ -1142,7 +1153,7 @@
 
     btnToLeitstelle.addEventListener("click", () => { window.location.href = "index.html"; });
 
-    // ✅ Logout: robust + UI Cleanup + Realtime down
+    // ✅ Logout robust
     btnLogout.addEventListener("click", async () => {
       try{
         btnLogout.disabled = true;
@@ -1151,11 +1162,8 @@
         teardownRealtime();
         destroySortable();
 
-        // scope:'local' = nur diesen Browser (stabiler für Multi-Tab, trotzdem via Storage Event sync)
         await sb.auth.signOut({ scope: "local" });
-
       }catch(_){
-        // falls irgendwas hängt: trotzdem UI reset
       }finally{
         btnLogout.disabled = false;
         btnLogout.style.opacity = "";
@@ -1163,7 +1171,7 @@
         sessionUser = null;
         userRole = "none";
         setRoleUI();
-        loginOverlay.style.display = "flex";
+        overlayLogin(true);
       }
     });
 
@@ -1194,7 +1202,7 @@
       sessionUser = data.user;
       userRole = await detectRole(sessionUser);
       setRoleUI();
-      loginOverlay.style.display = "none";
+      overlayLogin(false);
 
       await loadDataNow();
       setupRealtime();
@@ -1209,32 +1217,28 @@
     document.addEventListener("visibilitychange", onAppResume);
     window.addEventListener("focus", onAppResume);
 
-    // optional: Keepalive (sehr mild)
+    // optional: Keepalive (mild)
     setInterval(() => {
       if(sessionUser) softRefreshSession();
     }, 60 * 1000);
 
-    // Auth State Sync (z.B. wenn anderer Tab logged out)
+    // Auth State Sync (z.B. anderer Tab logged out)
     sb.auth.onAuthStateChange(async (_event, session) => {
       sessionUser = session?.user || null;
       userRole = sessionUser ? await detectRole(sessionUser) : "none";
       setRoleUI();
 
       if(sessionUser){
-        loginOverlay.style.display = "none";
+        overlayLogin(false);
         setupRealtime();
-        requestLoad("auth-change");
+        requestLoad();
         mountPoolToggle();
       }else{
-        loginOverlay.style.display = "flex";
+        overlayLogin(true);
         teardownRealtime();
         destroySortable();
       }
     });
-
-    function overlayLogin(show){
-      loginOverlay.style.display = show ? "flex" : "none";
-    }
 
     async function init(){
       enableWheelHorizontalScroll();
