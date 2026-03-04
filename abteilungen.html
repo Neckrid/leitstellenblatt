@@ -341,7 +341,7 @@
   <script>
   (function(){
     const SB_URL = "https://vuowfnmavgfkvabdtelx.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1b3dmbm1hdmdma3ZhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmR0ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTM1MjQsImV4cCI6MjA4Nzg2OTUyNH0.R-oI8UzrP_ovDePN11wN2zFDifERkMOHZfNckjHLwhg";
 
     // ✅ WICHTIG: kein custom storageKey -> teilt Session mit Leitstellenblatt (Default)
     const sb = supabase.createClient(SB_URL, SB_KEY, {
@@ -686,6 +686,54 @@
       el.setAttribute("aria-hidden","true");
     }
 
+    // ===========================
+    // ✅ CREATE DEPT MODAL WIRING
+    // ===========================
+    btnCreateDeptTop.addEventListener("click", () => {
+      if(!isAdmin()) return;
+      createDeptName.value = "";
+      openModal(modalCreateDept);
+    });
+
+    closeCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
+    cancelCreateDept.addEventListener("click", () => closeModal(modalCreateDept));
+
+    modalCreateDept.addEventListener("click", (e) => {
+      if(e.target === modalCreateDept) closeModal(modalCreateDept);
+    });
+
+    createDeptName.addEventListener("keydown", (e) => {
+      if(e.key === "Enter") confirmCreateDept.click();
+    });
+
+    confirmCreateDept.addEventListener("click", async () => {
+      if(!isAdmin()) return;
+
+      const name = (createDeptName.value || "").trim();
+      if(!name){ alert("Bitte einen Abteilungsnamen eingeben."); return; }
+
+      confirmCreateDept.disabled = true;
+      confirmCreateDept.style.opacity = "0.8";
+
+      try{
+        const maxSort = departments.reduce((m,d) => Math.max(m, Number(d.sort||0)), 0);
+        const payload = { name, sort: maxSort + 1 };
+
+        const { error } = await sb.from("departments").insert(payload);
+        if(error){
+          alert("Erstellen fehlgeschlagen: " + niceError(error));
+          return;
+        }
+
+        closeModal(modalCreateDept);
+        createDeptName.value = "";
+        requestLoad();
+      }finally{
+        confirmCreateDept.disabled = false;
+        confirmCreateDept.style.opacity = "";
+      }
+    });
+
     function wireDeptActions(){
       deptGrid.querySelectorAll("[data-action='delete-dept']").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -756,6 +804,44 @@
         });
       });
     }
+
+    // Delete Modal wiring
+    function wireDeleteModal(){
+      closeDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
+      cancelDeleteDept.addEventListener("click", () => closeModal(modalDeleteDept));
+      modalDeleteDept.addEventListener("click", (e) => {
+        if(e.target === modalDeleteDept) closeModal(modalDeleteDept);
+      });
+
+      confirmDeleteDept.addEventListener("click", async () => {
+        if(!isAdmin()) return;
+        const deptIdStr = pendingDeleteDeptIdStr;
+        if(!deptIdStr) return;
+
+        confirmDeleteDept.disabled = true;
+        confirmDeleteDept.style.opacity = "0.8";
+
+        try{
+          const deptId = castDeptId(deptIdStr);
+
+          // memberships löschen
+          const mDel = await sb.from("department_members").delete().match({ department_id: deptId });
+          if(mDel.error){ alert("Memberships löschen fehlgeschlagen: " + niceError(mDel.error)); return; }
+
+          // dept löschen
+          const dDel = await sb.from("departments").delete().eq("id", deptId);
+          if(dDel.error){ alert("Abteilung löschen fehlgeschlagen: " + niceError(dDel.error)); return; }
+
+          pendingDeleteDeptIdStr = null;
+          closeModal(modalDeleteDept);
+          requestLoad();
+        }finally{
+          confirmDeleteDept.disabled = false;
+          confirmDeleteDept.style.opacity = "";
+        }
+      });
+    }
+    wireDeleteModal();
 
     let poolSortable = null;
     let deptSortables = [];
