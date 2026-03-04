@@ -38,6 +38,67 @@
       #btnToggleLeft, #btnToggleRight{ display:none; }
       #panelCenter .panelHeader{ padding-left:14px; padding-right:14px; }
     }
+
+    /* ✅ Header-Button "Abteilungen" (wie dein Bild: pill/outline/glow) */
+    .navPillBtn{
+      appearance:none;
+      border:1px solid rgba(0,255,195,.55);
+      background: rgba(0,0,0,.22);
+      color:#fff;
+      border-radius: 14px;
+      padding: 9px 14px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      line-height:1;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow:
+        0 10px 30px rgba(0,0,0,.35),
+        0 0 0 1px rgba(255,255,255,.05) inset,
+        0 0 22px rgba(0,255,195,.10);
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .navPillBtn:hover{
+      transform: translateY(-1px);
+      background: rgba(0,0,0,.28);
+      border-color: rgba(0,255,195,.72);
+      box-shadow:
+        0 14px 34px rgba(0,0,0,.45),
+        0 0 0 1px rgba(255,255,255,.06) inset,
+        0 0 26px rgba(0,255,195,.14);
+    }
+    .navPillBtn:active{
+      transform: translateY(0px);
+      box-shadow:
+        0 10px 26px rgba(0,0,0,.35),
+        0 0 0 1px rgba(255,255,255,.05) inset,
+        0 0 18px rgba(0,255,195,.10);
+    }
+    .navPillBtn:focus{
+      outline:none;
+    }
+    .navPillBtn:focus-visible{
+      box-shadow:
+        0 14px 34px rgba(0,0,0,.45),
+        0 0 0 1px rgba(255,255,255,.06) inset,
+        0 0 0 3px rgba(0,255,195,.22);
+    }
+    .navPillBtn .icon{
+      width:22px; height:22px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius: 10px;
+      background: rgba(0,255,195,.10);
+      border:1px solid rgba(0,255,195,.22);
+      box-shadow: 0 0 14px rgba(0,255,195,.10);
+      flex: 0 0 22px;
+      font-weight: 900;
+    }
   </style>
 </head>
 
@@ -338,9 +399,6 @@
     // From login partial
     let inpLoginName, inpLoginPw, btnLogin;
 
-    // Header partial IDs (optional use)
-    // (connDot/connText exist in header.html, but we now drive them via UI.setPresenceState)
-
     // Page DOM
     let btnToggleLeft, btnToggleRight, edgeLeft, edgeRight;
     let toastEl;
@@ -398,6 +456,33 @@
       confirmClose = document.getElementById("confirmClose");
       confirmCancel = document.getElementById("confirmCancel");
       confirmDelete = document.getElementById("confirmDelete");
+    }
+
+    /***********************
+     * ✅ Header Button: Abteilungen (links neben Logout)
+     ***********************/
+    function injectDepartmentsButton(){
+      const logoutBtn = document.getElementById("btnLogout");
+      if(!logoutBtn) return;
+
+      // schon vorhanden?
+      if(document.getElementById("btnDepartments")) return;
+
+      const btn = document.createElement("button");
+      btn.id = "btnDepartments";
+      btn.type = "button";
+      btn.className = "navPillBtn";
+      btn.title = "Zur Abteilungen-Seite";
+
+      // kleines Icon links (ähnlich wie auf deinem Bild)
+      btn.innerHTML = `<span class="icon">≡</span><span>Abteilungen</span>`;
+
+      // direkt links neben Logout
+      logoutBtn.parentElement?.insertBefore(btn, logoutBtn);
+
+      btn.addEventListener("click", () => {
+        window.location.href = "abteilung.html";
+      });
     }
 
     /***********************
@@ -628,7 +713,6 @@
     let presenceChannel = null;
 
     function setLeitstelleIndicator(isOnline){
-      // ✅ Now driven through global UI helper (header partial)
       if(window.UI?.setPresenceState){
         window.UI.setPresenceState({ online: !!isOnline, text: "Leitstelle" });
       }
@@ -1554,7 +1638,6 @@
      * LOGIN / LOGOUT
      ***********************/
     function showLogin(errMsg=""){
-      // ✅ Use global layout UI
       window.UI?.showLogin?.(errMsg);
     }
     function hideLogin(){
@@ -1647,9 +1730,11 @@
 
       cacheDom();
 
+      // ✅ Button in Header einfügen (links neben Logout)
+      injectDepartmentsButton();
+
       // ✅ Set global header text for this page
       window.UI?.setHeader?.("LSPD Leitstelle", "Leitstellenblatt");
-      // Presence pill should be visible on this page
       window.UI?.setPresenceVisible?.(true);
       setLeitstelleIndicator(false);
 
@@ -1720,6 +1805,9 @@
       btnLogin.addEventListener("click", doLogin);
 
       document.addEventListener("click", (e) => {
+        const dep = e.target.closest("#btnDepartments");
+        if(dep){ e.preventDefault(); window.location.href = "abteilung.html"; return; }
+
         const logout = e.target.closest("#btnLogout");
         if(logout){ e.preventDefault(); doLogout(); return; }
 
