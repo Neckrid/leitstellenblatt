@@ -7,165 +7,190 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  
+
+  <!-- ✅ Global Theme -->
   <link rel="stylesheet" href="shared/theme.css"/>
-  
+
   <style>
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: Arial, Helvetica, sans-serif;
-      color:#fff;
-      overflow:hidden;
-      background:
-        radial-gradient(1200px 700px at 12% 18%, rgba(0,255,195,0.10), transparent 60%),
-        radial-gradient(900px 650px at 88% 72%, rgba(255,70,180,0.08), transparent 62%),
-        radial-gradient(760px 520px at 72% 20%, rgba(0,140,255,0.10), transparent 60%),
-        linear-gradient(180deg, #05070c, #070a12 40%, #05060b);
-    }
-    :root{
-      --stroke: rgba(255,255,255,0.10);
-      --shadow: 0 20px 60px rgba(0,0,0,0.55);
-      --shadow2: 0 14px 36px rgba(0,0,0,0.45);
-      --danger: rgba(255,60,90,0.85);
-      --warn: rgba(255,200,0,0.9);
-      --ok: rgba(0,255,140,0.85);
-      --muted: rgba(255,255,255,0.75);
-      --muted2: rgba(255,255,255,0.55);
+    /* =========================================================
+       VERWALTUNG – PAGE CSS ONLY
+       (Theme.css ist Master für Look & Feel)
+       ========================================================= */
 
-      --wrapPad: 14px;
-      --gap: 14px;
-      --poolW: 330px;
-    }
-
-    .topbar{
-      height:64px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding: 10px 18px;
-      border-bottom: 1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      backdrop-filter: blur(10px);
-      position:relative;
-      z-index: 50;
-    }
-    .brand{ display:flex; gap:12px; align-items:center; user-select:none; }
-    .pill{
-      padding:6px 10px;
-      border:1px solid var(--stroke);
-      background: rgba(255,255,255,0.06);
-      border-radius: 999px;
-      font-size:12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .brandTitle{ font-weight:700; letter-spacing:0.3px; font-size:14px; }
-    .brandSub{ font-size:12px; color: var(--muted2); margin-top:1px; }
-    .rightTop{ display:flex; gap:10px; align-items:center; }
-
-    .btn{
-      border:1px solid var(--stroke);
-      background: rgba(255,255,255,0.06);
-      color:#fff;
-      padding:9px 12px;
-      border-radius: 10px;
-      cursor:pointer;
-      transition: transform .05s ease, background .15s ease, border-color .15s ease;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-      font-weight:600;
-      font-size:13px;
-      line-height:1;
-      user-select:none;
-      white-space:nowrap;
-    }
-    .btn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-    .btn:active{ transform: translateY(1px); }
-    .btn.primary{ border-color: rgba(0,255,195,0.25); box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30); }
-    .btn.danger{ border-color: rgba(255,60,90,0.28); background: rgba(255,60,90,0.12); }
-    .btn.danger:hover{ background: rgba(255,60,90,0.18); border-color: rgba(255,60,90,0.40); }
-    .btn.ghost{ box-shadow:none; }
-
-    .badge{
-      display:flex; align-items:center; gap:8px;
-      padding:7px 10px;
-      border:1px solid var(--stroke);
-      background: rgba(255,255,255,0.05);
-      border-radius: 999px;
-      font-size:12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .dot{
-      width:8px; height:8px; border-radius:999px;
-      background: rgba(255,255,255,0.35);
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
-    }
-    .dot.ok{ background: var(--ok); box-shadow: 0 0 0 3px rgba(0,255,140,0.12); }
-    .dot.warn{ background: var(--warn); box-shadow: 0 0 0 3px rgba(255,200,0,0.12); }
-
-    .wrap{
-      height: calc(100vh - 64px);
+    /* App Wrapper unter globalem Header */
+    .adminApp{
+      height:100%;
       display:grid;
-      grid-template-columns: var(--poolW) 1fr;
-      gap: var(--gap);
-      padding: var(--wrapPad);
+      gap:14px;
+      padding:14px;
+      padding-top: var(--appTopPad);
+      grid-template-columns: 330px 1fr;
       transition: grid-template-columns .22s ease;
       position:relative;
-    }
-    body.poolClosed .wrap{ grid-template-columns: 0px 1fr; }
-
-    .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045));
-      border: 1px solid var(--stroke);
-      border-radius: 18px;
-      box-shadow: var(--shadow2);
-      backdrop-filter: blur(12px);
-      overflow:hidden;
       min-height:0;
+    }
+    body.poolClosed .adminApp{ grid-template-columns: 0px 1fr; }
+
+    /* Panels: benutzen Theme .panel/.panelHeader/.content etc. */
+    #poolPanel{ min-width:0; transition: opacity .22s ease; }
+    body.poolClosed #poolPanel{ opacity:0; pointer-events:none; }
+
+    /* Content heights */
+    #poolPanel .content,
+    #deptPanel .content{ height:100%; }
+
+    /* Dept content ohne padding, damit grid sauber scrollt */
+    #deptPanel .content{ padding:0; }
+
+    /* Horizontaler Dept-Scroll: nebeneinander, NICHT untereinander */
+    .deptGrid{
+      height:100%;
+      display:flex;
+      gap:12px;
+      overflow:auto;
+      padding:12px;
+      scroll-behavior:smooth;
+    }
+
+    .dept{
+      min-width:320px;
+      max-width:360px;
+      flex:0 0 auto;
+      display:flex;
+      flex-direction:column;
+      min-height:140px;
       position:relative;
     }
+    /* Dept Card nutzt Theme .card Look */
+    .dept.card{ border-radius:18px; }
 
-    /* PoolPanel: kein transform -> stabil */
-    .poolPanel{ min-width:0; transition: opacity .22s ease; }
-    body.poolClosed .poolPanel{
-      opacity:0;
-      pointer-events:none;
+    .deptHead{
+      padding:12px;
+      border-bottom:1px solid rgba(255,255,255,0.10);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .deptName{ font-weight:900; letter-spacing:0.2px; font-size:13px; }
+    .deptSub{
+      margin-top:6px;
+      font-size:11px;
+      color: var(--muted2);
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
     }
 
-    .panelHeader{
-      padding: 12px 12px 10px 12px;
-      border-bottom: 1px solid var(--stroke);
+    .deptBody{ padding:12px; overflow:auto; min-height:0; flex:1 1 auto; }
+
+    /* Officer cards in Verwaltung (Theme-kompatibel) */
+    .officer{
+      border: 1px solid rgba(255,255,255,0.10);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+        rgba(0,0,0,0.22);
+      border-radius: 14px;
+      padding: 10px 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
+      user-select:none;
       position:relative;
     }
-    .panelTitle{
-      font-size:13px;
+    .officer:hover{
+      border-color: rgba(0,255,195,0.20);
+      box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 30px rgba(0,0,0,0.32);
+    }
+
+    .oLeft{ display:flex; align-items:center; gap:10px; min-width:0; width:100%; }
+
+    .handle{
+      width:28px; height:28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0.85;
+      cursor: grab;
+      flex: 0 0 auto;
+    }
+    .bars{ width:14px; height:12px; position:relative; }
+    .bars:before,.bars:after,.bars i{
+      content:"";
+      position:absolute; left:0; right:0;
+      height:2px; border-radius: 2px;
+      background: rgba(255,255,255,0.70);
+    }
+    .bars:before{ top:0; }
+    .bars i{ top:5px; }
+    .bars:after{ bottom:0; }
+
+    .oText{ min-width:0; flex:1 1 auto; }
+    .oName{
       font-weight:800;
-      letter-spacing:0.3px;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .oMeta{
+      margin-top:6px;
+      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+      font-size:11px;
+      color: var(--muted2);
+    }
+    .badgeBox{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .tag{
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
+      font-weight:800;
+      font-size:11px;
+      line-height:1.2;
+      white-space:nowrap;
+    }
+    .tag.dn{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
+    .tag.rank{ border-color: rgba(0,140,255,0.22); background: rgba(0,140,255,0.10); }
+    .tag.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
+    .tag.deputy{ border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
+
+    /* Hover remove membership */
+    .memRemoveWrap{
+      opacity:0;
+      pointer-events:none;
+      transition:.15s;
+      flex:0 0 auto;
+    }
+    .officer:hover .memRemoveWrap{ opacity:1; pointer-events:auto; }
+    .memRemoveBtn{
+      width:34px; height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,60,90,0.28);
+      background: rgba(255,60,90,0.12);
+      color:#fff;
+      cursor:pointer;
       display:flex;
       align-items:center;
-      gap:10px;
-      min-width:0;
-      position:relative;  /* ✅ optional stabil */
-      z-index:1;          /* ✅ optional stabil */
+      justify-content:center;
+      transition:.15s;
+      user-select:none;
     }
-    .panelBody{
-      padding: 12px;
-      height: calc(100% - 46px);
-      overflow:auto;
+    .memRemoveBtn:hover{
+      background: rgba(255,60,90,0.18);
+      border-color: rgba(255,60,90,0.40);
     }
 
-    /* ===== FIX: Wenn Pool eingeklappt ist, schieb "Abteilungen" + Badge nach rechts ===== */
-    body.poolClosed #deptPanel .panelHeader .panelTitle{
-      padding-left: 84px; /* ✅ größerer Abstand, damit Toggle garantiert nicht überdeckt */
-    }
+    /* Pool search spacing */
+    .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
 
-    /* ===== Toggle Button (ein Element, wandert zwischen Slots) ===== */
+    /* ✅ Pool Toggle (wandert zwischen Slots) */
     .poolToggleBtn{
       width: 44px;
       height: 36px;
@@ -197,9 +222,9 @@
     /* Slot oben links (wie Leitstellenblatt) */
     #poolToggleSlotTopLeft{
       position: fixed;
-      left: var(--wrapPad);
-      top: calc(64px + var(--wrapPad));
-      z-index: 99999;
+      left: 14px;
+      top: calc(var(--appTopPad) + 12px);
+      z-index: 999;
       display:none; /* nur wenn poolClosed */
     }
     body.poolClosed #poolToggleSlotTopLeft{ display:block; }
@@ -208,321 +233,96 @@
     body.poolClosed #poolToggleSlotInPool{ display:none; }
     #poolToggleSlotInPool{ display:flex; }
 
-    .searchWrap{ display:flex; gap:8px; align-items:center; margin-bottom: 10px; }
-    input, select{
-      width:100%;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color:#fff;
-      border-radius: 12px;
-      padding: 10px 10px;
-      outline:none;
-      font-size:13px;
-    }
-    input::placeholder{ color: rgba(255,255,255,0.45); }
-    option{ color:#000; }
-
-    .officer{
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(0,0,0,0.22);
-      border-radius: 14px;
-      padding: 10px 10px;
-      margin-bottom: 10px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      user-select:none;
-      position:relative;
-    }
-    .officer:hover{
-      border-color: rgba(0,255,195,0.20);
-      box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 30px rgba(0,0,0,0.32);
-    }
-    .oLeft{ display:flex; align-items:center; gap:10px; min-width:0; width:100%; }
-    .handle{
-      width:28px; height:28px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      display:flex; align-items:center; justify-content:center;
-      opacity:0.85;
-      cursor: grab;
-      flex: 0 0 auto;
-    }
-    .bars{ width:14px; height:12px; position:relative; }
-    .bars:before,.bars:after,.bars i{
-      content:"";
-      position:absolute; left:0; right:0;
-      height:2px; border-radius: 2px;
-      background: rgba(255,255,255,0.70);
-    }
-    .bars:before{ top:0; }
-    .bars i{ top:5px; }
-    .bars:after{ bottom:0; }
-
-    .oText{ min-width:0; flex:1 1 auto; }
-    .oName{
-      font-weight:800;
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .oMeta{
-      margin-top:4px;
-      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
-      font-size:11px;
-      color: var(--muted2);
-    }
-    .badgeBox{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
-    .tag{
-      padding:3px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.85);
-      font-weight:800;
-      font-size:11px;
-      line-height:1.2;
-      white-space:nowrap;
-    }
-    .tag.dn{ border-color: rgba(0,255,195,0.22); background: rgba(0,255,195,0.09); }
-    .tag.rank{ border-color: rgba(0,140,255,0.22); background: rgba(0,140,255,0.10); }
-    .tag.lead{ border-color: rgba(255,200,0,0.25); background: rgba(255,200,0,0.10); }
-    .tag.deputy{ border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
-
-    .memRemoveWrap{
-      opacity:0;
-      pointer-events:none;
-      transition:.15s;
-      flex:0 0 auto;
-    }
-    .officer:hover .memRemoveWrap{ opacity:1; pointer-events:auto; }
-    .memRemoveBtn{
-      width:34px; height:34px;
-      border-radius: 12px;
-      border:1px solid rgba(255,60,90,0.28);
-      background: rgba(255,60,90,0.12);
-      color:#fff;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      transition:.15s;
-      user-select:none;
-    }
-    .memRemoveBtn:hover{
-      background: rgba(255,60,90,0.18);
-      border-color: rgba(255,60,90,0.40);
+    /* Wenn Pool eingeklappt: Header Text im DeptPanel nach rechts, damit Toggle nicht überdeckt */
+    body.poolClosed #deptPanel .panelHeader{
+      padding-left: 84px;
     }
 
-    .deptGrid{
-      height:100%;
-      display:flex;
-      gap: 12px;
-      overflow:auto;
-      padding: 12px;
-    }
-    .dept{
-      min-width: 320px;
-      max-width: 360px;
-      flex: 0 0 auto;
-      background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      overflow:hidden;
-      min-height: 140px;
-      display:flex;
-      flex-direction:column;
-      position:relative;
-    }
-    .deptHead{
-      padding: 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .deptName{ font-weight:900; letter-spacing:0.2px; font-size:13px; }
-    .deptSub{
-      margin-top:4px;
-      font-size:11px;
-      color: var(--muted2);
-      display:flex;
-      gap:6px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .deptActions{ display:flex; gap:8px; align-items:center; }
-    .dept .delWrap{ opacity:0; pointer-events:none; transition:.15s; }
-    .dept:hover .delWrap{ opacity:1; pointer-events:auto; }
+    /* Login Overlay: nutzt Theme Klassen loginOverlay/loginCard/loginErr */
+    /* (Theme bereits vorhanden, wir nutzen nur IDs) */
 
-    .iconBtn{
-      width:34px; height:34px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      color:#fff;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      transition:.15s;
-      user-select:none;
-      white-space:nowrap;
-    }
-    .iconBtn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-    .iconBtn.danger{
-      border-color: rgba(255,60,90,0.28);
-      background: rgba(255,60,90,0.12);
-    }
-    .iconBtn.danger:hover{
-      background: rgba(255,60,90,0.18);
-      border-color: rgba(255,60,90,0.40);
-    }
+    /* Modals: Theme modalOverlay/modalCard etc. nutzen */
+    /* (Theme bereits vorhanden, wir nutzen nur IDs) */
 
-    .deptBody{ padding: 12px; overflow:auto; min-height:0; flex: 1 1 auto; }
-
-    .overlay{
-      position:fixed; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(8px);
-      z-index: 999;
-      padding: 16px;
+    /* Besser sichtbar: “Zur Leitstelle” */
+    #btnToLeitstelle{
+      border-color: rgba(0,255,195,0.25);
+      box-shadow: 0 0 0 1px rgba(0,255,195,0.10) inset, 0 14px 32px rgba(0,0,0,0.30);
     }
-    .loginCard{
-      width: 420px; max-width: 100%;
-      border-radius: 18px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.045));
-      box-shadow: var(--shadow);
-      padding: 16px;
-    }
-    .loginTitle{ font-weight:900; letter-spacing:0.3px; margin-bottom:10px; }
-    .loginSub{ color: rgba(255,255,255,0.60); font-size:12px; margin-bottom: 12px; }
-    .msg{ margin-top:10px; font-size:12px; color: rgba(255,255,255,0.75); }
-    .msg.err{ color: rgba(255,120,140,0.95); }
-    .small{ font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 10px; line-height: 1.35; }
-
-    .ghost{ opacity: .35; filter: saturate(0.85); }
-    .chosen{ box-shadow: 0 0 0 1px rgba(0,255,195,0.18) inset, 0 18px 40px rgba(0,0,0,0.45); transform: rotate(0.2deg); }
-    .dragging{ cursor: grabbing !important; }
-
-    .modalOverlay{
-      position:fixed; inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px);
-      z-index: 1000;
-      padding: 16px;
-    }
-    .modal{
-      width: 460px; max-width: 100%;
-      border-radius: 18px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: linear-gradient(180deg, rgba(255,255,255,0.095), rgba(255,255,255,0.045));
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .modalHead{
-      padding: 14px 14px 12px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .modalTitle{ font-weight:900; letter-spacing:0.3px; font-size:13px; }
-    .modalBody{ padding: 14px; }
-    .modalFoot{
-      padding: 12px 14px 14px 14px;
-      border-top: 1px solid rgba(255,255,255,0.10);
-      display:flex; gap:10px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-    }
-    .xBtn{
-      width:34px;height:34px;border-radius:12px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
-      color:#fff; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      transition:.15s;
-    }
-    .xBtn:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-    .modalHint{ color: rgba(255,255,255,0.65); font-size:12px; line-height:1.4; }
-    .dangerText{ color: rgba(255,120,140,0.95); font-weight:800; }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <div class="brand">
-      <div class="pill">LSPD</div>
-      <div>
-        <div class="brandTitle">Verwaltung</div>
-        <div class="brandSub">Abteilungen • Leitung • Mitglieder</div>
+  <!-- ✅ Global Header + Login werden NICHT via layout.js geladen (Verwaltung hat eigenen Login).
+       Wir nutzen aber denselben Look über theme.css -->
+  <header class="topHeader" style="display:flex;">
+    <div class="topHeaderLeft">
+      <div class="badge">LSPD</div>
+      <div class="topHeaderText">
+        <div class="topHeaderTitle">Verwaltung</div>
+        <div class="topHeaderSub">Abteilungen • Leitung • Mitglieder</div>
       </div>
     </div>
 
-    <div class="rightTop">
-      <div class="badge">
+    <div class="topHeaderRight">
+      <span class="pill" title="Rolle">
         <span class="dot warn" id="roleDot"></span>
         <span id="roleText">Nicht angemeldet</span>
-      </div>
+      </span>
 
-      <button class="btn ghost primary" id="btnToLeitstelle">Zur Leitstelle</button>
-      <button class="btn danger" id="btnLogout" style="display:none;">Logout</button>
+      <button class="btn btnGhost btnPrimary" id="btnToLeitstelle" type="button">Zur Leitstelle</button>
+      <button class="btn btnDanger" id="btnLogout" type="button" style="display:none;">Logout</button>
     </div>
-  </div>
+  </header>
 
   <!-- Slot oben links (nur wenn Pool eingeklappt ist) -->
   <div id="poolToggleSlotTopLeft"></div>
 
-  <div class="wrap">
+  <div class="adminApp">
     <!-- Pool -->
-    <div class="panel poolPanel" id="poolPanel">
+    <section class="panel" id="poolPanel">
       <div class="panelHeader">
-        <div class="panelTitle">
-          Officer Pool
-          <span class="pill" id="poolCount">0</span>
+        <div class="brand">
+          <div class="titleWrap">
+            <div class="title">OFFICER POOL</div>
+            <div class="subtitle">Drag & Drop in Abteilungen</div>
+          </div>
         </div>
 
-        <!-- Slot IN der Box (nur wenn Pool offen) -->
-        <div id="poolToggleSlotInPool"></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill" id="poolCount">0</span>
+          <div id="poolToggleSlotInPool"></div>
+        </div>
       </div>
 
-      <div class="panelBody">
+      <div class="content">
         <div class="searchWrap">
           <input id="poolSearch" placeholder="Suchen (Name / Dienstnummer / Rang)"/>
         </div>
         <div id="poolList"></div>
       </div>
-    </div>
+    </section>
 
     <!-- Departments -->
-    <div class="panel" id="deptPanel">
+    <section class="panel" id="deptPanel">
       <div class="panelHeader">
-        <div class="panelTitle">
-          Abteilungen
-          <span class="pill" id="deptCount">0</span>
+        <div class="brand" style="min-width:0;">
+          <div class="titleWrap" style="min-width:0;">
+            <div class="title">ABTEILUNGEN</div>
+            <div class="subtitle">Scrollen mit Mausrad (horizontal)</div>
+          </div>
         </div>
 
-        <button class="btn primary" id="btnCreateDeptTop" style="display:none;">+ Abteilung</button>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill" id="deptCount">0</span>
+          <button class="btn btnPrimary" id="btnCreateDeptTop" type="button" style="display:none;">+ Abteilung</button>
+        </div>
       </div>
 
-      <div class="panelBody" style="padding:0; height: calc(100% - 46px);">
+      <div class="content">
         <div class="deptGrid" id="deptGrid"></div>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Der EINZIGE Toggle-Button (wandert in Slots) -->
@@ -530,65 +330,75 @@
     <div class="arrowTxt" id="poolArrowTxt">&lt;</div>
   </div>
 
-  <!-- Login -->
-  <div class="overlay" id="loginOverlay" style="display:none;">
+  <!-- Login (Theme) -->
+  <div class="loginOverlay" id="loginOverlay" style="display:none;">
     <div class="loginCard">
-      <div class="loginTitle">Login</div>
-      <div class="loginSub">Bitte mit deinem Supabase-Account anmelden.</div>
-
-      <div class="searchWrap" style="margin-bottom:10px;">
-        <input id="loginName" placeholder="Name (z.B. admin)"/>
-      </div>
-      <div class="searchWrap" style="margin-bottom:12px;">
-        <input id="loginPass" type="password" placeholder="Passwort"/>
-      </div>
-
-      <div class="searchWrap">
-        <button class="btn primary" id="btnLogin" style="width:100%;">Einloggen</button>
+      <div class="loginHeader">
+        <div class="brand" style="display:flex; gap:10px; align-items:center; min-width:0;">
+          <div class="badge">LSPD</div>
+          <div class="loginTitleWrap">
+            <div class="loginTitle">LOGIN</div>
+            <div class="loginSub">Bitte mit deinem Supabase-Account anmelden.</div>
+          </div>
+        </div>
       </div>
 
-      <div class="msg" id="loginMsg"></div>
-      <div class="small">
-        E-Mail-Format: <b>name@gta.local</b> (case-insensitive).<br/>
-        (Wenn du bereits im Leitstellenblatt eingeloggt bist, sollte es hier automatisch durchgehen.)
+      <div class="loginBody">
+        <label>Name</label>
+        <input id="loginName" placeholder="Name (z.B. admin)" autocomplete="username"/>
+        <div style="height:10px"></div>
+
+        <label>Passwort</label>
+        <input id="loginPass" type="password" placeholder="Passwort" autocomplete="current-password"/>
+        <div class="loginErr" id="loginMsg">—</div>
+
+        <div style="height:12px"></div>
+        <div class="row">
+          <button class="btn btnPrimary" id="btnLogin" style="width:100%;" type="button">Einloggen</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px; line-height:1.35;">
+          E-Mail-Format: <b>name@gta.local</b> (case-insensitive).<br/>
+          (Wenn du bereits im Leitstellenblatt eingeloggt bist, sollte es hier automatisch durchgehen.)
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Create Department -->
-  <div class="modalOverlay" id="modalCreateDept">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modalHead">
+  <!-- Modal Create Department (Theme) -->
+  <div class="modalOverlay" id="modalCreateDept" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true">
+      <div class="modalHeader">
         <div class="modalTitle">Neue Abteilung</div>
-        <button class="xBtn" id="closeCreateDept" title="Schließen">✕</button>
+        <div class="modalCloseX" id="closeCreateDept" title="Schließen">✕</div>
       </div>
       <div class="modalBody">
-        <div class="modalHint" style="margin-bottom:10px;">Name der Abteilung eingeben.</div>
+        <div class="muted" style="margin-bottom:10px;">Name der Abteilung eingeben.</div>
         <input id="createDeptName" placeholder="z.B. SWAT, Detectives, K9 Unit ..."/>
       </div>
-      <div class="modalFoot">
-        <button class="btn ghost" id="cancelCreateDept">Abbrechen</button>
-        <button class="btn primary" id="confirmCreateDept">Erstellen</button>
+      <div class="modalFooter">
+        <button class="btn btnGhost" id="cancelCreateDept" type="button">Abbrechen</button>
+        <button class="btn btnPrimary" id="confirmCreateDept" type="button">Erstellen</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Delete Department -->
-  <div class="modalOverlay" id="modalDeleteDept">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modalHead">
+  <!-- Modal Delete Department (Theme) -->
+  <div class="modalOverlay" id="modalDeleteDept" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true">
+      <div class="modalHeader">
         <div class="modalTitle">Abteilung löschen</div>
-        <button class="xBtn" id="closeDeleteDept" title="Schließen">✕</button>
+        <div class="modalCloseX" id="closeDeleteDept" title="Schließen">✕</div>
       </div>
       <div class="modalBody">
-        <div class="modalHint">
-          Willst du die Abteilung <span class="dangerText" id="delDeptName">—</span> wirklich löschen?<br/>
+        <div class="muted" style="line-height:1.4;">
+          Willst du die Abteilung <b id="delDeptName">—</b> wirklich löschen?<br/>
           Memberships werden entfernt (Officer bleiben im Pool).
         </div>
       </div>
-      <div class="modalFoot">
-        <button class="btn ghost" id="cancelDeleteDept">Abbrechen</button>
-        <button class="btn danger" id="confirmDeleteDept">Löschen</button>
+      <div class="modalFooter">
+        <button class="btn btnGhost" id="cancelDeleteDept" type="button">Abbrechen</button>
+        <button class="btn btnDanger" id="confirmDeleteDept" type="button">Löschen</button>
       </div>
     </div>
   </div>
@@ -695,7 +505,7 @@
         (userRole === "officer") ? "Officer" : "User";
 
       roleText.textContent = label;
-      roleDot.className = (userRole === "admin") ? "dot ok" : "dot";
+      roleDot.className = (userRole === "admin") ? "dot on" : "dot";
       btnCreateDeptTop.style.display = isAdmin() ? "inline-flex" : "none";
     }
 
@@ -808,17 +618,14 @@
       const leaderIdStr = idToStr(d.leader_officer_id);
       const deputyIdStr = idToStr(d.deputy_leader_officer_id);
 
-      // Mitglieder-IDs
       const memberOfficerIds = memberships
         .filter(m => idToStr(m.department_id) === deptIdStr)
         .map(m => idToStr(m.officer_id));
 
-      // Mitglieder holen
       const membersRaw = officers
         .filter(o => memberOfficerIds.includes(idToStr(o.id)))
         .slice();
 
-      // Sortierung: Leiter immer oben, Stv direkt darunter, Rest nach DN
       const members = membersRaw.sort((a,b) => {
         const aId = idToStr(a.id);
         const bId = idToStr(b.id);
@@ -836,7 +643,6 @@
 
       const leader = leaderIdStr ? officers.find(o => idToStr(o.id) === leaderIdStr) : null;
 
-      // Leitung/Stv NUR aus Mitgliedern auswählbar
       const officerOptions = members
         .slice()
         .sort((a,b) => parseDN(getDienstnummer(a)) - parseDN(getDienstnummer(b)) || String(a.name||"").localeCompare(String(b.name||"")))
@@ -858,24 +664,24 @@
       ].join("").replace('selected selected','selected');
 
       return `
-        <div class="dept" data-dept-id="${escapeHtml(deptIdStr)}">
+        <div class="dept card" data-dept-id="${escapeHtml(deptIdStr)}">
           <div class="deptHead">
             <div style="min-width:0;">
               <div class="deptName" title="${name}">${name}</div>
               <div class="deptSub">
-                <span class="pill" style="padding:4px 8px;border-radius:999px;">Mitglieder: ${members.length}</span>
+                <span class="pill" style="padding:4px 8px;">Mitglieder: ${members.length}</span>
                 ${
                   leader
-                    ? `<span class="pill" style="padding:4px 8px;border-radius:999px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
-                    : `<span class="pill" style="padding:4px 8px;border-radius:999px;opacity:.75;">Leitung: —</span>`
+                    ? `<span class="pill" style="padding:4px 8px;border-color:rgba(255,200,0,0.22);">Leitung: ${escapeHtml(leader.name||"")}</span>`
+                    : `<span class="pill" style="padding:4px 8px;opacity:.75;">Leitung: —</span>`
                 }
               </div>
             </div>
 
-            <div class="deptActions">
+            <div style="display:flex; gap:8px; align-items:center;">
               ${isAdmin() ? `
-                <div class="delWrap">
-                  <button class="iconBtn danger" title="Abteilung löschen" data-action="delete-dept">✕</button>
+                <div style="opacity:0; pointer-events:none; transition:.15s;" class="delWrap">
+                  <button class="btn btnDanger" style="padding:8px 10px;" title="Abteilung löschen" data-action="delete-dept" type="button">✕</button>
                 </div>
               ` : ``}
             </div>
@@ -931,16 +737,28 @@
       deptGrid.innerHTML = sortedDepts.map(d => deptHTML(d)).join("");
       deptCount.textContent = String(sortedDepts.length);
 
+      // Hover delete wrapper sichtbar nur on hover (wie vorher)
+      deptGrid.querySelectorAll(".dept").forEach(el=>{
+        const w = el.querySelector(".delWrap");
+        if(!w) return;
+        el.addEventListener("mouseenter", ()=>{ w.style.opacity="1"; w.style.pointerEvents="auto"; });
+        el.addEventListener("mouseleave", ()=>{ w.style.opacity="0"; w.style.pointerEvents="none"; });
+      });
+
       wireDeptActions();
       initSortable();
     }
 
     function openModal(el){
       el.style.display = "flex";
+      el.setAttribute("aria-hidden","false");
       const inp = el.querySelector("input");
       if(inp) setTimeout(() => inp.focus(), 50);
     }
-    function closeModal(el){ el.style.display = "none"; }
+    function closeModal(el){
+      el.style.display = "none";
+      el.setAttribute("aria-hidden","true");
+    }
     function overlayCloseOnClick(e, modalEl){ if(e.target === modalEl) closeModal(modalEl); }
 
     function wireDeptActions(){
@@ -1214,7 +1032,7 @@
     // Pool toggle click
     poolToggleBtn.addEventListener("click", () => {
       document.body.classList.toggle("poolClosed");
-      mountPoolToggle(); // wandert zwischen Slots
+      mountPoolToggle();
     });
 
     poolSearch.addEventListener("input", () => renderAll());
@@ -1237,20 +1055,20 @@
 
     async function doLogin(){
       loginMsg.textContent = "";
-      loginMsg.className = "msg";
+      loginMsg.style.display = "none";
 
       const email = normalizeNameToEmail(loginName.value);
       const password = loginPass.value || "";
       if(!email || !password){
         loginMsg.textContent = "Bitte Name und Passwort eingeben.";
-        loginMsg.className = "msg err";
+        loginMsg.style.display = "block";
         return;
       }
 
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if(error){
         loginMsg.textContent = "Falscher Name/Passwort";
-        loginMsg.className = "msg err";
+        loginMsg.style.display = "block";
         return;
       }
 
