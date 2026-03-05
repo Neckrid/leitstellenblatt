@@ -522,6 +522,16 @@
       else arr.push(row);
     }
 
+    /* ✅ FIX helper: merge statt replace (nur für Realtime) */
+    function upsertLocalMerge(arr, row){
+      const i = arr.findIndex(x => x.id === row.id);
+      if(i >= 0){
+        arr[i] = { ...arr[i], ...row }; // <- fehlende Felder bleiben erhalten
+      }else{
+        arr.push(row);
+      }
+    }
+
     function dnNum(v){
       const s = (v ?? "").toString().trim();
       if(!s) return Number.POSITIVE_INFINITY;
@@ -1502,13 +1512,25 @@
               officers = officers.filter(o => o.id !== id);
               if(selectedOfficerId === id) selectedOfficerId = null;
             }else{
+              /* ✅ FIX: merge statt replace, damit patrol_id nie "weg-überschrieben" wird */
               const row = payload.new || {};
-              const patched = {
+              const existing = officers.find(o => o.id === row.id) || {};
+
+              const rankName = (row.rank ?? existing.rank ?? "Officer");
+              const merged = {
+                ...existing,
                 ...row,
-                rank: row.rank || "Officer",
-                rank_abbr: row.rank_abbr || getRankAbbrByName(row.rank || "Officer")
+                rank: rankName,
+                rank_abbr: (row.rank_abbr ?? existing.rank_abbr ?? getRankAbbrByName(rankName))
               };
-              upsertLocal(officers, patched);
+
+              // patrol_id normalisieren (falls bigint/string) – aber null/undefined respektieren
+              if(merged.patrol_id !== null && merged.patrol_id !== undefined){
+                const n = Number(merged.patrol_id);
+                merged.patrol_id = Number.isFinite(n) ? n : merged.patrol_id;
+              }
+
+              upsertLocalMerge(officers, merged);
             }
           });
         })
